@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: synthetic_backend_fastapi
+    ports:
+      - "8000:8000"
+    networks:
+      - synthetic_net
+
+  frontend:
+    build: ./frontend
+    container_name: synthetic_frontend_ts
+    ports:
+      - "3000:80"
+    networks:
+      - synthetic_net
+
+networks:
+  synthetic_net:
+    driver: bridge
