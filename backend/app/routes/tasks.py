@@ -107,10 +107,7 @@ def delete_task(task_id: str, request: Request, current_user: dict = Depends(get
         if not data_manager.board_service.check_user_board_access(current_user["id"], task_list["board_id"], current_user["role"]):
             raise HTTPException(status_code=403, detail="Access denied to this board")
         
-        success = data_manager.task_service.delete_task(task_id, current_user["id"])
-        if not success:
-            raise HTTPException(status_code=404, detail="Task not found")
-        
+        data_manager.task_service.delete_task(task_id, current_user["id"])
         log_action(request, "TASK_DELETE", {
             "taskId": task_id,
             "deletedBy": current_user["id"]
