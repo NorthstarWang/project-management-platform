@@ -2,15 +2,17 @@ from typing import Dict, Any, List, Optional
 from ..repositories.task_repository import TaskRepository
 from ..repositories.board_repository import BoardRepository
 from ..repositories.user_repository import UserRepository
+from ..repositories.project_repository import ProjectRepository
 
 class TaskService:
     """Service for task-related business logic"""
     
     def __init__(self, task_repository: TaskRepository, board_repository: BoardRepository, 
-                 user_repository: UserRepository):
+                 user_repository: UserRepository, project_repository: ProjectRepository):
         self.task_repository = task_repository
         self.board_repository = board_repository
         self.user_repository = user_repository
+        self.project_repository = project_repository
     
     def create_task(self, title: str, description: str, list_id: str, created_by: str,
                    assignee_id: Optional[str] = None, priority: str = "medium", 
@@ -97,7 +99,7 @@ class TaskService:
         
         return updated_task
     
-    def move_task(self, task_id: str, new_list_id: str, moved_by: str, position: Optional[int] = None) -> bool:
+    def move_task(self, task_id: str, new_list_id: str, moved_by: str, position: Optional[int] = None) -> Dict[str, Any]:
         """Move a task to a different list"""
         task = self.task_repository.find_by_id(task_id)
         if not task:
@@ -128,9 +130,13 @@ class TaskService:
                 new_value=new_list["name"]
             )
         
-        return success
+        if not success:
+            raise ValueError("Failed to move task")
+        
+        # Return the updated task
+        return self.task_repository.find_by_id(task_id)
     
-    def archive_task(self, task_id: str, archived_by: str) -> bool:
+    def archive_task(self, task_id: str, archived_by: str) -> Dict[str, Any]:
         """Archive a task"""
         success = self.task_repository.archive_task(task_id)
         if success:
@@ -140,9 +146,12 @@ class TaskService:
                 activity_type="archived",
                 description="Archived task"
             )
-        return success
+            # Return the updated task
+            return self.task_repository.find_by_id(task_id)
+        else:
+            raise ValueError(f"Task with ID '{task_id}' not found")
     
-    def unarchive_task(self, task_id: str, unarchived_by: str) -> bool:
+    def unarchive_task(self, task_id: str, unarchived_by: str) -> Dict[str, Any]:
         """Unarchive a task"""
         success = self.task_repository.unarchive_task(task_id)
         if success:
@@ -152,7 +161,35 @@ class TaskService:
                 activity_type="updated",
                 description="Unarchived task"
             )
-        return success
+            # Return the updated task
+            return self.task_repository.find_by_id(task_id)
+        else:
+            raise ValueError(f"Task with ID '{task_id}' not found")
+    
+    def delete_task(self, task_id: str, deleted_by: str) -> Dict[str, Any]:
+        """Delete a task"""
+        task = self.task_repository.find_by_id(task_id)
+        if not task:
+            raise ValueError(f"Task with ID '{task_id}' not found")
+        
+        # Store task data before deletion for return
+        deleted_task = task.copy()
+        
+        # Create deletion activity before deleting
+        self.create_task_activity(
+            task_id=task_id,
+            user_id=deleted_by,
+            activity_type="deleted",
+            description=f"Deleted task '{task['title']}'"
+        )
+        
+        # Delete the task
+        success = self.task_repository.delete_by_id(task_id)
+        if not success:
+            raise ValueError(f"Failed to delete task with ID '{task_id}'")
+        
+        # Return the deleted task data
+        return deleted_task
     
     def get_task_with_details(self, task_id: str) -> Dict[str, Any]:
         """Get task with comments and activities"""
@@ -179,10 +216,20 @@ class TaskService:
     
     def get_user_assigned_tasks(self, user_id: str) -> List[Dict[str, Any]]:
         """Get all active tasks assigned to a user"""
+        # Verify user exists
+        user = self.user_repository.find_by_id(user_id)
+        if not user:
+            raise ValueError(f"User with ID '{user_id}' not found")
+        
         return self.task_repository.find_active_tasks_by_assignee(user_id)
     
     def search_tasks_in_board(self, board_id: str, query: str) -> List[Dict[str, Any]]:
         """Search tasks within a board"""
+        # Verify board exists
+        board = self.board_repository.find_by_id(board_id)
+        if not board:
+            raise ValueError(f"Board with ID '{board_id}' not found")
+        
         # Get board lists
         board_lists = self.board_repository.find_board_lists(board_id)
         list_ids = [l["id"] for l in board_lists]
@@ -191,6 +238,11 @@ class TaskService:
     
     def search_tasks_in_project(self, project_id: str, query: str) -> List[Dict[str, Any]]:
         """Search tasks within a project"""
+        # Verify project exists
+        project = self.project_repository.find_by_id(project_id)
+        if not project:
+            raise ValueError(f"Project with ID '{project_id}' not found")
+        
         # Get project boards
         project_boards = self.board_repository.find_boards_by_project(project_id)
         
