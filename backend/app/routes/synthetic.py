@@ -27,7 +27,10 @@ def new_session(seed: Optional[str] = None):
     return {"session_id": session_id}
 
 @router.post("/log_event")
-def log_event(event: Dict[str, Any], session_id: str):
+def log_event(
+    event: Dict[str, Any] = Body(...), 
+    session_id: str = Query(None)
+):
     """Log a custom event"""
     action_type = event.get("actionType", "CUSTOM_EVENT")
     payload = event.get("payload", {})
