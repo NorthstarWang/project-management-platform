@@ -166,11 +166,14 @@ class TaskService:
         else:
             raise ValueError(f"Task with ID '{task_id}' not found")
     
-    def delete_task(self, task_id: str, deleted_by: str) -> bool:
+    def delete_task(self, task_id: str, deleted_by: str) -> Dict[str, Any]:
         """Delete a task"""
         task = self.task_repository.find_by_id(task_id)
         if not task:
             raise ValueError(f"Task with ID '{task_id}' not found")
+        
+        # Store task data before deletion for return
+        deleted_task = task.copy()
         
         # Create deletion activity before deleting
         self.create_task_activity(
@@ -182,7 +185,11 @@ class TaskService:
         
         # Delete the task
         success = self.task_repository.delete_by_id(task_id)
-        return success
+        if not success:
+            raise ValueError(f"Failed to delete task with ID '{task_id}'")
+        
+        # Return the deleted task data
+        return deleted_task
     
     def get_task_with_details(self, task_id: str) -> Dict[str, Any]:
         """Get task with comments and activities"""

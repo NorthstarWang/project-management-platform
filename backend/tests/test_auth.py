@@ -107,10 +107,13 @@ class AuthenticationTest(BaseAPITest):
             "role": "member"
         }
         response = self.make_request("POST", "/api/login", data=invalid_login)
-        # Should fail with 401 or 400, but currently returns 500 due to server error
-        # For now, accept 500 as a valid failure until the server is fixed
-        success = response is not None and response.status_code in [400, 401, 500]
-        self.log_test("POST /api/login (invalid)", success, "Correctly rejected invalid credentials", response)
+        
+        # Should fail with 401 or 400; 500 indicates a server-side issue
+        if response and response.status_code == 500:
+            self.log_test("POST /api/login (invalid)", False, "Server error occurred (500) during invalid login test", response)
+        else:
+            success = response is not None and response.status_code in [400, 401]
+            self.log_test("POST /api/login (invalid)", success, "Correctly rejected invalid credentials", response)
     
     def test_duplicate_registration(self):
         """Test registration with existing username"""
