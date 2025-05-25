@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import synthetic, notes
+from .routes import synthetic, projects
 from .logger import LogMiddleware
-from .state_manager import state_manager
+from .data_manager import data_manager
 
-app = FastAPI(title="Synthetic Notes App (FastAPI)")
+app = FastAPI(title="Project Management Platform (FastAPI)")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,12 +19,12 @@ app.middleware("http")(LogMiddleware())
 
 # Routers
 app.include_router(synthetic.router, prefix="/_synthetic", tags=["synthetic"])
-app.include_router(notes.router, prefix="/api", tags=["notes"])
+app.include_router(projects.router, prefix="/api", tags=["projects"])
 
 @app.get("/")
 def read_root():
-    return {"message": "Notes App Backend is running."}
+    return {"message": "Project Management Platform Backend is running."}
 
 @app.on_event("startup")
 def startup_event():
-    state_manager.reset()
+    data_manager.reset()
