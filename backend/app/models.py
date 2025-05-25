@@ -1,9 +1,2 @@
-from pydantic import BaseModel
-
-class UserIn(BaseModel):
-    username: str
-    password: str
-
-class NoteIn(BaseModel):
-    title: str
-    content: str
+# Import all models from the modular structure for backward compatibility
+from .models import * 
