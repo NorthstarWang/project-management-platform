@@ -45,7 +45,7 @@ class DataManager:
             self.board_repository, self.project_repository, self.user_repository
         )
         self.task_service = TaskService(
-            self.task_repository, self.board_repository, self.user_repository
+            self.task_repository, self.board_repository, self.user_repository, self.project_repository
         )
         self.notification_service = NotificationService(
             self.notification_repository, self.user_repository

@@ -97,6 +97,10 @@ class CommentService:
         
         return threaded_comments
     
+    def get_task_comments_with_replies(self, task_id: str) -> List[Dict[str, Any]]:
+        """Get comments for a task with replies (alias for threaded comments)"""
+        return self.get_task_comments_threaded(task_id)
+    
     def get_comment_replies(self, parent_comment_id: str) -> List[Dict[str, Any]]:
         """Get all replies to a specific comment"""
         replies = self.comment_repository.find_comment_replies(parent_comment_id)
