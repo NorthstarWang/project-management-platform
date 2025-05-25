@@ -1,11 +1,24 @@
 #!/usr/bin/env python3
 """
 Authentication API Test Suite
-Tests user registration, login, and authentication-related endpoints
+Tests user registration, login, and authentication endpoints
 """
 
 import time
+import sys
+import os
 from base_test import BaseAPITest
+
+# Add the parent directory to the path so we can import from app.config
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    from app.config import APIRoutes
+except ImportError:
+    # Fallback if import fails
+    class APIRoutes:
+        AUTH_REGISTER = "/api/register"
+        AUTH_LOGIN = "/api/login"
 
 
 class AuthenticationTest(BaseAPITest):
@@ -16,7 +29,7 @@ class AuthenticationTest(BaseAPITest):
         print("🔐 TESTING AUTHENTICATION")
         print("-" * 30)
         
-        # Setup session first
+        # Setup session
         if not self.setup_session():
             print("❌ Failed to setup session")
             return
@@ -39,7 +52,7 @@ class AuthenticationTest(BaseAPITest):
             "full_name": "Test User",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/register", data=user_data)
+        response = self.make_request("POST", APIRoutes.AUTH_REGISTER, data=user_data)
         if response and response.status_code == 200:
             self.test_users["new_user"] = response.json()
             self.log_test("POST /api/register", True, f"Created user: {user_data['username']}")
@@ -55,7 +68,7 @@ class AuthenticationTest(BaseAPITest):
             "full_name": "",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/login", data=login_data)
+        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=login_data)
         if response and response.status_code == 200:
             user_data = response.json()
             self.test_users["admin"] = user_data
@@ -72,7 +85,7 @@ class AuthenticationTest(BaseAPITest):
             "full_name": "",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/login", data=manager_login)
+        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=manager_login)
         if response and response.status_code == 200:
             user_data = response.json()
             self.test_users["manager"] = user_data
@@ -89,7 +102,7 @@ class AuthenticationTest(BaseAPITest):
             "full_name": "",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/login", data=member_login)
+        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=member_login)
         if response and response.status_code == 200:
             user_data = response.json()
             self.test_users["member"] = user_data
@@ -106,7 +119,7 @@ class AuthenticationTest(BaseAPITest):
             "full_name": "",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/login", data=invalid_login)
+        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=invalid_login)
         
         # Should fail with 401 or 400; 500 indicates a server-side issue
         if response and response.status_code == 500:
@@ -124,7 +137,7 @@ class AuthenticationTest(BaseAPITest):
             "full_name": "Duplicate User",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/register", data=duplicate_user)
+        response = self.make_request("POST", APIRoutes.AUTH_REGISTER, data=duplicate_user)
         # Should fail with 400 or 409
         success = response is not None and response.status_code in [400, 409]
         self.log_test("POST /api/register (duplicate)", success, "Correctly rejected duplicate username", response)

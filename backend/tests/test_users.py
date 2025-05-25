@@ -4,8 +4,24 @@ User Management API Test Suite
 Tests user-related endpoints including user info and assigned tasks
 """
 
+import json
+import sys
+import os
 from base_test import BaseAPITest
 import requests
+
+# Add the parent directory to the path so we can import from app.config
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    from app.config import APIRoutes
+except ImportError:
+    # Fallback if import fails
+    class APIRoutes:
+        USERS_LIST = "/api/users"
+        USERS_ME = "/api/users/me"
+        USERS_ASSIGNED_TASKS = "/api/users/{user_id}/assigned_tasks"
+        TASKS_CREATE = "/api/tasks"
 
 
 class UserManagementTest(BaseAPITest):
@@ -33,10 +49,10 @@ class UserManagementTest(BaseAPITest):
             
         admin_headers = self.get_admin_headers()
         print(f"    Admin headers: {admin_headers}")
-        print(f"    Making request to: {self.base_url}/api/users")
+        print(f"    Making request to: {self.base_url}{APIRoutes.USERS_LIST}")
         
         # Make request without automatic session_id addition
-        url = f"{self.base_url}/api/users"
+        url = f"{self.base_url}{APIRoutes.USERS_LIST}"
         try:
             response = requests.get(url, headers=admin_headers)
             print(f"    Response status: {response.status_code}")
@@ -61,7 +77,7 @@ class UserManagementTest(BaseAPITest):
         member_headers = self.get_member_headers()
         
         # Make request without automatic session_id addition
-        url = f"{self.base_url}/api/users"
+        url = f"{self.base_url}{APIRoutes.USERS_LIST}"
         try:
             response = requests.get(url, headers=member_headers)
         except Exception as e:
@@ -80,7 +96,7 @@ class UserManagementTest(BaseAPITest):
         admin_headers = self.get_admin_headers()
         
         # Make request without automatic session_id addition
-        url = f"{self.base_url}/api/users/me"
+        url = f"{self.base_url}{APIRoutes.USERS_ME}"
         try:
             response = requests.get(url, headers=admin_headers)
         except Exception as e:
@@ -116,11 +132,11 @@ class UserManagementTest(BaseAPITest):
                         "assignee_id": self.test_users["admin"]["id"],
                         "priority": "medium"
                     }
-                    self.make_request("POST", "/api/tasks", data=task_data, headers=admin_headers)
+                    self.make_request("POST", APIRoutes.TASKS_CREATE, data=task_data, headers=admin_headers)
         
         # Get assigned tasks without automatic session_id addition
         user_id = self.test_users["admin"]["id"]
-        url = f"{self.base_url}/api/users/{user_id}/assigned_tasks"
+        url = f"{self.base_url}{APIRoutes.USERS_ASSIGNED_TASKS.format(user_id=user_id)}"
         try:
             response = requests.get(url, headers=admin_headers)
         except Exception as e:
@@ -141,7 +157,7 @@ class UserManagementTest(BaseAPITest):
         admin_headers = self.get_admin_headers()
         
         # Make request without automatic session_id addition
-        url = f"{self.base_url}/api/users/nonexistent_id/assigned_tasks"
+        url = f"{self.base_url}{APIRoutes.USERS_ASSIGNED_TASKS.format(user_id='nonexistent_id')}"
         try:
             response = requests.get(url, headers=admin_headers)
         except Exception as e:
@@ -153,7 +169,7 @@ class UserManagementTest(BaseAPITest):
             try:
                 data = response.json()
                 success = len(data) == 0  # Empty array is acceptable
-            except:
+            except (ValueError, json.JSONDecodeError):
                 success = False
         else:
             success = response is not None and response.status_code == 404

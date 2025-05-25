@@ -5,7 +5,25 @@ Tests all /_synthetic/* endpoints for environment control and observability
 """
 
 import os
+import sys
 from base_test import BaseAPITest
+
+# Add the parent directory to the path so we can import from app.config
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    from app.config import APIRoutes
+except ImportError:
+    # Fallback if import fails
+    class APIRoutes:
+        SYNTHETIC_NEW_SESSION = "/_synthetic/new_session"
+        SYNTHETIC_STATE = "/_synthetic/state"
+        SYNTHETIC_LOG_EVENT = "/_synthetic/log_event"
+        SYNTHETIC_LOGS = "/_synthetic/logs"
+        SYNTHETIC_VERIFY_TASK = "/_synthetic/verify_task"
+        SYNTHETIC_RESET = "/_synthetic/reset"
+        SYNTHETIC_AUGMENT_STATE = "/_synthetic/augment_state"
+        SYNTHETIC_SET_STATE = "/_synthetic/set_state"
 
 
 class SyntheticAPITest(BaseAPITest):
@@ -29,7 +47,7 @@ class SyntheticAPITest(BaseAPITest):
     
     def test_new_session(self):
         """Test session initialization"""
-        response = self.make_request("POST", "/_synthetic/new_session", params={"seed": "test123"})
+        response = self.make_request("POST", APIRoutes.SYNTHETIC_NEW_SESSION, params={"seed": "test123"})
         if response and response.status_code == 200:
             data = response.json()
             self.session_id = data.get("session_id")
@@ -39,7 +57,7 @@ class SyntheticAPITest(BaseAPITest):
     
     def test_get_state(self):
         """Test getting backend state"""
-        response = self.make_request("GET", "/_synthetic/state")
+        response = self.make_request("GET", APIRoutes.SYNTHETIC_STATE)
         if response and response.status_code == 200:
             state = response.json()
             self.log_test("GET /_synthetic/state", True, f"Users: {len(state.get('users', []))}")
@@ -55,13 +73,13 @@ class SyntheticAPITest(BaseAPITest):
             "actionType": "test_action",
             "payload": {"test": "data", "page_url": f"{frontend_url}/test"}
         }
-        response = self.make_request("POST", "/_synthetic/log_event", data=event_data)
+        response = self.make_request("POST", APIRoutes.SYNTHETIC_LOG_EVENT, data=event_data)
         success = response and response.status_code == 200
         self.log_test("POST /_synthetic/log_event", success, "Custom event logged", response)
     
     def test_get_logs(self):
         """Test retrieving logs"""
-        response = self.make_request("GET", "/_synthetic/logs")
+        response = self.make_request("GET", APIRoutes.SYNTHETIC_LOGS)
         if response and response.status_code == 200:
             logs = response.json()
             self.log_test("GET /_synthetic/logs", True, f"Retrieved {len(logs)} log entries")
@@ -75,10 +93,10 @@ class SyntheticAPITest(BaseAPITest):
             "actionType": "TASK_DONE",
             "payload": {"taskName": "test_task"}
         }
-        self.make_request("POST", "/_synthetic/log_event", data=task_event)
+        self.make_request("POST", APIRoutes.SYNTHETIC_LOG_EVENT, data=task_event)
         
         # Then verify the task
-        response = self.make_request("GET", "/_synthetic/verify_task", params={"task_name": "test_task"})
+        response = self.make_request("GET", APIRoutes.SYNTHETIC_VERIFY_TASK, params={"task_name": "test_task"})
         if response and response.status_code == 200:
             result = response.json()
             success = result.get("success", False)
@@ -88,7 +106,7 @@ class SyntheticAPITest(BaseAPITest):
     
     def test_reset_environment(self):
         """Test environment reset"""
-        response = self.make_request("POST", "/_synthetic/reset", params={"seed": "test456"})
+        response = self.make_request("POST", APIRoutes.SYNTHETIC_RESET, params={"seed": "test456"})
         if response and response.status_code == 200:
             result = response.json()
             self.log_test("POST /_synthetic/reset", True, f"Reset with seed: {result.get('seed')}")
@@ -101,7 +119,7 @@ class SyntheticAPITest(BaseAPITest):
             "test_property": "test_value",
             "custom_data": {"nested": "value"}
         }
-        response = self.make_request("POST", "/_synthetic/augment_state", data=augment_data)
+        response = self.make_request("POST", APIRoutes.SYNTHETIC_AUGMENT_STATE, data=augment_data)
         if response and response.status_code == 200:
             self.log_test("POST /_synthetic/augment_state", True, "State augmented successfully")
         else:
@@ -114,14 +132,14 @@ class SyntheticAPITest(BaseAPITest):
             "projects": [],
             "custom_message": "State completely overwritten"
         }
-        response = self.make_request("POST", "/_synthetic/set_state", data=set_data)
+        response = self.make_request("POST", APIRoutes.SYNTHETIC_SET_STATE, data=set_data)
         if response and response.status_code == 200:
             self.log_test("POST /_synthetic/set_state", True, "State overwritten successfully")
         else:
             self.log_test("POST /_synthetic/set_state", False, "Failed to set state", response)
         
         # Reset to fresh state for other tests
-        self.make_request("POST", "/_synthetic/reset", params={"seed": "test123"})
+        self.make_request("POST", APIRoutes.SYNTHETIC_RESET, params={"seed": "test123"})
 
 
 def main():
