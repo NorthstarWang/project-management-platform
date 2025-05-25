@@ -98,7 +98,11 @@ class CommentService:
         return threaded_comments
     
     def get_task_comments_with_replies(self, task_id: str) -> List[Dict[str, Any]]:
-        """Get comments for a task with replies (alias for threaded comments)"""
+        """Get comments for a task with replies.
+        
+        This method is an alias for `get_task_comments_threaded` and provides the same functionality.
+        It is included for consistency and to support alternative naming conventions.
+        """
         return self.get_task_comments_threaded(task_id)
     
     def get_comment_replies(self, parent_comment_id: str) -> List[Dict[str, Any]]:
