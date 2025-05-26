@@ -1,351 +1,239 @@
 #!/usr/bin/env python3
 """
-Base Test Class for Project Management Platform API Tests
-Contains shared functionality for all route-specific test files
+Base Test Class for API Testing
+Provides shared functionality for all test suites
 """
 
-import requests
 import json
-import time
 import os
-import sys
-from typing import Dict, Any, Optional, List
-
-# Add the parent directory to the path so we can import from app.config
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-try:
-    from app.config import APIRoutes
-except ImportError:
-    # Fallback if import fails - define basic routes locally
-    class APIRoutes:
-        AUTH_LOGIN = "/api/login"
-        PROJECTS_CREATE = "/api/projects"
-        BOARDS_CREATE = "/api/boards"
-        LISTS_CREATE = "/api/lists"
-        TASKS_CREATE = "/api/tasks"
-        SYNTHETIC_NEW_SESSION = "/_synthetic/new_session"
-        SYNTHETIC_RESET = "/_synthetic/reset"
-        SYNTHETIC_STATE = "/_synthetic/state"
+import requests
+import time
+from test_config import APIRoutes
 
 
 class BaseAPITest:
-    """Base class for API tests with common functionality"""
+    """Base class for API testing with shared functionality"""
     
-    def __init__(self, base_url: str = None):
-        # Use environment variable or fallback to localhost for local development
-        if base_url is None:
-            base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
-        
-        self.base_url = base_url
+    def __init__(self):
+        # Get base URL from environment or use default
+        self.base_url = os.getenv('API_BASE_URL', 'http://localhost:8000')
         self.session_id = None
+        self.test_results = []
         self.test_users = {}
         self.test_data = {}
-        self.created_resources = {
-            "projects": [],
-            "boards": [],
-            "lists": [],
-            "tasks": [],
-            "comments": [],
-            "users": []
-        }
-        self.test_results = {
-            "passed": 0,
-            "failed": 0,
-            "errors": []
-        }
-    
-    def log_test(self, test_name: str, success: bool, details: str = "", response: Optional[requests.Response] = None):
-        """Log test results"""
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status} {test_name}")
-        if details:
-            print(f"    {details}")
         
-        # Print response details for failed tests
-        if not success and response:
-            print(f"    Status Code: {response.status_code}")
-            try:
-                print(f"    Response: {response.json()}")
-            except (ValueError, json.JSONDecodeError):
-                print(f"    Response Text: {response.text}")
-        
-        if success:
-            self.test_results["passed"] += 1
-        else:
-            self.test_results["failed"] += 1
-            self.test_results["errors"].append(f"{test_name}: {details}")
+        # Print environment info
+        print(f"🌐 Testing against: {self.base_url}")
+        print(f"📁 Working directory: {os.getcwd()}")
+        print()
     
-    def make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, 
-                    headers: Optional[Dict] = None, params: Optional[Dict] = None) -> requests.Response:
-        """Make HTTP request with proper error handling"""
+    def setup_session(self):
+        """Initialize a new session for testing"""
+        try:
+            response = requests.post(f"{self.base_url}{APIRoutes.SYNTHETIC_NEW_SESSION}?seed=test123", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                self.session_id = data.get('session_id')
+                print(f"✅ Session initialized: {self.session_id}")
+                return True
+            else:
+                print(f"❌ Failed to initialize session: {response.status_code}")
+                return False
+        except Exception as e:
+            print(f"❌ Session setup error: {e}")
+            return False
+    
+    def make_request(self, method, endpoint, data=None, headers=None, params=None):
+        """Make HTTP request with error handling"""
         url = f"{self.base_url}{endpoint}"
         
-        # Add session_id to params if available
-        if self.session_id and params is None:
-            params = {"session_id": self.session_id}
-        elif self.session_id and params:
-            params["session_id"] = self.session_id
+        # Add session_id to params only for synthetic endpoints
+        if self.session_id and endpoint.startswith('/_synthetic'):
+            if params is None:
+                params = {}
+            params['session_id'] = self.session_id
         
         try:
-            if method.upper() == "GET":
-                response = requests.get(url, params=params, headers=headers)
-            elif method.upper() == "POST":
-                response = requests.post(url, json=data, params=params, headers=headers)
-            elif method.upper() == "PUT":
-                response = requests.put(url, json=data, params=params, headers=headers)
-            elif method.upper() == "DELETE":
-                response = requests.delete(url, params=params, headers=headers)
+            if method == "GET":
+                response = requests.get(url, headers=headers, params=params, timeout=10)
+            elif method == "POST":
+                response = requests.post(url, json=data, headers=headers, params=params, timeout=10)
+            elif method == "PUT":
+                response = requests.put(url, json=data, headers=headers, params=params, timeout=10)
+            elif method == "DELETE":
+                response = requests.delete(url, headers=headers, params=params, timeout=10)
             else:
+                print(f"❌ Unsupported method: {method}")
                 return None
             
             return response
-        except Exception as e:
-            print(f"Request error for {method} {url}: {e}")
-            import traceback
-            traceback.print_exc()
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Request failed: {e}")
             return None
     
-    def setup_session(self, seed: str = None):
-        """Initialize a new session for testing with proper isolation"""
-        # Use a unique seed for each test run to ensure isolation
-        if seed is None:
-            seed = f"test_{int(time.time())}_{id(self)}"
+    def log_test(self, test_name, success, message, response=None):
+        """Log test result"""
+        status = "✅" if success else "❌"
+        print(f"{status} {test_name}: {message}")
         
-        response = self.make_request("POST", APIRoutes.SYNTHETIC_NEW_SESSION, params={"seed": seed})
-        if response and response.status_code == 200:
-            data = response.json()
-            self.session_id = data.get("session_id")
-            return True
-        return False
+        if response and not success:
+            print(f"   Status: {response.status_code}")
+            try:
+                error_data = response.json()
+                print(f"   Error: {error_data}")
+            except (ValueError, json.JSONDecodeError):
+                print(f"   Response: {response.text[:200]}")
+        
+        self.test_results.append({
+            'test': test_name,
+            'success': success,
+            'message': message
+        })
     
-    def reset_environment(self, seed: str = None):
-        """Reset the environment to clean state"""
-        if seed is None:
-            seed = f"clean_{int(time.time())}_{id(self)}"
+    def print_test_summary(self):
+        """Print summary of test results"""
+        total = len(self.test_results)
+        passed = sum(1 for r in self.test_results if r['success'])
+        failed = total - passed
         
-        response = self.make_request("POST", APIRoutes.SYNTHETIC_RESET, params={"seed": seed})
-        return response and response.status_code == 200
+        print(f"\n📊 Test Summary:")
+        print(f"   ✅ Passed: {passed}")
+        print(f"   ❌ Failed: {failed}")
+        print(f"   📈 Success Rate: {(passed/total*100):.1f}%")
+        print()
     
-    def cleanup_test_data(self):
-        """Clean up any resources created during tests"""
-        # Reset environment to clean state
-        self.reset_environment()
-        
-        # Clear tracking data
-        self.created_resources = {
-            "projects": [],
-            "boards": [],
-            "lists": [],
-            "tasks": [],
-            "comments": [],
-            "users": []
-        }
-        self.test_data.clear()
-    
-    def track_created_resource(self, resource_type: str, resource_id: str):
-        """Track a resource that was created during testing for cleanup"""
-        if resource_type in self.created_resources:
-            self.created_resources[resource_type].append(resource_id)
-    
-    def setup_test_users(self):
-        """Setup test users for authentication tests"""
-        # Clear previous user data
-        self.test_users.clear()
-        
-        # Login as admin
-        admin_login = {
-            "username": "admin_alice",
-            "password": "admin123",
-            "email": "",
-            "full_name": "",
-            "role": "member"
-        }
-        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=admin_login)
-        if response and response.status_code == 200:
-            self.test_users["admin"] = response.json()
-            print(f"    ✅ Admin user setup: {self.test_users['admin']['username']}")
-        else:
-            print(f"    ❌ Admin user setup failed: {response.status_code if response else 'No response'}")
-            if response:
-                print(f"    Error: {response.text}")
-        
-        # Login as manager
-        manager_login = {
-            "username": "manager_david",
-            "password": "manager123",
-            "email": "",
-            "full_name": "",
-            "role": "member"
-        }
-        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=manager_login)
-        if response and response.status_code == 200:
-            self.test_users["manager"] = response.json()
-            print(f"    ✅ Manager user setup: {self.test_users['manager']['username']}")
-        else:
-            print(f"    ❌ Manager user setup failed: {response.status_code if response else 'No response'}")
-        
-        # Login as member
-        member_login = {
-            "username": "frontend_emma",
-            "password": "dev123",
-            "email": "",
-            "full_name": "",
-            "role": "member"
-        }
-        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=member_login)
-        if response and response.status_code == 200:
-            self.test_users["member"] = response.json()
-            print(f"    ✅ Member user setup: {self.test_users['member']['username']}")
-        else:
-            print(f"    ❌ Member user setup failed: {response.status_code if response else 'No response'}")
-    
-    def get_admin_headers(self) -> Dict[str, str]:
+    def get_admin_headers(self):
         """Get headers for admin user"""
-        return {"x-user-id": self.test_users["admin"]["id"]} if "admin" in self.test_users else {}
+        if "admin" not in self.test_users:
+            # Login as admin
+            login_data = {
+                "username": "admin_alice",
+                "password": "admin123",
+                "email": "",
+                "full_name": "",
+                "role": "member"
+            }
+            response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=login_data)
+            if response and response.status_code == 200:
+                self.test_users["admin"] = response.json()
+        
+        if "admin" in self.test_users:
+            return {"x-user-id": self.test_users["admin"]["id"]}
+        return {}
     
-    def get_manager_headers(self) -> Dict[str, str]:
+    def get_manager_headers(self):
         """Get headers for manager user"""
-        return {"x-user-id": self.test_users["manager"]["id"]} if "manager" in self.test_users else {}
+        if "manager" not in self.test_users:
+            # Login as manager
+            login_data = {
+                "username": "manager_david",
+                "password": "manager123",
+                "email": "",
+                "full_name": "",
+                "role": "member"
+            }
+            response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=login_data)
+            if response and response.status_code == 200:
+                self.test_users["manager"] = response.json()
+        
+        if "manager" in self.test_users:
+            return {"x-user-id": self.test_users["manager"]["id"]}
+        return {}
     
-    def get_member_headers(self) -> Dict[str, str]:
+    def get_member_headers(self):
         """Get headers for member user"""
-        return {"x-user-id": self.test_users["member"]["id"]} if "member" in self.test_users else {}
+        if "member" not in self.test_users:
+            # Login as member
+            login_data = {
+                "username": "frontend_emma",
+                "password": "dev123",
+                "email": "",
+                "full_name": "",
+                "role": "member"
+            }
+            response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=login_data)
+            if response and response.status_code == 200:
+                self.test_users["member"] = response.json()
+        
+        if "member" in self.test_users:
+            return {"x-user-id": self.test_users["member"]["id"]}
+        return {}
     
-    def run_isolated_test(self, test_method, test_name: str = None):
-        """Run a test method with proper isolation and cleanup"""
-        if test_name is None:
-            test_name = test_method.__name__
+    def create_test_project(self, name, headers):
+        """Helper to create a test project"""
+        # Get a valid team ID from the backend
+        state_response = self.make_request("GET", APIRoutes.SYNTHETIC_STATE)
+        if not state_response or state_response.status_code != 200:
+            return None
         
-        try:
-            # Setup fresh environment
-            if not self.setup_session():
-                self.log_test(f"{test_name} (setup)", False, "Failed to setup session")
-                return
-            
-            self.setup_test_users()
-            
-            # Run the test
-            test_method()
-            
-        except Exception as e:
-            self.log_test(test_name, False, f"Test exception: {str(e)}")
-        finally:
-            # Always cleanup
-            self.cleanup_test_data()
-    
-    def create_test_project(self, name: str = None, headers: Dict[str, str] = None) -> Optional[Dict]:
-        """Helper to create a test project and track it for cleanup"""
-        if name is None:
-            name = f"Test Project {int(time.time())}"
+        state = state_response.json()
+        teams = state.get('teams', [])
+        if not teams:
+            return None
         
-        if headers is None:
-            headers = self.get_admin_headers()
+        # Use the first available team
+        team_id = teams[0]['id']
         
-        # Get a team ID from existing teams
-        teams_response = self.make_request("GET", APIRoutes.SYNTHETIC_STATE, headers=headers)
-        if teams_response and teams_response.status_code == 200:
-            state = teams_response.json()
-            teams = state.get("teams", [])
-            if teams:
-                team_id = teams[0]["id"]
-                
-                project_data = {
-                    "name": name,
-                    "description": f"Test project created at {time.time()}",
-                    "team_id": team_id
-                }
-                
-                response = self.make_request("POST", APIRoutes.PROJECTS_CREATE, data=project_data, headers=headers)
-                if response and response.status_code == 200:
-                    project = response.json()
-                    self.track_created_resource("projects", project["id"])
-                    return project
-        
+        project_data = {
+            "name": name,
+            "description": f"Test project: {name}",
+            "team_id": team_id
+        }
+        response = self.make_request("POST", APIRoutes.PROJECTS_CREATE, data=project_data, headers=headers)
+        if response and response.status_code == 200:
+            return response.json()
         return None
     
-    def create_test_board(self, project_id: str, name: str = None, headers: Dict[str, str] = None) -> Optional[Dict]:
-        """Helper to create a test board and track it for cleanup"""
-        if name is None:
-            name = f"Test Board {int(time.time())}"
-        
-        if headers is None:
-            headers = self.get_admin_headers()
-        
+    def create_test_board(self, project_id, name, headers):
+        """Helper to create a test board"""
         board_data = {
             "name": name,
-            "description": f"Test board created at {time.time()}",
+            "description": f"Test board: {name}",
             "project_id": project_id
         }
-        
         response = self.make_request("POST", APIRoutes.BOARDS_CREATE, data=board_data, headers=headers)
         if response and response.status_code == 200:
-            board = response.json()
-            self.track_created_resource("boards", board["id"])
-            return board
-        
+            return response.json()
         return None
     
-    def create_test_list(self, board_id: str, name: str = None, headers: Dict[str, str] = None) -> Optional[Dict]:
-        """Helper to create a test list and track it for cleanup"""
-        if name is None:
-            name = f"Test List {int(time.time())}"
-        
-        if headers is None:
-            headers = self.get_admin_headers()
-        
+    def create_test_list(self, board_id, name, headers):
+        """Helper to create a test list"""
         list_data = {
             "name": name,
             "board_id": board_id,
             "position": 0
         }
-        
         response = self.make_request("POST", APIRoutes.LISTS_CREATE, data=list_data, headers=headers)
         if response and response.status_code == 200:
-            list_obj = response.json()
-            self.track_created_resource("lists", list_obj["id"])
-            return list_obj
-        
+            return response.json()
         return None
     
-    def create_test_task(self, list_id: str, title: str = None, headers: Dict[str, str] = None) -> Optional[Dict]:
-        """Helper to create a test task and track it for cleanup"""
-        if title is None:
-            title = f"Test Task {int(time.time())}"
-        
-        if headers is None:
-            headers = self.get_admin_headers()
-        
+    def create_test_task(self, list_id, title, headers):
+        """Helper to create a test task"""
         task_data = {
             "title": title,
-            "description": f"Test task created at {time.time()}",
+            "description": f"Test task: {title}",
             "list_id": list_id,
             "priority": "medium"
         }
-        
         response = self.make_request("POST", APIRoutes.TASKS_CREATE, data=task_data, headers=headers)
         if response and response.status_code == 200:
-            task = response.json()
-            self.track_created_resource("tasks", task["id"])
-            return task
-        
+            return response.json()
         return None
     
-    def print_test_summary(self):
-        """Print test results summary"""
-        total = self.test_results["passed"] + self.test_results["failed"]
-        success_rate = (self.test_results["passed"] / total * 100) if total > 0 else 0
+    def run_isolated_test(self, test_method):
+        """Run a test method in isolation with fresh session"""
+        # Reset test data for isolation
+        self.test_data = {}
+        self.test_users = {}  # Reset user cache for fresh authentication
         
-        print("\n" + "=" * 60)
-        print("📊 TEST RESULTS SUMMARY")
-        print("=" * 60)
-        print(f"✅ Passed: {self.test_results['passed']}")
-        print(f"❌ Failed: {self.test_results['failed']}")
-        print(f"📈 Success Rate: {success_rate:.1f}%")
+        # Setup fresh session
+        if not self.setup_session():
+            self.log_test(test_method.__name__, False, "Failed to setup session for isolated test")
+            return
         
-        if self.test_results["errors"]:
-            print("\n❌ FAILED TESTS:")
-            for error in self.test_results["errors"]:
-                print(f"   • {error}")
+        # Run the test
+        test_method()
         
-        print("=" * 60) 
+        # Small delay between tests
+        time.sleep(0.1) 

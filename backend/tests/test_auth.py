@@ -5,20 +5,8 @@ Tests user registration, login, and authentication endpoints
 """
 
 import time
-import sys
-import os
 from base_test import BaseAPITest
-
-# Add the parent directory to the path so we can import from app.config
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-try:
-    from app.config import APIRoutes
-except ImportError:
-    # Fallback if import fails
-    class APIRoutes:
-        AUTH_REGISTER = "/api/register"
-        AUTH_LOGIN = "/api/login"
+from test_config import APIRoutes
 
 
 class AuthenticationTest(BaseAPITest):

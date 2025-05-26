@@ -4,25 +4,8 @@ Task Management API Test Suite
 Tests task CRUD operations, movement, archiving, and task details endpoints
 """
 
-import sys
-import os
 from base_test import BaseAPITest
-
-# Add the parent directory to the path so we can import from app.config
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-try:
-    from app.config import APIRoutes
-except ImportError:
-    # Fallback if import fails
-    class APIRoutes:
-        TASKS_CREATE = "/api/tasks"
-        TASKS_DETAIL = "/api/tasks/{task_id}"
-        TASKS_MOVE = "/api/tasks/{task_id}/move"
-        TASKS_ARCHIVE = "/api/tasks/{task_id}/archive"
-        TASKS_UNARCHIVE = "/api/tasks/{task_id}/unarchive"
-        TASKS_FULL = "/api/tasks/{task_id}/full"
-        COMMENTS_CREATE = "/api/comments"
+from test_config import APIRoutes
 
 
 class TaskManagementTest(BaseAPITest):
