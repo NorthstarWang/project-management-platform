@@ -29,6 +29,9 @@ class ComprehensiveTestRunner:
             base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
         
         self.base_url = base_url
+        # Set environment variable so test classes can pick it up
+        os.environ["API_BASE_URL"] = self.base_url
+        
         self.test_suites = {
             "synthetic": SyntheticAPITest,
             "auth": AuthenticationTest,
@@ -54,19 +57,24 @@ class ComprehensiveTestRunner:
         
         for suite_name, suite_class in self.test_suites.items():
             print(f"\n{'='*20} {suite_name.upper()} TESTS {'='*20}")
-            suite = suite_class(self.base_url)
+            suite = suite_class()  # No parameters needed
             suite.run_tests()
             
-            # Collect results
-            self.overall_results["passed"] += suite.test_results["passed"]
-            self.overall_results["failed"] += suite.test_results["failed"]
+            # Collect results from new format
+            passed = sum(1 for r in suite.test_results if r['success'])
+            failed = len(suite.test_results) - passed
+            errors = [r['test'] + ": " + r['message'] for r in suite.test_results if not r['success']]
+            
+            self.overall_results["passed"] += passed
+            self.overall_results["failed"] += failed
             self.overall_results["suite_results"][suite_name] = {
-                "passed": suite.test_results["passed"],
-                "failed": suite.test_results["failed"],
-                "errors": suite.test_results["errors"]
+                "passed": passed,
+                "failed": failed,
+                "errors": errors
             }
         
         self.print_overall_summary()
+        return 0 if self.overall_results["failed"] == 0 else 1
     
     def run_specific_tests(self, test_suites: List[str]):
         """Run specific test suites"""
@@ -83,19 +91,24 @@ class ComprehensiveTestRunner:
             
             print(f"\n{'='*20} {suite_name.upper()} TESTS {'='*20}")
             suite_class = self.test_suites[suite_name]
-            suite = suite_class(self.base_url)
+            suite = suite_class()  # No parameters needed
             suite.run_tests()
             
-            # Collect results
-            self.overall_results["passed"] += suite.test_results["passed"]
-            self.overall_results["failed"] += suite.test_results["failed"]
+            # Collect results from new format
+            passed = sum(1 for r in suite.test_results if r['success'])
+            failed = len(suite.test_results) - passed
+            errors = [r['test'] + ": " + r['message'] for r in suite.test_results if not r['success']]
+            
+            self.overall_results["passed"] += passed
+            self.overall_results["failed"] += failed
             self.overall_results["suite_results"][suite_name] = {
-                "passed": suite.test_results["passed"],
-                "failed": suite.test_results["failed"],
-                "errors": suite.test_results["errors"]
+                "passed": passed,
+                "failed": failed,
+                "errors": errors
             }
         
         self.print_overall_summary()
+        return 0 if self.overall_results["failed"] == 0 else 1
     
     def print_overall_summary(self):
         """Print comprehensive test results summary"""
@@ -128,16 +141,10 @@ class ComprehensiveTestRunner:
                 print(f"   • {error}")
         
         print("=" * 60)
-        
-        # Return exit code based on results
-        return 0 if self.overall_results["failed"] == 0 else 1
 
 
 def main():
     """Main entry point with command line argument parsing"""
-    runner = ComprehensiveTestRunner()  # Create instance to access test_suites
-    available_suites = list(runner.test_suites.keys())
-    
     # Get default URL from environment or fallback to localhost
     default_url = os.getenv("API_BASE_URL", "http://localhost:8000")
     
@@ -145,7 +152,7 @@ def main():
     parser.add_argument("--url", default=default_url, 
                        help=f"Base URL for the API (default: {default_url})")
     parser.add_argument("--suites", nargs="+", 
-                       choices=available_suites,
+                       choices=["synthetic", "auth", "users", "projects", "boards", "tasks", "notifications", "search"],
                        help="Specific test suites to run (default: all)")
     parser.add_argument("--list", action="store_true", 
                        help="List available test suites")
@@ -154,7 +161,7 @@ def main():
     
     if args.list:
         print("Available test suites:")
-        for suite in available_suites:
+        for suite in ["synthetic", "auth", "users", "projects", "boards", "tasks", "notifications", "search"]:
             print(f"  • {suite}")
         return 0
     

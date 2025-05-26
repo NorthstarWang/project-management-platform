@@ -45,7 +45,7 @@ def startup_event():
         print(f"✅ Mock data generated: {len(data_manager.users)} users, {len(data_manager.projects)} projects, {len(data_manager.tasks)} tasks")
     elif len(data_manager.users) == 0:
         print("🔄 Database is empty. Generating initial mock data...")
-    data_manager.reset()
+        data_manager.reset()
         print(f"✅ Mock data generated: {len(data_manager.users)} users, {len(data_manager.projects)} projects, {len(data_manager.tasks)} tasks")
     else:
         print(f"📊 Database already contains data: {len(data_manager.users)} users, {len(data_manager.projects)} projects, {len(data_manager.tasks)} tasks")
