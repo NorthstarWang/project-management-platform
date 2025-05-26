@@ -69,14 +69,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     try {
       const user = await auth.register(data);
-      const sessionId = auth.getSessionId();
       
-      setAuthState({
-        user,
-        isAuthenticated: true,
+      setAuthState(prev => ({
+        ...prev,
         isLoading: false,
-        sessionId,
-      });
+      }));
       
       return user;
     } catch (error) {

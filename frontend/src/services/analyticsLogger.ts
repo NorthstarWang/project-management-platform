@@ -95,7 +95,7 @@ class AnalyticsLogger {
     }, true);
 
     // Scroll events (throttled)
-    let scrollTimeout: ReturnType<typeof setTimeout>;
+    let scrollTimeout: NodeJS.Timeout;
     document.addEventListener('scroll', () => {
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {

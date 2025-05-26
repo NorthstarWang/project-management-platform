@@ -111,7 +111,7 @@ class ApiClient {
         status: response.status,
       };
     } catch (error) {
-      if ((error as ApiError).status !== undefined) {
+      if (error instanceof Error && 'status' in error) {
         throw error; // Re-throw API errors
       }
 
