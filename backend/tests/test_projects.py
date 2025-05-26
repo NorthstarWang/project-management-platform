@@ -1,10 +1,28 @@
 #!/usr/bin/env python3
 """
 Project Management API Test Suite
-Tests project creation, assignment, and management endpoints
+Tests project creation, assignment, and access control endpoints
 """
 
+import sys
+import os
 from base_test import BaseAPITest
+
+# Add the parent directory to the path so we can import from app.config
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    from app.config import APIRoutes
+except ImportError:
+    # Fallback if import fails
+    class APIRoutes:
+        PROJECTS_CREATE = "/api/projects"
+        PROJECTS_LIST = "/api/projects"
+        PROJECTS_DETAIL = "/api/projects/{project_id}"
+        PROJECTS_ASSIGN_MANAGER = "/api/projects/{project_id}/assign_manager"
+        PROJECTS_MANAGERS = "/api/projects/{project_id}/managers"
+        USERS_ASSIGNED_PROJECTS = "/api/users/me/assigned_projects"
+        SYNTHETIC_STATE = "/_synthetic/state"
 
 
 class ProjectManagementTest(BaseAPITest):
@@ -21,52 +39,57 @@ class ProjectManagementTest(BaseAPITest):
             return
         
         self.setup_test_users()
+        self._setup_team()
         
         self.test_create_project()
-        self.test_list_user_projects()
+        self.test_list_projects()
         self.test_get_project_details()
         self.test_assign_manager_to_project()
         self.test_list_project_managers()
-        self.test_get_manager_assigned_projects()
+        self.test_get_assigned_projects()
         self.test_create_project_member_forbidden()
         
         self.print_test_summary()
+    
+    def _setup_team(self):
+        """Setup a team for project testing"""
+        # Get existing team from state
+        response = self.make_request("GET", APIRoutes.SYNTHETIC_STATE)
+        if response and response.status_code == 200:
+            state = response.json()
+            teams = state.get("teams", [])
+            if teams:
+                self.test_data["team"] = teams[0]
+                print(f"    Using team: {teams[0]['name']}")
     
     def test_create_project(self):
         """Test creating a new project"""
         admin_headers = self.get_admin_headers()
         
-        # Get existing team for project creation
-        response = self.make_request("GET", "/_synthetic/state")
-        if response and response.status_code == 200:
-            state = response.json()
-            teams = state.get("teams", [])
-            if teams:
-                team_id = teams[0]["id"]
-                
-                project_data = {
-                    "name": "Test Project",
-                    "description": "A project created for testing",
-                    "team_id": team_id
-                }
-                response = self.make_request("POST", "/api/projects", data=project_data, headers=admin_headers)
-                if response and response.status_code == 200:
-                    self.test_data["project"] = response.json()
-                    self.log_test("POST /api/projects", True, f"Created project: {project_data['name']}")
-                else:
-                    self.log_test("POST /api/projects", False, "Failed to create project", response)
+        if "team" in self.test_data:
+            team_id = self.test_data["team"]["id"]
+            
+            project_data = {
+                "name": "Test Project Creation",
+                "description": "A project created for testing purposes",
+                "team_id": team_id
+            }
+            response = self.make_request("POST", APIRoutes.PROJECTS_CREATE, data=project_data, headers=admin_headers)
+            if response and response.status_code == 200:
+                self.test_data["project"] = response.json()
+                self.log_test("POST /api/projects", True, f"Created project: {project_data['name']}")
             else:
-                self.log_test("POST /api/projects", False, "No teams available for project creation")
+                self.log_test("POST /api/projects", False, "Failed to create project", response)
         else:
-            self.log_test("POST /api/projects", False, "Failed to get state for team info")
+            self.log_test("POST /api/projects", False, "No team available for project creation")
     
-    def test_list_user_projects(self):
-        """Test listing user's accessible projects"""
+    def test_list_projects(self):
+        """Test listing projects for user"""
         admin_headers = self.get_admin_headers()
-        response = self.make_request("GET", "/api/projects", headers=admin_headers)
+        
+        response = self.make_request("GET", APIRoutes.PROJECTS_LIST, headers=admin_headers)
         if response and response.status_code == 200:
             projects = response.json()
-            self.test_data["api_projects"] = projects
             self.log_test("GET /api/projects", True, f"Retrieved {len(projects)} projects")
         else:
             self.log_test("GET /api/projects", False, "Failed to get projects", response)
@@ -77,10 +100,10 @@ class ProjectManagementTest(BaseAPITest):
         
         if "project" in self.test_data:
             project_id = self.test_data["project"]["id"]
-            response = self.make_request("GET", f"/api/projects/{project_id}", headers=admin_headers)
+            response = self.make_request("GET", APIRoutes.PROJECTS_DETAIL.format(project_id=project_id), headers=admin_headers)
             if response and response.status_code == 200:
                 project_details = response.json()
-                self.log_test("GET /api/projects/{id}", True, f"Got details for: {project_details.get('name')}")
+                self.log_test("GET /api/projects/{id}", True, f"Got project: {project_details.get('name')}")
             else:
                 self.log_test("GET /api/projects/{id}", False, "Failed to get project details", response)
         else:
@@ -90,18 +113,13 @@ class ProjectManagementTest(BaseAPITest):
         """Test assigning a manager to a project"""
         admin_headers = self.get_admin_headers()
         
-        # Use API-accessible project if available
-        project_id = None
-        if "api_projects" in self.test_data and self.test_data["api_projects"]:
-            project_id = self.test_data["api_projects"][0]["id"]
-        elif "project" in self.test_data:
+        if "project" in self.test_data and "manager" in self.test_users:
             project_id = self.test_data["project"]["id"]
-        
-        if project_id and "manager" in self.test_users:
             assignment_data = {
+                "project_id": project_id,
                 "manager_id": self.test_users["manager"]["id"]
             }
-            response = self.make_request("POST", f"/api/projects/{project_id}/assign_manager", 
+            response = self.make_request("POST", APIRoutes.PROJECTS_ASSIGN_MANAGER.format(project_id=project_id),
                                        data=assignment_data, headers=admin_headers)
             if response and response.status_code == 200:
                 self.log_test("POST /api/projects/{id}/assign_manager", True, "Manager assigned successfully")
@@ -114,14 +132,9 @@ class ProjectManagementTest(BaseAPITest):
         """Test listing project managers"""
         admin_headers = self.get_admin_headers()
         
-        project_id = None
-        if "api_projects" in self.test_data and self.test_data["api_projects"]:
-            project_id = self.test_data["api_projects"][0]["id"]
-        elif "project" in self.test_data:
+        if "project" in self.test_data:
             project_id = self.test_data["project"]["id"]
-        
-        if project_id:
-            response = self.make_request("GET", f"/api/projects/{project_id}/managers", headers=admin_headers)
+            response = self.make_request("GET", APIRoutes.PROJECTS_MANAGERS.format(project_id=project_id), headers=admin_headers)
             if response and response.status_code == 200:
                 managers = response.json()
                 self.log_test("GET /api/projects/{id}/managers", True, f"Retrieved {len(managers)} managers")
@@ -130,13 +143,14 @@ class ProjectManagementTest(BaseAPITest):
         else:
             self.log_test("GET /api/projects/{id}/managers", False, "No project available for test")
     
-    def test_get_manager_assigned_projects(self):
+    def test_get_assigned_projects(self):
         """Test getting manager's assigned projects"""
         manager_headers = self.get_manager_headers()
-        response = self.make_request("GET", "/api/users/me/assigned_projects", headers=manager_headers)
+        
+        response = self.make_request("GET", APIRoutes.USERS_ASSIGNED_PROJECTS, headers=manager_headers)
         if response and response.status_code == 200:
-            assigned_projects = response.json()
-            self.log_test("GET /api/users/me/assigned_projects", True, f"Retrieved {len(assigned_projects)} assigned projects")
+            projects = response.json()
+            self.log_test("GET /api/users/me/assigned_projects", True, f"Retrieved {len(projects)} assigned projects")
         else:
             self.log_test("GET /api/users/me/assigned_projects", False, "Failed to get assigned projects", response)
     
@@ -149,7 +163,7 @@ class ProjectManagementTest(BaseAPITest):
             "description": "This should not be created",
             "team_id": "any_team_id"
         }
-        response = self.make_request("POST", "/api/projects", data=project_data, headers=member_headers)
+        response = self.make_request("POST", APIRoutes.PROJECTS_CREATE, data=project_data, headers=member_headers)
         # Should fail with 403
         success = response is not None and response.status_code == 403
         self.log_test("POST /api/projects (member forbidden)", success, "Correctly denied member project creation", response)

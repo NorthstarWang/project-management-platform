@@ -8,7 +8,25 @@ import requests
 import json
 import time
 import os
+import sys
 from typing import Dict, Any, Optional, List
+
+# Add the parent directory to the path so we can import from app.config
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+try:
+    from app.config import APIRoutes
+except ImportError:
+    # Fallback if import fails - define basic routes locally
+    class APIRoutes:
+        AUTH_LOGIN = "/api/login"
+        PROJECTS_CREATE = "/api/projects"
+        BOARDS_CREATE = "/api/boards"
+        LISTS_CREATE = "/api/lists"
+        TASKS_CREATE = "/api/tasks"
+        SYNTHETIC_NEW_SESSION = "/_synthetic/new_session"
+        SYNTHETIC_RESET = "/_synthetic/reset"
+        SYNTHETIC_STATE = "/_synthetic/state"
 
 
 class BaseAPITest:
@@ -49,7 +67,7 @@ class BaseAPITest:
             print(f"    Status Code: {response.status_code}")
             try:
                 print(f"    Response: {response.json()}")
-            except:
+            except (ValueError, json.JSONDecodeError):
                 print(f"    Response Text: {response.text}")
         
         if success:
@@ -94,7 +112,7 @@ class BaseAPITest:
         if seed is None:
             seed = f"test_{int(time.time())}_{id(self)}"
         
-        response = self.make_request("POST", "/_synthetic/new_session", params={"seed": seed})
+        response = self.make_request("POST", APIRoutes.SYNTHETIC_NEW_SESSION, params={"seed": seed})
         if response and response.status_code == 200:
             data = response.json()
             self.session_id = data.get("session_id")
@@ -106,7 +124,7 @@ class BaseAPITest:
         if seed is None:
             seed = f"clean_{int(time.time())}_{id(self)}"
         
-        response = self.make_request("POST", "/_synthetic/reset", params={"seed": seed})
+        response = self.make_request("POST", APIRoutes.SYNTHETIC_RESET, params={"seed": seed})
         return response and response.status_code == 200
     
     def cleanup_test_data(self):
@@ -143,7 +161,7 @@ class BaseAPITest:
             "full_name": "",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/login", data=admin_login)
+        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=admin_login)
         if response and response.status_code == 200:
             self.test_users["admin"] = response.json()
             print(f"    ✅ Admin user setup: {self.test_users['admin']['username']}")
@@ -160,7 +178,7 @@ class BaseAPITest:
             "full_name": "",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/login", data=manager_login)
+        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=manager_login)
         if response and response.status_code == 200:
             self.test_users["manager"] = response.json()
             print(f"    ✅ Manager user setup: {self.test_users['manager']['username']}")
@@ -175,7 +193,7 @@ class BaseAPITest:
             "full_name": "",
             "role": "member"
         }
-        response = self.make_request("POST", "/api/login", data=member_login)
+        response = self.make_request("POST", APIRoutes.AUTH_LOGIN, data=member_login)
         if response and response.status_code == 200:
             self.test_users["member"] = response.json()
             print(f"    ✅ Member user setup: {self.test_users['member']['username']}")
@@ -225,7 +243,7 @@ class BaseAPITest:
             headers = self.get_admin_headers()
         
         # Get a team ID from existing teams
-        teams_response = self.make_request("GET", "/_synthetic/state", headers=headers)
+        teams_response = self.make_request("GET", APIRoutes.SYNTHETIC_STATE, headers=headers)
         if teams_response and teams_response.status_code == 200:
             state = teams_response.json()
             teams = state.get("teams", [])
@@ -238,7 +256,7 @@ class BaseAPITest:
                     "team_id": team_id
                 }
                 
-                response = self.make_request("POST", "/api/projects", data=project_data, headers=headers)
+                response = self.make_request("POST", APIRoutes.PROJECTS_CREATE, data=project_data, headers=headers)
                 if response and response.status_code == 200:
                     project = response.json()
                     self.track_created_resource("projects", project["id"])
@@ -260,7 +278,7 @@ class BaseAPITest:
             "project_id": project_id
         }
         
-        response = self.make_request("POST", "/api/boards", data=board_data, headers=headers)
+        response = self.make_request("POST", APIRoutes.BOARDS_CREATE, data=board_data, headers=headers)
         if response and response.status_code == 200:
             board = response.json()
             self.track_created_resource("boards", board["id"])
@@ -282,7 +300,7 @@ class BaseAPITest:
             "position": 0
         }
         
-        response = self.make_request("POST", "/api/lists", data=list_data, headers=headers)
+        response = self.make_request("POST", APIRoutes.LISTS_CREATE, data=list_data, headers=headers)
         if response and response.status_code == 200:
             list_obj = response.json()
             self.track_created_resource("lists", list_obj["id"])
@@ -305,7 +323,7 @@ class BaseAPITest:
             "priority": "medium"
         }
         
-        response = self.make_request("POST", "/api/tasks", data=task_data, headers=headers)
+        response = self.make_request("POST", APIRoutes.TASKS_CREATE, data=task_data, headers=headers)
         if response and response.status_code == 200:
             task = response.json()
             self.track_created_resource("tasks", task["id"])
