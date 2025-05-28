@@ -95,17 +95,17 @@ const Avatar = React.forwardRef<
       {status && (
         <span
           className={cn(
-            'absolute bottom-0 right-0 block rounded-full border-2 border-background',
+            'absolute bottom-0 right-0 block rounded-full border-2 border-background transition-all duration-200',
             size === 'xs' && 'h-2 w-2',
             size === 'sm' && 'h-2.5 w-2.5',
             size === 'default' && 'h-3 w-3',
             size === 'lg' && 'h-3.5 w-3.5',
             size === 'xl' && 'h-4 w-4',
             size === '2xl' && 'h-5 w-5',
-            status === 'online' && 'bg-green-500',
-            status === 'offline' && 'bg-gray-400',
-            status === 'away' && 'bg-yellow-500',
-            status === 'busy' && 'bg-red-500'
+            status === 'online' && 'bg-status-online',
+            status === 'offline' && 'bg-status-offline',
+            status === 'away' && 'bg-status-away',
+            status === 'busy' && 'bg-status-busy'
           )}
         />
       )}
