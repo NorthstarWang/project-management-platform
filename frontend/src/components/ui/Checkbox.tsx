@@ -2,8 +2,8 @@
 
 import React from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
-import { motion } from 'framer-motion';
-
+import { Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const Checkbox = React.forwardRef<
@@ -13,37 +13,37 @@ const Checkbox = React.forwardRef<
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(
-      'checkbox-root peer h-4 w-4 shrink-0 rounded-sm border border-checkbox ring-offset-background cursor-pointer transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 hover:border-focus',
+      'peer h-5 w-5 shrink-0 rounded-sm border-2 border-checkbox',
+      'ring-offset-background transition-all duration-200',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+      'disabled:cursor-not-allowed disabled:opacity-50',
+      'data-[state=checked]:bg-checkbox-checked data-[state=checked]:border-checkbox-checked',
+      'hover:border-checkbox-checked',
       className
     )}
     {...props}
   >
-    <CheckboxPrimitive.Indicator
-      className={cn('checkbox-indicator flex items-center justify-center text-current')}
-    >
-      <motion.svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        exit={{ pathLength: 0, opacity: 0 }}
-        transition={{ 
-          pathLength: { type: "spring", duration: 0.6, bounce: 0 },
-          opacity: { duration: 0.2 }
-        }}
-      >
-        <motion.path
-          d="M13.5 4.5L6 12L2.5 8.5"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </motion.svg>
-    </CheckboxPrimitive.Indicator>
+    <AnimatePresence>
+      {props.checked !== false && (
+        <CheckboxPrimitive.Indicator
+          className={cn('flex items-center justify-center text-current')}
+        >
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ 
+              type: 'spring', 
+              stiffness: 500, 
+              damping: 30,
+              duration: 0.2 
+            }}
+          >
+            <Check className="h-3.5 w-3.5 text-white dark:text-white stroke-[3]" />
+          </motion.div>
+        </CheckboxPrimitive.Indicator>
+      )}
+    </AnimatePresence>
   </CheckboxPrimitive.Root>
 ));
 Checkbox.displayName = CheckboxPrimitive.Root.displayName;

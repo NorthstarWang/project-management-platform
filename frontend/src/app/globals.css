@@ -139,8 +139,8 @@
   --dropdown-bg: var(--background-secondary);
   --dropdown-border: var(--border-secondary);
   --dropdown-shadow: rgb(0 0 0 / 0.4);
-  --dropdown-item-hover: rgb(175 248 200 / 0.08);
-  --dropdown-item-active: rgb(175 248 200 / 0.12);
+  --dropdown-item-hover: rgb(0 211 127 / 0.15);
+  --dropdown-item-active: rgb(0 211 127 / 0.25);
   --dropdown-item-text: var(--text-primary);
 
   --dialog-bg: var(--background-secondary);
@@ -205,6 +205,12 @@
   --priority-high-bg: rgb(255 159 67 / 0.1);
   --priority-urgent: #ff8a8a;
   --priority-urgent-bg: rgb(255 107 107 / 0.1);
+
+  /* Checkbox Component Styling */
+  --checkbox-bg: var(--background-surface);
+  --checkbox-border: var(--border-secondary);
+  --checkbox-checked: var(--interactive-primary);
+  --checkbox-checked-hover: var(--interactive-primary-hover);
 }
 
 /* ===== LIGHT THEME (Orange/Coral Palette) ===== */
@@ -345,8 +351,8 @@
   --dropdown-bg: var(--background-secondary);
   --dropdown-border: var(--border-secondary);
   --dropdown-shadow: rgb(2 44 16 / 0.15);
-  --dropdown-item-hover: rgb(250 115 40 / 0.05);
-  --dropdown-item-active: rgb(250 115 40 / 0.08);
+  --dropdown-item-hover: rgb(250 115 40 / 0.1);
+  --dropdown-item-active: rgb(250 115 40 / 0.15);
   --dropdown-item-text: var(--text-primary);
 
   --dialog-bg: var(--background-secondary);
@@ -411,6 +417,12 @@
   --priority-high-bg: rgb(250 115 40 / 0.1);
   --priority-urgent: #e63946;
   --priority-urgent-bg: rgb(255 71 87 / 0.1);
+
+  /* Checkbox Component Styling */
+  --checkbox-bg: var(--background-surface);
+  --checkbox-border: var(--border-secondary);
+  --checkbox-checked: var(--interactive-primary);
+  --checkbox-checked-hover: var(--interactive-primary-hover);
 }
 
 /* ===== SYSTEM PREFERENCES ===== */
@@ -1311,3 +1323,97 @@ h6 {
 .bg-switch-checked-enhanced { background-color: var(--switch-checked-enhanced); }
 .bg-switch-thumb-enhanced { background-color: var(--switch-thumb-enhanced); }
 .shadow-switch { box-shadow: var(--switch-shadow); }
+
+/* ===== COMPONENT ANIMATIONS ===== */
+
+/* Accordion Animations */
+.AccordionContent[data-state="open"] {
+  animation: accordion-down 300ms cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+.AccordionContent[data-state="closed"] {
+  animation: accordion-up 300ms cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+/* Tab Underline Animation */
+.tab-underline {
+  position: relative;
+}
+
+.tab-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: transparent;
+  transition: background-color 0.3s ease;
+}
+
+.tab-underline[data-state="active"]::after {
+  background-color: var(--tab-active);
+}
+
+/* Switch Component Styling */
+.switch-root {
+  background-color: var(--switch-bg);
+  position: relative;
+}
+
+.switch-root[data-state="checked"] {
+  background-color: var(--switch-checked);
+}
+
+.switch-thumb {
+  transform: translateX(2px);
+  transition: transform 200ms;
+}
+
+.switch-thumb[data-state="checked"] {
+  transform: translateX(22px);
+}
+
+/* ===== KEYFRAME ANIMATIONS ===== */
+@keyframes accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Checkbox Component Styling */
+.checkbox-root {
+  background-color: transparent;
+  position: relative;
+}
+
+.checkbox-root[data-state="checked"] {
+  background-color: var(--checkbox-checked);
+  border-color: var(--checkbox-checked);
+}
+
+.checkbox-root[data-state="checked"] .checkbox-indicator {
+  color: white;
+}
+
+/* Force white checkmark in both themes */
+.checkbox-root[data-state="checked"] svg {
+  color: white !important;
+  stroke: white !important;
+}
