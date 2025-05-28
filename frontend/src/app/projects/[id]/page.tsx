@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
-import { track } from '@/services/analyticsLogger';
 
 interface User {
   id: string;
@@ -61,6 +60,18 @@ interface TeamMember {
   role: string;
 }
 
+// Helper function for analytics tracking
+const trackEvent = async (actionType: string, payload: any) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const { track } = await import('@/services/analyticsLogger');
+      track(actionType, payload);
+    } catch (error) {
+      console.warn('Analytics tracking failed:', error);
+    }
+  }
+};
+
 export default function ProjectPage() {
   const router = useRouter();
   const params = useParams();
@@ -90,7 +101,7 @@ export default function ProjectPage() {
     apiClient.setUserIdHeader(parsedUser.id);
     
     // Log project page view
-    track('PAGE_VIEW', {
+    trackEvent('PAGE_VIEW', {
       page_name: 'project',
       page_url: `/projects/${projectId}`,
       project_id: projectId,
@@ -107,7 +118,7 @@ export default function ProjectPage() {
       setLoading(true);
       
       // Log data loading start
-      track('DATA_LOAD_START', {
+      trackEvent('DATA_LOAD_START', {
         page: 'project',
         project_id: projectId,
         data_types: ['project', 'boards', 'team', 'team_members']
@@ -125,19 +136,21 @@ export default function ProjectPage() {
       // Load team information if project has a team
       if (projectData.team_id) {
         try {
-          const [teamResponse, membersResponse] = await Promise.all([
-            apiClient.get(`/api/teams/${projectData.team_id}`),
-            apiClient.get(`/api/teams/${projectData.team_id}/members`)
-          ]);
-          setTeam(teamResponse.data);
-          setTeamMembers(membersResponse.data);
+          const teamResponse = await apiClient.get(`/api/teams/${projectData.team_id}`);
+          const teamData = teamResponse.data;
+          setTeam(teamData);
+          
+          // The team endpoint returns members included
+          if (teamData.members) {
+            setTeamMembers(teamData.members);
+          }
         } catch (error) {
           console.error('Failed to load team data:', error);
         }
       }
 
       // Log successful data load
-      track('DATA_LOAD_SUCCESS', {
+      trackEvent('DATA_LOAD_SUCCESS', {
         page: 'project',
         project_id: projectId,
         boards_count: boardsResponse.data.length,
@@ -149,7 +162,7 @@ export default function ProjectPage() {
       toast.error('Failed to load project data');
       
       // Log data loading error
-      track('DATA_LOAD_ERROR', {
+      trackEvent('DATA_LOAD_ERROR', {
         page: 'project',
         project_id: projectId,
         error: error.message || 'Unknown error'
@@ -161,7 +174,7 @@ export default function ProjectPage() {
 
   const handleBoardClick = (boardId: string) => {
     // Log board click
-    track('BOARD_CLICK', {
+    trackEvent('BOARD_CLICK', {
       page: 'project',
       project_id: projectId,
       board_id: boardId
@@ -172,7 +185,7 @@ export default function ProjectPage() {
 
   const handleCreateBoard = () => {
     // Log create board click
-    track('CREATE_BOARD_CLICK', {
+    trackEvent('CREATE_BOARD_CLICK', {
       page: 'project',
       project_id: projectId
     });
@@ -197,37 +210,34 @@ export default function ProjectPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Project Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow-card p-6 border border-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <FolderOpen className="h-12 w-12 text-blue-600" />
+                <FolderOpen className="h-12 w-12 text-accent" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-primary">
                   {loading ? 'Loading...' : project?.name || 'Project'}
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-secondary mt-1">
                   {loading ? 'Loading project details...' : project?.description || 'Project description'}
                 </p>
                 {project && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-muted mt-1">
                     Created {formatDate(project.created_at)}
                   </p>
                 )}
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" leftIcon={<Eye className="h-4 w-4" />}>
                 View
               </Button>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" leftIcon={<Settings className="h-4 w-4" />}>
                 Settings
               </Button>
-              <Button size="sm" onClick={handleCreateBoard} data-testid="create-board-button">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button size="sm" onClick={handleCreateBoard} data-testid="create-board-button" leftIcon={<Plus className="h-4 w-4" />}>
                 Create Board
               </Button>
             </div>
@@ -239,11 +249,11 @@ export default function ProjectPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <FolderOpen className="h-8 w-8 text-blue-600" />
+                <FolderOpen className="h-8 w-8 text-accent" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Boards</p>
-                <p className="text-2xl font-semibold text-gray-900">{boards.length}</p>
+                <p className="text-sm font-medium text-muted">Boards</p>
+                <p className="text-2xl font-semibold text-primary">{boards.length}</p>
               </div>
             </div>
           </Card>
@@ -251,11 +261,11 @@ export default function ProjectPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Users className="h-8 w-8 text-green-600" />
+                <Users className="h-8 w-8 text-success" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Team Members</p>
-                <p className="text-2xl font-semibold text-gray-900">{teamMembers.length}</p>
+                <p className="text-sm font-medium text-muted">Team Members</p>
+                <p className="text-2xl font-semibold text-primary">{teamMembers.length}</p>
               </div>
             </div>
           </Card>
@@ -263,11 +273,11 @@ export default function ProjectPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Calendar className="h-8 w-8 text-purple-600" />
+                <Calendar className="h-8 w-8 text-info" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Tasks</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-muted">Total Tasks</p>
+                <p className="text-2xl font-semibold text-primary">
                   {boards.reduce((total, board) => total + (board.tasks_count || 0), 0)}
                 </p>
               </div>
@@ -280,9 +290,8 @@ export default function ProjectPage() {
           <div className="lg:col-span-2">
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Project Boards</h2>
-                <Button variant="ghost" size="sm" onClick={handleCreateBoard}>
-                  <Plus className="h-4 w-4 mr-2" />
+                <h2 className="text-lg font-semibold text-primary">Project Boards</h2>
+                <Button variant="ghost" size="sm" onClick={handleCreateBoard} leftIcon={<Plus className="h-4 w-4" />}>
                   Add Board
                 </Button>
               </div>
@@ -291,7 +300,7 @@ export default function ProjectPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="animate-pulse">
-                      <div className="h-32 bg-gray-200 rounded-lg"></div>
+                      <div className="h-32 bg-gray-3 rounded-lg"></div>
                     </div>
                   ))}
                 </div>
@@ -301,17 +310,17 @@ export default function ProjectPage() {
                     <button
                       key={board.id}
                       onClick={() => handleBoardClick(board.id)}
-                      className="text-left p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                      className="text-left p-4 rounded-lg border border-secondary hover:border-accent hover:bg-interactive-secondary-hover transition-colors"
                       data-testid={`board-card-${board.id}`}
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-medium text-gray-900">{board.name}</h3>
-                        <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                        <h3 className="font-medium text-primary">{board.name}</h3>
+                        <MoreHorizontal className="h-4 w-4 text-muted" />
                       </div>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      <p className="text-sm text-secondary mb-3 line-clamp-2">
                         {board.description}
                       </p>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-xs text-muted">
                         <span>{formatDate(board.created_at)}</span>
                         <div className="flex items-center space-x-3">
                           <span>{board.lists_count || 0} lists</span>
@@ -323,14 +332,13 @@ export default function ProjectPage() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <FolderOpen className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No boards yet</h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <FolderOpen className="mx-auto h-12 w-12 text-muted" />
+                  <h3 className="mt-2 text-sm font-medium text-primary">No boards yet</h3>
+                  <p className="mt-1 text-sm text-secondary">
                     Get started by creating your first board.
                   </p>
                   <div className="mt-6">
-                    <Button onClick={handleCreateBoard}>
-                      <Plus className="h-4 w-4 mr-2" />
+                    <Button onClick={handleCreateBoard} leftIcon={<Plus className="h-4 w-4" />}>
                       Create Board
                     </Button>
                   </div>
@@ -343,10 +351,10 @@ export default function ProjectPage() {
           <div>
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Team Members</h2>
+                <h2 className="text-lg font-semibold text-primary">Team Members</h2>
                 <Link href="/members">
-                  <Button variant="ghost" size="sm" data-testid="view-all-members">
-                    View all <ArrowRight className="ml-1 h-4 w-4" />
+                  <Button variant="ghost" size="sm" data-testid="view-all-members" rightIcon={<ArrowRight className="h-4 w-4" />}>
+                    View all
                   </Button>
                 </Link>
               </div>
@@ -355,10 +363,10 @@ export default function ProjectPage() {
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="animate-pulse flex items-center space-x-3">
-                      <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                      <div className="h-8 w-8 bg-gray-3 rounded-full"></div>
                       <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-4 bg-gray-3 rounded w-3/4 mb-1"></div>
+                        <div className="h-3 bg-gray-3 rounded w-1/2"></div>
                       </div>
                     </div>
                   ))}
@@ -373,10 +381,10 @@ export default function ProjectPage() {
                     >
                       <Avatar size="sm" name={member.user_name} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-primary truncate">
                           {member.user_name}
                         </p>
-                        <p className="text-xs text-gray-500 capitalize">
+                        <p className="text-xs text-muted capitalize">
                           {member.role}
                         </p>
                       </div>
@@ -384,7 +392,7 @@ export default function ProjectPage() {
                   ))}
                   
                   {teamMembers.length > 5 && (
-                    <div className="pt-2 border-t">
+                    <div className="pt-2 border-t border-secondary">
                       <Link href="/members">
                         <Button variant="ghost" size="sm" className="w-full">
                           View {teamMembers.length - 5} more members
@@ -395,9 +403,9 @@ export default function ProjectPage() {
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <Users className="mx-auto h-8 w-8 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No team members</h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <Users className="mx-auto h-8 w-8 text-muted" />
+                  <h3 className="mt-2 text-sm font-medium text-primary">No team members</h3>
+                  <p className="mt-1 text-sm text-secondary">
                     This project doesn&apos;t have any team members yet.
                   </p>
                 </div>
@@ -407,11 +415,11 @@ export default function ProjectPage() {
             {/* Team Info */}
             {team && (
               <Card className="p-6 mt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Team Information</h3>
+                <h3 className="text-lg font-semibold text-primary mb-3">Team Information</h3>
                 <div className="space-y-2">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{team.name}</p>
-                    <p className="text-sm text-gray-600">{team.description}</p>
+                    <p className="text-sm font-medium text-primary">{team.name}</p>
+                    <p className="text-sm text-secondary">{team.description}</p>
                   </div>
                 </div>
               </Card>

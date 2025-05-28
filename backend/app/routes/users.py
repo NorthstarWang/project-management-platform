@@ -20,6 +20,34 @@ def get_current_user_info(request: Request, current_user: dict = Depends(get_cur
     log_action(request, "USER_ME_GET", {"userId": current_user["id"]})
     return current_user
 
+@router.get("/users/me/assigned_tasks")
+def get_current_user_assigned_tasks(request: Request, current_user: dict = Depends(get_current_user)):
+    """Get tasks assigned to the current user"""
+    try:
+        tasks = data_manager.task_service.get_user_assigned_tasks(current_user["id"])
+        
+        # Enhance tasks with assignee names and comment counts
+        enhanced_tasks = []
+        for task in tasks:
+            enhanced_task = task.copy()
+            
+            # Add assignee name (should be current user)
+            enhanced_task["assignee_name"] = current_user["full_name"]
+            
+            # Add comment count
+            comments = data_manager.comment_repository.find_task_comments(task["id"])
+            enhanced_task["comments_count"] = len(comments)
+            
+            # Add attachments count (placeholder for now)
+            enhanced_task["attachments_count"] = 0
+            
+            enhanced_tasks.append(enhanced_task)
+        
+        log_action(request, "USER_ME_TASKS_GET", {"userId": current_user["id"]})
+        return enhanced_tasks
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
 @router.get("/users/{user_id}/assigned_tasks")
 def get_user_assigned_tasks(user_id: str, request: Request, current_user: dict = Depends(get_current_user)):
     """Get tasks assigned to a specific user"""

@@ -225,19 +225,19 @@ export default function MembersPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow-card p-6 border border-card">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Team Members</h1>
-              <p className="text-gray-600 mt-1">
+              <h1 className="text-2xl font-bold text-primary">Team Members</h1>
+              <p className="text-secondary mt-1">
                 Manage and view team members across all projects
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <Users className="h-8 w-8 text-blue-600" />
+              <Users className="h-8 w-8 text-accent" />
               <div>
-                <p className="text-sm font-medium text-gray-900">Total Members</p>
-                <p className="text-2xl font-semibold text-gray-900">{users.length}</p>
+                <p className="text-sm font-medium text-primary">Total Members</p>
+                <p className="text-2xl font-semibold text-primary">{users.length}</p>
               </div>
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function MembersPage() {
                 <select
                   value={selectedTeam}
                   onChange={(e) => handleFilterChange('team', e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="border border-secondary rounded-md px-3 py-2 text-sm bg-input text-input focus:border-input-focus"
                   data-testid="team-filter"
                   aria-label="Team filter"
                 >
@@ -285,7 +285,7 @@ export default function MembersPage() {
                 <select
                   value={selectedRole}
                   onChange={(e) => handleFilterChange('role', e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="border border-secondary rounded-md px-3 py-2 text-sm bg-input text-input focus:border-input-focus"
                   data-testid="role-filter"
                   aria-label="Role filter"
                 >
@@ -306,15 +306,15 @@ export default function MembersPage() {
               <Card key={i} className="p-6">
                 <div className="animate-pulse">
                   <div className="flex items-center space-x-4 mb-4">
-                    <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
+                    <div className="h-12 w-12 bg-gray-3 rounded-full"></div>
                     <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-4 bg-gray-3 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-3 rounded w-1/2"></div>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="h-3 bg-gray-200 rounded w-full"></div>
-                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    <div className="h-3 bg-gray-3 rounded w-full"></div>
+                    <div className="h-3 bg-gray-3 rounded w-2/3"></div>
                   </div>
                 </div>
               </Card>
@@ -330,8 +330,8 @@ export default function MembersPage() {
                     <div className="flex items-center space-x-3">
                       <Avatar size="lg" name={user.full_name} />
                       <div>
-                        <h3 className="font-semibold text-gray-900">{user.full_name}</h3>
-                        <p className="text-sm text-gray-600">@{user.username}</p>
+                        <h3 className="font-semibold text-primary">{user.full_name}</h3>
+                        <p className="text-sm text-secondary">@{user.username}</p>
                       </div>
                     </div>
                     <Button
@@ -350,17 +350,17 @@ export default function MembersPage() {
                         <RoleIcon className="h-3 w-3" />
                         <span className="capitalize">{user.role}</span>
                       </Badge>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted">
                         {getTeamName(user.team_id || '')}
                       </span>
                     </div>
 
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className="flex items-center space-x-2 text-sm text-secondary">
                       <Mail className="h-4 w-4" />
                       <span className="truncate">{user.email}</span>
                     </div>
 
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted">
                       Joined {formatDate(user.created_at)}
                     </div>
 
@@ -394,9 +394,9 @@ export default function MembersPage() {
         ) : (
           <Card className="p-12">
             <div className="text-center">
-              <Users className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No members found</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <Users className="mx-auto h-12 w-12 text-muted" />
+              <h3 className="mt-2 text-sm font-medium text-primary">No members found</h3>
+              <p className="mt-1 text-sm text-muted">
                 {searchQuery || selectedTeam !== 'all' || selectedRole !== 'all'
                   ? 'Try adjusting your search or filters'
                   : 'No team members available'}
@@ -410,11 +410,11 @@ export default function MembersPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Shield className="h-8 w-8 text-purple-600" />
+                <Shield className="h-8 w-8 text-info" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Admins</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-muted">Admins</p>
+                <p className="text-2xl font-semibold text-primary">
                   {users.filter(u => u.role === 'admin').length}
                 </p>
               </div>
@@ -424,11 +424,11 @@ export default function MembersPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <UserCheck className="h-8 w-8 text-blue-600" />
+                <UserCheck className="h-8 w-8 text-accent" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Managers</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-muted">Managers</p>
+                <p className="text-2xl font-semibold text-primary">
                   {users.filter(u => u.role === 'manager').length}
                 </p>
               </div>
@@ -438,11 +438,11 @@ export default function MembersPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Users className="h-8 w-8 text-green-600" />
+                <Users className="h-8 w-8 text-success" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Members</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-muted">Members</p>
+                <p className="text-2xl font-semibold text-primary">
                   {users.filter(u => u.role === 'member').length}
                 </p>
               </div>
@@ -452,4 +452,4 @@ export default function MembersPage() {
       </div>
     </DashboardLayout>
   );
-} 
+}

@@ -220,19 +220,19 @@ export default function CalendarPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Calendar Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow-card p-6 border border-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <CalendarIcon className="h-8 w-8 text-blue-600" />
+              <CalendarIcon className="h-8 w-8 text-accent" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
-                <p className="text-gray-600 mt-1">
+                <h1 className="text-2xl font-bold text-primary">Calendar</h1>
+                <p className="text-secondary mt-1">
                   View your tasks and deadlines
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center space-x-1 bg-gray-2 rounded-lg p-1">
                 <Button
                   variant={viewMode === 'month' ? 'primary' : 'ghost'}
                   size="sm"
@@ -266,7 +266,7 @@ export default function CalendarPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-primary">
                 {getCurrentMonthName()}
               </h2>
               <Button
@@ -279,8 +279,8 @@ export default function CalendarPage() {
               </Button>
             </div>
             <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">
+              <Filter className="h-4 w-4 text-muted" />
+              <span className="text-sm text-secondary">
                 {tasks.length} tasks with due dates
               </span>
             </div>
@@ -299,7 +299,7 @@ export default function CalendarPage() {
             <div className="space-y-6">
               {/* Upcoming Tasks */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold text-primary mb-4">
                   Upcoming Tasks (Next 7 Days)
                 </h3>
                 {getUpcomingTasks().length > 0 ? (
@@ -308,15 +308,15 @@ export default function CalendarPage() {
                       <Card
                         key={task.id}
                         className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                          isOverdue(task.due_date) ? 'border-red-200 bg-red-50' :
-                          isToday(task.due_date) ? 'border-yellow-200 bg-yellow-50' :
-                          'border-gray-200'
+                          isOverdue(task.due_date) ? 'border-error bg-error' :
+                          isToday(task.due_date) ? 'border-warning bg-warning' :
+                          'border-card'
                         }`}
                         data-testid={`calendar-task-${task.id}`}
                       >
                         <div className="space-y-3">
                           <div className="flex items-start justify-between">
-                            <h4 className="font-medium text-gray-900 text-sm leading-tight">
+                            <h4 className="font-medium text-primary text-sm leading-tight">
                               {task.title}
                             </h4>
                             {isOverdue(task.due_date) && (
@@ -340,7 +340,7 @@ export default function CalendarPage() {
                             </Badge>
                           </div>
 
-                          <div className="flex items-center space-x-2 text-xs text-gray-500">
+                          <div className="flex items-center space-x-2 text-xs text-muted">
                             <Clock className="h-3 w-3" />
                             <span>{formatDate(task.due_date)}</span>
                             <span>•</span>
@@ -350,12 +350,12 @@ export default function CalendarPage() {
                           {task.assignee_name && (
                             <div className="flex items-center space-x-2">
                               <Avatar size="xs" name={task.assignee_name} />
-                              <span className="text-xs text-gray-600">{task.assignee_name}</span>
+                              <span className="text-xs text-secondary">{task.assignee_name}</span>
                             </div>
                           )}
 
                           {(task.project_name || task.board_name) && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-muted">
                               {task.project_name && (
                                 <span>Project: {task.project_name}</span>
                               )}
@@ -372,9 +372,9 @@ export default function CalendarPage() {
                 ) : (
                   <Card className="p-12">
                     <div className="text-center">
-                      <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No upcoming tasks</h3>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <CalendarIcon className="mx-auto h-12 w-12 text-muted" />
+                      <h3 className="mt-2 text-sm font-medium text-primary">No upcoming tasks</h3>
+                      <p className="mt-1 text-sm text-muted">
                         You don&apos;t have any tasks due in the next 7 days.
                       </p>
                     </div>
@@ -384,7 +384,7 @@ export default function CalendarPage() {
 
               {/* All Tasks with Due Dates */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold text-primary mb-4">
                   All Tasks with Due Dates
                 </h3>
                 {tasks.length > 0 ? (

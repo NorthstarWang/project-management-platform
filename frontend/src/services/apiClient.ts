@@ -4,8 +4,6 @@
  * Basic wrapper for API calls with optional logging
  */
 
-import { track } from './analyticsLogger';
-
 export interface ApiResponse<T = any> {
   data: T;
   status: number;
@@ -58,6 +56,21 @@ class ApiClient {
   }
 
   /**
+   * Conditionally track events (only on client side)
+   */
+  private async trackEvent(eventType: string, data: any): Promise<void> {
+    if (typeof window !== 'undefined') {
+      try {
+        const { track } = await import('./analyticsLogger');
+        track(eventType, data);
+      } catch (error) {
+        // Silently fail if analytics logger is not available
+        console.warn('Analytics tracking failed:', error);
+      }
+    }
+  }
+
+  /**
    * Make HTTP request
    */
   private async request<T = any>(
@@ -84,7 +97,7 @@ class ApiClient {
 
       if (!response.ok) {
         // Log API errors
-        track('api_error', {
+        this.trackEvent('api_error', {
           method,
           url,
           status: response.status,
@@ -100,7 +113,7 @@ class ApiClient {
       }
 
       // Log successful API calls
-      track('api_success', {
+      this.trackEvent('api_success', {
         method,
         url,
         status: response.status,
@@ -116,7 +129,7 @@ class ApiClient {
       }
 
       // Network errors
-      track('api_network_error', {
+      this.trackEvent('api_network_error', {
         method,
         url,
         error: error instanceof Error ? error.message : 'Network error',

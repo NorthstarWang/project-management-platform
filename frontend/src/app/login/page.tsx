@@ -9,12 +9,23 @@ import { Label } from '@/components/ui/Label';
 import { Card } from '@/components/ui/Card';
 import { toast } from '@/components/ui/CustomToast';
 import apiClient from '@/services/apiClient';
-import { track } from '@/services/analyticsLogger';
 
 interface LoginForm {
   username: string;
   password: string;
 }
+
+// Helper function for analytics tracking
+const trackEvent = async (actionType: string, payload: any) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const { track } = await import('@/services/analyticsLogger');
+      track(actionType, payload);
+    } catch (error) {
+      console.warn('Analytics tracking failed:', error);
+    }
+  }
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -68,7 +79,7 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(userData));
 
       // Track successful login
-      track('USER_LOGIN', {
+      await trackEvent('USER_LOGIN', {
         username: form.username,
         user_id: userData.id,
         role: userData.role
@@ -90,15 +101,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-primary py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-primary">
             Sign in to your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-secondary">
             Or{' '}
-            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/register" className="font-medium text-accent hover:text-accent">
               create a new account
             </Link>
           </p>
@@ -107,7 +118,7 @@ export default function LoginPage() {
         <Card className="p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-primary">Username</Label>
               <Input
                 id="username"
                 name="username"
@@ -116,12 +127,12 @@ export default function LoginPage() {
                 value={form.username}
                 onChange={handleInputChange('username')}
                 placeholder="Enter your username"
-                className="mt-1"
+                className="mt-1 w-full bg-input border-input text-input placeholder-input focus:border-input-focus"
               />
             </div>
 
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-primary">Password</Label>
               <Input
                 id="password"
                 name="password"
@@ -130,7 +141,7 @@ export default function LoginPage() {
                 value={form.password}
                 onChange={handleInputChange('password')}
                 placeholder="Enter your password"
-                className="mt-1"
+                className="mt-1 w-full bg-input border-input text-input placeholder-input focus:border-input-focus"
               />
             </div>
 
@@ -148,17 +159,17 @@ export default function LoginPage() {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t border-secondary" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Test Accounts</span>
+                <span className="px-2 bg-card text-muted">Test Accounts</span>
               </div>
             </div>
 
-            <div className="mt-4 space-y-2 text-sm text-gray-600">
-              <div><strong>Admin:</strong> admin_alice / admin123</div>
-              <div><strong>Manager:</strong> manager_david / manager123</div>
-              <div><strong>Member:</strong> frontend_emma / dev123</div>
+            <div className="mt-4 space-y-2 text-sm text-secondary">
+              <div><strong className="text-primary">Admin:</strong> admin_alice / admin123</div>
+              <div><strong className="text-primary">Manager:</strong> manager_david / manager123</div>
+              <div><strong className="text-primary">Member:</strong> frontend_emma / dev123</div>
             </div>
           </div>
         </Card>
