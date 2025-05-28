@@ -6,9 +6,8 @@ import { formatRelativeTime } from '@/lib/utils';
 import { Card, CardContent, CardHeader } from './Card';
 import { Badge, StatusBadge, PriorityBadge } from './Badge';
 import { Avatar } from './Avatar';
-import { CustomDropdownMenu } from './CustomDropdownMenu';
 import { Button } from './Button';
-import { MoreHorizontal, Calendar, MessageSquare, Paperclip, Eye } from 'lucide-react';
+import { MoreHorizontal, Calendar, MessageSquare, Paperclip } from 'lucide-react';
 
 export interface TaskCardProps {
   id: string;
@@ -102,49 +101,22 @@ export function TaskCard({
           </div>
           
           {showActions && (
-            <CustomDropdownMenu
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 -mr-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Task actions</span>
-                </Button>
-              }
-              items={[
-                ...(onEdit ? [{
-                  id: 'view',
-                  label: 'View Details',
-                  icon: <Eye className="h-4 w-4" />,
-                  onClick: onEdit
-                }] : []),
-                ...(onEdit ? [{
-                  id: 'edit',
-                  label: 'Edit Task',
-                  onClick: onEdit
-                }] : []),
-                ...(onMove ? [{
-                  id: 'move',
-                  label: 'Move Task',
-                  onClick: onMove
-                }] : []),
-                ...(onAssign ? [{
-                  id: 'assign',
-                  label: 'Assign Task',
-                  onClick: onAssign
-                }] : []),
-                ...(onDelete ? [{
-                  id: 'delete',
-                  label: 'Delete Task',
-                  onClick: onDelete
-                }] : [])
-              ]}
-              align="end"
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 -mr-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                // For now, just call the first available action
+                if (onEdit) onEdit();
+                else if (onMove) onMove();
+                else if (onAssign) onAssign();
+                else if (onDelete) onDelete();
+              }}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+              <span className="sr-only">Task actions</span>
+            </Button>
           )}
         </div>
       </CardHeader>

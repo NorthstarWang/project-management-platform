@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from '@/components/ui/CustomToast';
 import {
   Button,
   Card,
@@ -13,12 +14,6 @@ import {
   Label,
   Badge,
   Avatar,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
   Tabs,
   TabsContent,
   TabsList,
@@ -28,11 +23,6 @@ import {
   Checkbox,
   RadioGroup,
   RadioGroupItem,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Slider,
   Accordion,
   AccordionContent,
@@ -62,16 +52,26 @@ import {
   TaskCard,
 } from '@/components/ui';
 import { CustomDropdownMenu } from '@/components/ui/CustomDropdownMenu';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/CustomDialog';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Settings, User, LogOut, Edit, Trash2 } from 'lucide-react';
 
 export function ComponentShowcase() {
-  const [progress, setProgress] = useState(33);
-  const [switchValue, setSwitchValue] = useState(false);
-  const [checkboxValue, setCheckboxValue] = useState(false);
+  const [progress, setProgress] = useState(45);
+  const [switchChecked, setSwitchChecked] = useState(false);
+  const [checkboxChecked, setCheckboxChecked] = useState(false);
   const [radioValue, setRadioValue] = useState('option1');
-  const [selectValue, setSelectValue] = useState('');
   const [sliderValue, setSliderValue] = useState([50]);
+  const [dropdownValue, setDropdownValue] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -204,17 +204,42 @@ export function ComponentShowcase() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="select">Select Option</Label>
-                  <Select value={selectValue} onValueChange={setSelectValue}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose an option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="option1">Option 1</SelectItem>
-                      <SelectItem value="option2">Option 2</SelectItem>
-                      <SelectItem value="option3">Option 3</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="dropdown">Custom Dropdown</Label>
+                  <CustomDropdownMenu
+                    options={[
+                      {
+                        value: 'profile',
+                        label: 'Profile',
+                        icon: <User className="h-4 w-4" />
+                      },
+                      {
+                        value: 'settings',
+                        label: 'Settings',
+                        icon: <Settings className="h-4 w-4" />
+                      },
+                      {
+                        value: 'edit',
+                        label: 'Edit',
+                        icon: <Edit className="h-4 w-4" />
+                      },
+                      {
+                        value: 'delete',
+                        label: 'Delete',
+                        icon: <Trash2 className="h-4 w-4" />
+                      },
+                      {
+                        value: 'logout',
+                        label: 'Logout',
+                        icon: <LogOut className="h-4 w-4" />
+                      }
+                    ]}
+                    value={dropdownValue}
+                    onChange={(value) => {
+                      setDropdownValue(value);
+                      console.log('Selected:', value);
+                    }}
+                    placeholder="Select action"
+                  />
                 </div>
               </div>
 
@@ -222,8 +247,8 @@ export function ComponentShowcase() {
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="notifications"
-                    checked={switchValue}
-                    onCheckedChange={setSwitchValue}
+                    checked={switchChecked}
+                    onCheckedChange={setSwitchChecked}
                   />
                   <Label htmlFor="notifications">Enable notifications</Label>
                 </div>
@@ -231,8 +256,8 @@ export function ComponentShowcase() {
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="terms"
-                    checked={checkboxValue}
-                    onCheckedChange={(checked) => setCheckboxValue(checked === true)}
+                    checked={checkboxChecked}
+                    onCheckedChange={(checked) => setCheckboxChecked(checked === true)}
                   />
                   <Label htmlFor="terms">Accept terms and conditions</Label>
                 </div>
@@ -370,7 +395,7 @@ export function ComponentShowcase() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex space-x-4">
-                <Dialog>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>Open Dialog</Button>
                   </DialogTrigger>
@@ -387,7 +412,7 @@ export function ComponentShowcase() {
                   </DialogContent>
                 </Dialog>
 
-                <AlertDialog>
+                <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive">Delete Item</Button>
                   </AlertDialogTrigger>
@@ -400,7 +425,9 @@ export function ComponentShowcase() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction>Delete</AlertDialogAction>
+                      <AlertDialogAction onClick={() => {
+                        toast.success('Item deleted successfully');
+                      }}>Delete</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -413,42 +440,6 @@ export function ComponentShowcase() {
                     <p>This is a tooltip</p>
                   </TooltipContent>
                 </Tooltip>
-
-                <CustomDropdownMenu
-                  trigger={<Button variant="outline">Custom Dropdown</Button>}
-                  items={[
-                    {
-                      id: 'profile',
-                      label: 'Profile',
-                      icon: <User className="h-4 w-4" />,
-                      onClick: () => console.log('Profile clicked')
-                    },
-                    {
-                      id: 'settings',
-                      label: 'Settings',
-                      icon: <Settings className="h-4 w-4" />,
-                      onClick: () => console.log('Settings clicked')
-                    },
-                    {
-                      id: 'edit',
-                      label: 'Edit',
-                      icon: <Edit className="h-4 w-4" />,
-                      onClick: () => console.log('Edit clicked')
-                    },
-                    {
-                      id: 'delete',
-                      label: 'Delete',
-                      icon: <Trash2 className="h-4 w-4" />,
-                      onClick: () => console.log('Delete clicked')
-                    },
-                    {
-                      id: 'logout',
-                      label: 'Logout',
-                      icon: <LogOut className="h-4 w-4" />,
-                      onClick: () => console.log('Logout clicked')
-                    }
-                  ]}
-                />
               </div>
             </CardContent>
           </Card>
