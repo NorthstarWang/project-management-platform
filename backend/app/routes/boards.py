@@ -55,10 +55,31 @@ def get_board_details(board_id: str, request: Request, current_user: dict = Depe
         
         board = data_manager.board_service.get_board_with_details(board_id)
         
-        # Get tasks for each list
+        # Get tasks for each list and enhance with assignee information
         for board_list in board["lists"]:
             tasks = data_manager.task_repository.find_tasks_by_list(board_list["id"])
-            board_list["tasks"] = tasks
+            
+            # Enhance tasks with assignee names and comment counts
+            enhanced_tasks = []
+            for task in tasks:
+                enhanced_task = task.copy()
+                
+                # Add assignee name if assignee exists
+                if task.get("assignee_id"):
+                    assignee = data_manager.user_repository.find_by_id(task["assignee_id"])
+                    if assignee:
+                        enhanced_task["assignee_name"] = assignee["full_name"]
+                
+                # Add comment count
+                comments = data_manager.comment_repository.find_task_comments(task["id"])
+                enhanced_task["comments_count"] = len(comments)
+                
+                # Add attachments count (placeholder for now)
+                enhanced_task["attachments_count"] = 0
+                
+                enhanced_tasks.append(enhanced_task)
+            
+            board_list["tasks"] = enhanced_tasks
         
         log_action(request, "BOARD_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
         return board

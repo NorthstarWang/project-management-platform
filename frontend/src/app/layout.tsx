@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Alike, Mulish } from "next/font/google";
 import { Theme } from "@radix-ui/themes";
 import { ToastProvider } from "@/components/ui/CustomToast";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import "@radix-ui/themes/styles.css";
 import "./globals.css";
 
@@ -39,7 +40,9 @@ export default function RootLayout({
           panelBackground="solid"
           hasBackground={false}
         >
-          {children}
+          <ProtectedRoute>
+            {children}
+          </ProtectedRoute>
           <ToastProvider />
         </Theme>
       </body>

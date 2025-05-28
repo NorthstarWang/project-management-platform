@@ -17,16 +17,23 @@ class AnalyticsLogger {
   private sessionId: string | null = null;
   private isInitialized = false;
   private eventQueue: Array<{ actionType: string; payload: LogPayload }> = [];
+  private isClient = false;
 
   constructor() {
-    this.initializeSession();
-    this.setupBasicEventListeners();
+    // Only initialize on client side
+    if (typeof window !== 'undefined') {
+      this.isClient = true;
+      this.initializeSession();
+      this.setupBasicEventListeners();
+    }
   }
 
   /**
    * Initialize session via synthetic API
    */
   private async initializeSession(): Promise<void> {
+    if (!this.isClient) return;
+
     try {
       const response = await fetch('http://localhost:8000/_synthetic/new_session', {
         method: 'POST',
@@ -59,6 +66,8 @@ class AnalyticsLogger {
    * Set up basic event listeners for required user actions
    */
   private setupBasicEventListeners(): void {
+    if (!this.isClient) return;
+
     // Click events
     document.addEventListener('click', (event) => {
       const target = event.target as Element;
@@ -170,8 +179,10 @@ class AnalyticsLogger {
    * Main logging method - sends to /_synthetic/log_event
    */
   public logEvent(actionType: string, payload: LogPayload = {}): void {
+    if (!this.isClient) return;
+
     // Ensure page_url is always included
-    if (!payload.page_url) {
+    if (!payload.page_url && typeof window !== 'undefined') {
       payload.page_url = window.location.href;
     }
 
@@ -191,7 +202,7 @@ class AnalyticsLogger {
    * Send log entry to backend
    */
   private async sendLogEntry(logData: { actionType: string; payload: LogPayload }): Promise<void> {
-    if (!this.sessionId) return;
+    if (!this.sessionId || !this.isClient) return;
 
     try {
       await fetch(`http://localhost:8000/_synthetic/log_event?session_id=${this.sessionId}`, {
@@ -210,7 +221,7 @@ class AnalyticsLogger {
    * Flush queued events
    */
   private async flushEventQueue(): Promise<void> {
-    if (!this.isInitialized || this.eventQueue.length === 0) return;
+    if (!this.isInitialized || this.eventQueue.length === 0 || !this.isClient) return;
 
     const eventsToSend = [...this.eventQueue];
     this.eventQueue = [];
@@ -235,6 +246,8 @@ class AnalyticsLogger {
    * Log page view
    */
   public pageView(pageName?: string): void {
+    if (!this.isClient) return;
+    
     this.logEvent('page_view', {
       page_name: pageName,
       page_title: document.title,
@@ -274,11 +287,36 @@ class AnalyticsLogger {
 // Create singleton instance
 const analyticsLogger = new AnalyticsLogger();
 
-// Export convenience functions
-export const track = (actionType: string, payload?: LogPayload) => analyticsLogger.track(actionType, payload);
-export const pageView = (pageName?: string) => analyticsLogger.pageView(pageName);
-export const taskDone = (taskName: string, additionalData?: any) => analyticsLogger.taskDone(taskName, additionalData);
-export const userInteraction = (interactionType: string, elementSelector: string, data?: any) => analyticsLogger.userInteraction(interactionType, elementSelector, data);
-export const getSessionId = () => analyticsLogger.getSessionId();
+// Export convenience functions with client-side checks
+export const track = (actionType: string, payload?: LogPayload) => {
+  if (typeof window !== 'undefined') {
+    analyticsLogger.track(actionType, payload);
+  }
+};
+
+export const pageView = (pageName?: string) => {
+  if (typeof window !== 'undefined') {
+    analyticsLogger.pageView(pageName);
+  }
+};
+
+export const taskDone = (taskName: string, additionalData?: any) => {
+  if (typeof window !== 'undefined') {
+    analyticsLogger.taskDone(taskName, additionalData);
+  }
+};
+
+export const userInteraction = (interactionType: string, elementSelector: string, data?: any) => {
+  if (typeof window !== 'undefined') {
+    analyticsLogger.userInteraction(interactionType, elementSelector, data);
+  }
+};
+
+export const getSessionId = () => {
+  if (typeof window !== 'undefined') {
+    return analyticsLogger.getSessionId();
+  }
+  return null;
+};
 
 export default analyticsLogger; 

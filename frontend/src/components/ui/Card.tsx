@@ -14,6 +14,8 @@ const cardVariants = cva(
         flat: 'bg-secondary border-secondary',
         ghost: 'bg-transparent border-muted',
         outline: 'bg-transparent border-primary',
+        elevated: 'bg-card border-card shadow-lg hover:shadow-xl',
+        interactive: 'bg-card border-card hover:bg-card-hover cursor-pointer',
       },
       size: {
         sm: 'p-3',

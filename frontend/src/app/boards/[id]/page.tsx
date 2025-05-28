@@ -24,7 +24,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCorners
+  closestCorners,
+  useDroppable
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -34,7 +35,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
-import { track } from '@/services/analyticsLogger';
 
 interface User {
   id: string;
@@ -75,27 +75,20 @@ interface Task {
   attachments_count?: number;
 }
 
-interface TaskCardProps {
-  task: Task;
-  onClick: (task: Task) => void;
-}
+// Helper function for analytics tracking
+const trackEvent = async (actionType: string, payload: any) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const { track } = await import('@/services/analyticsLogger');
+      track(actionType, payload);
+    } catch (error) {
+      console.warn('Analytics tracking failed:', error);
+    }
+  }
+};
 
-function TaskCard({ task, onClick }: TaskCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
+// Helper component for task card content
+function TaskCardContent({ task, showDragHandle = false }: { task: Task; showDragHandle?: boolean }) {
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case 'high': return 'high';
@@ -114,24 +107,26 @@ function TaskCard({ task, onClick }: TaskCardProps) {
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-      onClick={() => onClick(task)}
-      data-testid={`task-card-${task.id}`}
-    >
+    <>
+      {showDragHandle && (
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <div className="w-1 h-4 bg-gray-4 rounded-full"></div>
+            <div className="w-1 h-4 bg-gray-4 rounded-full"></div>
+          </div>
+          <div className="text-xs text-muted">#{task.id.slice(-4)}</div>
+        </div>
+      )}
+      
       <div className="space-y-3">
         {/* Task Title */}
-        <h3 className="font-medium text-gray-900 text-sm leading-tight">
+        <h3 className="font-medium text-primary text-sm leading-tight">
           {task.title}
         </h3>
 
         {/* Task Description */}
         {task.description && (
-          <p className="text-xs text-gray-600 line-clamp-2">
+          <p className="text-xs text-secondary line-clamp-2">
             {task.description}
           </p>
         )}
@@ -142,7 +137,7 @@ function TaskCard({ task, onClick }: TaskCardProps) {
             {task.priority}
           </Badge>
           {task.due_date && (
-            <div className="flex items-center space-x-1 text-xs text-gray-500">
+            <div className="flex items-center space-x-1 text-xs text-muted">
               <Calendar className="h-3 w-3" />
               <span>{formatDate(task.due_date)}</span>
             </div>
@@ -159,7 +154,7 @@ function TaskCard({ task, onClick }: TaskCardProps) {
           </div>
 
           {/* Metadata */}
-          <div className="flex items-center space-x-2 text-xs text-gray-500">
+          <div className="flex items-center space-x-2 text-xs text-muted">
             {task.comments_count && task.comments_count > 0 && (
               <div className="flex items-center space-x-1">
                 <MessageSquare className="h-3 w-3" />
@@ -175,6 +170,58 @@ function TaskCard({ task, onClick }: TaskCardProps) {
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+interface TaskCardProps {
+  task: Task;
+  onClick: (task: Task) => void;
+}
+
+function TaskCard({ task, onClick }: TaskCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-card rounded-lg border border-card p-4 shadow-sm hover:shadow-md transition-all select-none ${
+        isDragging ? 'shadow-xl border-accent' : ''
+      }`}
+      data-testid={`task-card-${task.id}`}
+    >
+      {/* Drag Handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
+      >
+        <div className="flex items-center space-x-2">
+          <div className="w-1 h-4 bg-gray-4 rounded-full"></div>
+          <div className="w-1 h-4 bg-gray-4 rounded-full"></div>
+        </div>
+        <div className="text-xs text-muted">#{task.id.slice(-4)}</div>
+      </div>
+
+      {/* Task Content - Clickable */}
+      <div onClick={() => onClick(task)} className="cursor-pointer">
+        <TaskCardContent task={task} />
+      </div>
     </div>
   );
 }
@@ -189,29 +236,32 @@ interface ListColumnProps {
 function ListColumn({ list, tasks, onTaskClick, onAddTask }: ListColumnProps) {
   const {
     setNodeRef,
-  } = useSortable({ id: list.id });
+    isOver,
+  } = useDroppable({
+    id: `droppable-${list.id}`,
+  });
 
   const getListColor = (listName: string) => {
     const name = listName.toLowerCase();
-    if (name.includes('todo') || name.includes('backlog')) return 'bg-gray-50 border-gray-200';
-    if (name.includes('progress') || name.includes('doing')) return 'bg-blue-50 border-blue-200';
-    if (name.includes('review') || name.includes('testing')) return 'bg-yellow-50 border-yellow-200';
-    if (name.includes('done') || name.includes('completed')) return 'bg-green-50 border-green-200';
-    return 'bg-gray-50 border-gray-200';
+    if (name.includes('todo') || name.includes('backlog')) return 'bg-card border-secondary';
+    if (name.includes('progress') || name.includes('doing')) return 'bg-card border-accent';
+    if (name.includes('review') || name.includes('testing')) return 'bg-card border-warning';
+    if (name.includes('done') || name.includes('completed')) return 'bg-card border-success';
+    return 'bg-card border-secondary';
   };
 
   return (
-    <div className="flex-shrink-0 w-80">
-      <div className={`rounded-lg border-2 border-dashed p-4 h-full ${getListColor(list.name)}`}>
+    <div className="flex-shrink-0 w-full lg:w-80">
+      <div className={`rounded-lg border-2 p-4 h-full transition-colors ${getListColor(list.name)} ${isOver ? 'border-accent bg-accent-1' : ''}`}>
         {/* List Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
-            <h2 className="font-semibold text-gray-900">{list.name}</h2>
-            <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+            <h2 className="font-semibold text-primary">{list.name}</h2>
+            <span className="bg-gray-3 text-primary text-xs px-2 py-1 rounded-full">
               {tasks.length}
             </span>
           </div>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" className="flex items-center">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </div>
@@ -219,7 +269,7 @@ function ListColumn({ list, tasks, onTaskClick, onAddTask }: ListColumnProps) {
         {/* Tasks Container */}
         <div
           ref={setNodeRef}
-          className="space-y-3 min-h-[200px]"
+          className="space-y-3 min-h-[200px] lg:min-h-[400px]"
           data-testid={`list-${list.id}`}
         >
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
@@ -236,11 +286,11 @@ function ListColumn({ list, tasks, onTaskClick, onAddTask }: ListColumnProps) {
         {/* Add Task Button */}
         <Button
           variant="ghost"
-          className="w-full mt-4 border-2 border-dashed border-gray-300 hover:border-gray-400"
+          className="w-full mt-4 border-2 border-dashed border-secondary hover:border-accent"
           onClick={() => onAddTask(list.id)}
           data-testid={`add-task-${list.id}`}
+          leftIcon={<Plus className="h-4 w-4" />}
         >
-          <Plus className="h-4 w-4 mr-2" />
           Add a task
         </Button>
       </div>
@@ -264,7 +314,7 @@ export default function BoardPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 3,
       },
     })
   );
@@ -286,7 +336,7 @@ export default function BoardPage() {
     apiClient.setUserIdHeader(parsedUser.id);
     
     // Log board page view
-    track('PAGE_VIEW', {
+    trackEvent('PAGE_VIEW', {
       page_name: 'board',
       page_url: `/boards/${boardId}`,
       board_id: boardId,
@@ -302,39 +352,33 @@ export default function BoardPage() {
     try {
       setLoading(true);
       
-      // Log data loading start
-      track('DATA_LOAD_START', {
-        page: 'board',
-        board_id: boardId,
-        data_types: ['board', 'lists', 'tasks']
-      });
-      
-      // Load board details with lists and tasks
+      // Load board details - this endpoint returns board with lists and tasks
       const boardResponse = await apiClient.get(`/api/boards/${boardId}`);
       const boardData = boardResponse.data;
       
       setBoard(boardData);
-      setLists(boardData.lists || []);
-      setTasks(boardData.tasks || []);
-
-      // Log successful data load
-      track('DATA_LOAD_SUCCESS', {
-        page: 'board',
-        board_id: boardId,
-        lists_count: boardData.lists?.length || 0,
-        tasks_count: boardData.tasks?.length || 0
-      });
+      
+      // The board endpoint returns lists and tasks included
+      if (boardData.lists) {
+        setLists(boardData.lists);
+        
+        // Extract tasks from lists
+        const allTasks: Task[] = [];
+        boardData.lists.forEach((list: any) => {
+          if (list.tasks) {
+            allTasks.push(...list.tasks);
+          }
+        });
+        setTasks(allTasks);
+      } else {
+        // Fallback: set empty arrays if no lists
+        setLists([]);
+        setTasks([]);
+      }
 
     } catch (error: any) {
       console.error('Failed to load board data:', error);
       toast.error('Failed to load board data');
-      
-      // Log data loading error
-      track('DATA_LOAD_ERROR', {
-        page: 'board',
-        board_id: boardId,
-        error: error.message || 'Unknown error'
-      });
     } finally {
       setLoading(false);
     }
@@ -344,14 +388,6 @@ export default function BoardPage() {
     const { active } = event;
     const task = tasks.find(t => t.id === active.id);
     setActiveTask(task || null);
-    
-    // Log drag start
-    track('DRAG_START', {
-      page: 'board',
-      board_id: boardId,
-      task_id: active.id,
-      source_list_id: task?.list_id
-    });
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -367,9 +403,9 @@ export default function BoardPage() {
     let targetListId: string;
     let targetPosition: number;
 
-    if (over.id.toString().startsWith('list-')) {
-      // Dropped on a list
-      targetListId = over.id.toString().replace('list-', '');
+    // Check if dropped on a droppable list container
+    if (over.id.toString().startsWith('droppable-')) {
+      targetListId = over.id.toString().replace('droppable-', '');
       const listTasks = tasks.filter(t => t.list_id === targetListId);
       targetPosition = listTasks.length;
     } else {
@@ -402,16 +438,6 @@ export default function BoardPage() {
         position: targetPosition
       });
 
-      // Log successful task move
-      track('TASK_MOVED', {
-        page: 'board',
-        board_id: boardId,
-        task_id: activeTask.id,
-        source_list_id: activeTask.list_id,
-        target_list_id: targetListId,
-        target_position: targetPosition
-      });
-
       toast.success('Task moved successfully');
 
     } catch (error: any) {
@@ -420,32 +446,16 @@ export default function BoardPage() {
       
       // Revert the optimistic update
       setTasks(tasks);
-      
-      // Log task move error
-      track('TASK_MOVE_ERROR', {
-        page: 'board',
-        board_id: boardId,
-        task_id: activeTask.id,
-        error: error.message || 'Unknown error'
-      });
     }
   };
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
-    
-    // Log task click
-    track('TASK_CLICK', {
-      page: 'board',
-      board_id: boardId,
-      task_id: task.id,
-      list_id: task.list_id
-    });
   };
 
   const handleAddTask = (listId: string) => {
     // Log add task click
-    track('ADD_TASK_CLICK', {
+    trackEvent('ADD_TASK_CLICK', {
       page: 'board',
       board_id: boardId,
       list_id: listId
@@ -469,27 +479,24 @@ export default function BoardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Board Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow-card p-6 border border-card">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-primary">
                 {loading ? 'Loading...' : board?.name || 'Board'}
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-secondary mt-1">
                 {loading ? 'Loading board details...' : board?.description || 'Board description'}
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
-                <Users className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" leftIcon={<Users className="h-4 w-4" />}>
                 Members
               </Button>
-              <Button variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" leftIcon={<Eye className="h-4 w-4" />}>
                 View
               </Button>
-              <Button size="sm" data-testid="add-list-button">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} data-testid="add-list-button">
                 Add List
               </Button>
             </div>
@@ -498,15 +505,15 @@ export default function BoardPage() {
 
         {/* Board Content */}
         {loading ? (
-          <div className="flex space-x-6 overflow-x-auto pb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex-shrink-0 w-80">
+              <div key={i} className="w-full">
                 <Card className="p-4 h-96">
                   <div className="animate-pulse">
-                    <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+                    <div className="h-6 bg-gray-3 rounded w-1/2 mb-4"></div>
                     <div className="space-y-3">
                       {[1, 2, 3].map((j) => (
-                        <div key={j} className="h-20 bg-gray-200 rounded"></div>
+                        <div key={j} className="h-20 bg-gray-3 rounded"></div>
                       ))}
                     </div>
                   </div>
@@ -521,8 +528,9 @@ export default function BoardPage() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex space-x-6 overflow-x-auto pb-6" data-testid="board-lists">
-              <SortableContext items={lists.map(l => l.id)} strategy={verticalListSortingStrategy}>
+            {/* Desktop Layout - Horizontal Scroll */}
+            <div className="hidden lg:block">
+              <div className="flex space-x-6 overflow-x-auto pb-6" data-testid="board-lists">
                 {lists.map((list) => (
                   <ListColumn
                     key={list.id}
@@ -532,15 +540,29 @@ export default function BoardPage() {
                     onAddTask={handleAddTask}
                   />
                 ))}
-              </SortableContext>
+              </div>
+            </div>
+
+            {/* Mobile/Tablet Layout - Grid */}
+            <div className="lg:hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="board-lists-mobile">
+                {lists.map((list) => (
+                  <div key={list.id} className="w-full">
+                    <ListColumn
+                      list={list}
+                      tasks={getTasksForList(list.id)}
+                      onTaskClick={handleTaskClick}
+                      onAddTask={handleAddTask}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             <DragOverlay>
               {activeTask ? (
-                <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-lg rotate-3">
-                  <h3 className="font-medium text-gray-900 text-sm">
-                    {activeTask.title}
-                  </h3>
+                <div className="w-80 bg-card rounded-lg border border-accent p-4 shadow-2xl rotate-2 opacity-95">
+                  <TaskCardContent task={activeTask} showDragHandle />
                 </div>
               ) : null}
             </DragOverlay>
@@ -551,13 +573,13 @@ export default function BoardPage() {
         {selectedTask && (
           <div className="fixed inset-0 z-50 flex items-start justify-end">
             <div 
-              className="absolute inset-0 bg-black bg-opacity-50"
+              className="absolute inset-0 bg-dialog-overlay"
               onClick={() => setSelectedTask(null)}
             />
-            <div className="relative bg-white w-96 h-full shadow-xl overflow-y-auto">
+            <div className="relative bg-card w-96 h-full shadow-xl overflow-y-auto border-l border-card">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Task Details</h2>
+                  <h2 className="text-lg font-semibold text-primary">Task Details</h2>
                   <Button 
                     variant="ghost" 
                     size="sm"
@@ -570,8 +592,8 @@ export default function BoardPage() {
                 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-medium text-gray-900">{selectedTask.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{selectedTask.description}</p>
+                    <h3 className="font-medium text-primary">{selectedTask.title}</h3>
+                    <p className="text-sm text-secondary mt-1">{selectedTask.description}</p>
                   </div>
                   
                   <div className="flex items-center space-x-4">
@@ -581,20 +603,20 @@ export default function BoardPage() {
                     {selectedTask.assignee_name && (
                       <div className="flex items-center space-x-2">
                         <Avatar size="sm" name={selectedTask.assignee_name} />
-                        <span className="text-sm text-gray-600">{selectedTask.assignee_name}</span>
+                        <span className="text-sm text-secondary">{selectedTask.assignee_name}</span>
                       </div>
                     )}
                   </div>
                   
                   {selectedTask.due_date && (
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className="flex items-center space-x-2 text-sm text-secondary">
                       <Calendar className="h-4 w-4" />
                       <span>Due: {new Date(selectedTask.due_date).toLocaleDateString()}</span>
                     </div>
                   )}
                   
-                  <div className="pt-4 border-t">
-                    <p className="text-sm text-gray-500">
+                  <div className="pt-4 border-t border-secondary">
+                    <p className="text-sm text-muted">
                       Task details and comments will be implemented in the next phase.
                     </p>
                   </div>

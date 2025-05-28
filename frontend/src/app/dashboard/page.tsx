@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
-import { track } from '@/services/analyticsLogger';
 
 interface User {
   id: string;
@@ -36,17 +35,19 @@ interface Project {
   name: string;
   description: string;
   team_id: string;
+  created_at: string;
 }
 
 interface Task {
   id: string;
   title: string;
   description: string;
+  list_id: string;
+  assignee_id?: string;
+  assignee_name?: string;
   priority: string;
   status: string;
   due_date?: string;
-  list_id: string;
-  assignee_id: string;
   created_at: string;
 }
 
@@ -55,28 +56,39 @@ interface Board {
   name: string;
   description: string;
   project_id: string;
+  created_at: string;
 }
 
 interface Comment {
   id: string;
   content: string;
   task_id: string;
-  author_id: string;
-  author_name: string;
+  user_id: string;
+  user_name: string;
   created_at: string;
-  task_title: string;
 }
 
 interface Activity {
   id: string;
+  action_type: string;
+  description: string;
   task_id: string;
   user_id: string;
-  activity_type: string;
-  description: string;
-  created_at: string;
-  task_title: string;
   user_name: string;
+  created_at: string;
 }
+
+// Helper function for analytics tracking
+const trackEvent = async (actionType: string, payload: any) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const { track } = await import('@/services/analyticsLogger');
+      track(actionType, payload);
+    } catch (error) {
+      console.warn('Analytics tracking failed:', error);
+    }
+  }
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -105,7 +117,7 @@ export default function DashboardPage() {
     apiClient.setUserIdHeader(parsedUser.id);
     
     // Log dashboard page view
-    track('PAGE_VIEW', {
+    trackEvent('PAGE_VIEW', {
       page_name: 'dashboard',
       page_url: '/dashboard',
       user_id: parsedUser.id,
@@ -121,7 +133,7 @@ export default function DashboardPage() {
       setLoading(true);
       
       // Log data loading start
-      track('DATA_LOAD_START', {
+      trackEvent('DATA_LOAD_START', {
         page: 'dashboard',
         data_types: ['projects', 'boards', 'tasks', 'comments', 'activities']
       });
@@ -143,7 +155,7 @@ export default function DashboardPage() {
       }
 
       // Log successful data load
-      track('DATA_LOAD_SUCCESS', {
+      trackEvent('DATA_LOAD_SUCCESS', {
         page: 'dashboard',
         projects_count: projectsRes.data.length,
         boards_count: boardsRes.data.length,
@@ -155,7 +167,7 @@ export default function DashboardPage() {
       toast.error('Failed to load dashboard data');
       
       // Log data loading error
-      track('DATA_LOAD_ERROR', {
+      trackEvent('DATA_LOAD_ERROR', {
         page: 'dashboard',
         error: error.message || 'Unknown error'
       });
@@ -209,7 +221,7 @@ export default function DashboardPage() {
   };
 
   const handleQuickAction = (action: string, projectId?: string) => {
-    track('QUICK_ACTION_CLICK', {
+    trackEvent('QUICK_ACTION_CLICK', {
       action,
       project_id: projectId,
       page: 'dashboard'
@@ -272,21 +284,21 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Welcome Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow-card p-6 border border-card">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-primary">
                 Welcome back, {user.full_name}!
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-secondary mt-1">
                 Here&apos;s what&apos;s happening with your projects today.
               </p>
             </div>
             <div className="flex items-center space-x-3">
               <Avatar size="lg" name={user.full_name} />
               <div>
-                <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
-                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                <p className="text-sm font-medium text-primary">{user.full_name}</p>
+                <p className="text-xs text-muted capitalize">{user.role}</p>
               </div>
             </div>
           </div>
@@ -294,7 +306,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-primary mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button
               variant="outline"
@@ -343,11 +355,11 @@ export default function DashboardPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <FolderOpen className="h-8 w-8 text-blue-600" />
+                <FolderOpen className="h-8 w-8 text-accent" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Projects</p>
-                <p className="text-2xl font-semibold text-gray-900">{projects.length}</p>
+                <p className="text-sm font-medium text-muted">Projects</p>
+                <p className="text-2xl font-semibold text-primary">{projects.length}</p>
               </div>
             </div>
           </Card>
@@ -355,11 +367,11 @@ export default function DashboardPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <CheckSquare className="h-8 w-8 text-green-600" />
+                <CheckSquare className="h-8 w-8 text-success" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Boards</p>
-                <p className="text-2xl font-semibold text-gray-900">{boards.length}</p>
+                <p className="text-sm font-medium text-muted">Boards</p>
+                <p className="text-2xl font-semibold text-primary">{boards.length}</p>
               </div>
             </div>
           </Card>
@@ -367,11 +379,11 @@ export default function DashboardPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Clock className="h-8 w-8 text-orange-600" />
+                <Clock className="h-8 w-8 text-warning" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Assigned Tasks</p>
-                <p className="text-2xl font-semibold text-gray-900">{assignedTasks.length}</p>
+                <p className="text-sm font-medium text-muted">Assigned Tasks</p>
+                <p className="text-2xl font-semibold text-primary">{assignedTasks.length}</p>
               </div>
             </div>
           </Card>
@@ -379,11 +391,11 @@ export default function DashboardPage() {
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Users className="h-8 w-8 text-purple-600" />
+                <Users className="h-8 w-8 text-info" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Active Tasks</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-muted">Active Tasks</p>
+                <p className="text-2xl font-semibold text-primary">
                   {assignedTasks.filter(task => task.status !== 'completed').length}
                 </p>
               </div>
@@ -395,10 +407,10 @@ export default function DashboardPage() {
           {/* Recent Projects */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Projects</h2>
+              <h2 className="text-lg font-semibold text-primary">Recent Projects</h2>
               <Link href="/projects">
-                <Button variant="ghost" size="sm" data-testid="view-all-projects">
-                  View all <ArrowRight className="ml-1 h-4 w-4" />
+                <Button variant="ghost" size="sm" data-testid="view-all-projects" rightIcon={<ArrowRight className="h-4 w-4" />}>
+                  View all
                 </Button>
               </Link>
             </div>
@@ -407,8 +419,8 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-3 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-3 rounded w-1/2"></div>
                   </div>
                 ))}
               </div>
@@ -418,11 +430,11 @@ export default function DashboardPage() {
                   <button
                     key={project.id}
                     onClick={() => handleQuickAction('view_project', project.id)}
-                    className="block w-full text-left p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                    className="block w-full text-left p-3 rounded-lg border border-secondary hover:border-accent hover:bg-interactive-secondary-hover transition-colors"
                     data-testid={`project-card-${project.id}`}
                   >
-                    <h3 className="font-medium text-gray-900">{project.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    <h3 className="font-medium text-primary">{project.name}</h3>
+                    <p className="text-sm text-secondary mt-1 line-clamp-2">
                       {project.description}
                     </p>
                   </button>
@@ -430,9 +442,9 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <FolderOpen className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No projects</h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <FolderOpen className="mx-auto h-12 w-12 text-muted" />
+                <h3 className="mt-2 text-sm font-medium text-primary">No projects</h3>
+                <p className="mt-1 text-sm text-muted">
                   You don&apos;t have access to any projects yet.
                 </p>
               </div>
@@ -442,9 +454,9 @@ export default function DashboardPage() {
           {/* My Tasks */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">My Tasks</h2>
-              <Button variant="ghost" size="sm" data-testid="view-all-tasks">
-                View all <ArrowRight className="ml-1 h-4 w-4" />
+              <h2 className="text-lg font-semibold text-primary">My Tasks</h2>
+              <Button variant="ghost" size="sm" data-testid="view-all-tasks" rightIcon={<ArrowRight className="h-4 w-4" />}>
+                View all
               </Button>
             </div>
             
@@ -452,8 +464,8 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-3 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-3 rounded w-1/2"></div>
                   </div>
                 ))}
               </div>
@@ -462,13 +474,13 @@ export default function DashboardPage() {
                 {assignedTasks.slice(0, 5).map((task) => (
                   <div
                     key={task.id}
-                    className="p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="p-3 rounded-lg border border-secondary hover:border-accent hover:bg-interactive-secondary-hover transition-colors cursor-pointer"
                     data-testid={`task-card-${task.id}`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{task.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-1">
+                        <h3 className="font-medium text-primary">{task.title}</h3>
+                        <p className="text-sm text-secondary mt-1 line-clamp-1">
                           {task.description}
                         </p>
                       </div>
@@ -486,9 +498,9 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <CheckSquare className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No tasks assigned</h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <CheckSquare className="mx-auto h-12 w-12 text-muted" />
+                <h3 className="mt-2 text-sm font-medium text-primary">No tasks assigned</h3>
+                <p className="mt-1 text-sm text-muted">
                   You don&apos;t have any tasks assigned to you yet.
                 </p>
               </div>
@@ -498,16 +510,16 @@ export default function DashboardPage() {
           {/* Recent Comments */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Comments</h2>
-              <MessageSquare className="h-5 w-5 text-gray-400" />
+              <h2 className="text-lg font-semibold text-primary">Recent Comments</h2>
+              <MessageSquare className="h-5 w-5 text-muted" />
             </div>
             
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-3 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-3 rounded w-1/2"></div>
                   </div>
                 ))}
               </div>
@@ -516,30 +528,31 @@ export default function DashboardPage() {
                 {recentComments.map((comment) => (
                   <div
                     key={comment.id}
-                    className="p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                    className="p-3 rounded-lg border border-secondary hover:border-accent hover:bg-interactive-secondary-hover transition-colors"
                     data-testid={`comment-${comment.id}`}
                   >
                     <div className="flex items-start space-x-2">
-                      <Avatar size="xs" name={comment.author_name} />
+                      <Avatar size="sm" name={comment.user_name} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900 line-clamp-2">
-                          {comment.content}
+                        <p className="text-sm font-medium text-primary truncate">
+                          {comment.user_name}
                         </p>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <span className="text-xs text-gray-500">{comment.task_title}</span>
-                          <span className="text-xs text-gray-400">•</span>
-                          <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
-                        </div>
+                        <p className="text-xs text-muted">
+                          commented on task
+                        </p>
                       </div>
+                      <span className="text-xs text-muted">
+                        {formatDate(comment.created_at)}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-6">
-                <MessageSquare className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No recent comments</h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <MessageSquare className="mx-auto h-12 w-12 text-muted" />
+                <h3 className="mt-2 text-sm font-medium text-primary">No recent comments</h3>
+                <p className="mt-1 text-sm text-muted">
                   No comments on your tasks yet.
                 </p>
               </div>
@@ -550,18 +563,18 @@ export default function DashboardPage() {
         {/* Activity Timeline */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-            <Activity className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-primary">Recent Activity</h2>
+            <Activity className="h-5 w-5 text-muted" />
           </div>
           
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="animate-pulse flex items-center space-x-3">
-                  <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                  <div className="h-8 w-8 bg-gray-3 rounded-full"></div>
                   <div className="flex-1">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-3 rounded w-3/4 mb-1"></div>
+                    <div className="h-3 bg-gray-3 rounded w-1/2"></div>
                   </div>
                 </div>
               ))}
@@ -575,19 +588,23 @@ export default function DashboardPage() {
                   data-testid={`activity-${activity.id}`}
                 >
                   <div className="flex-shrink-0">
-                    <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Activity className="h-4 w-4 text-blue-600" />
+                    <div className="h-8 w-8 bg-accent-2 rounded-full flex items-center justify-center">
+                      <Activity className="h-4 w-4 text-accent" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">{activity.user_name}</span>{' '}
-                      {activity.description}
-                    </p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className="text-xs text-gray-500">{activity.task_title}</span>
-                      <span className="text-xs text-gray-400">•</span>
-                      <span className="text-xs text-gray-400">{formatDate(activity.created_at)}</span>
+                    <div className="flex items-start space-x-2">
+                      <div className="flex-shrink-0 w-2 h-2 bg-accent rounded-full mt-2"></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-primary">
+                          {activity.description}
+                        </p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className="text-xs text-muted">{activity.user_name}</span>
+                          <span className="text-xs text-muted">•</span>
+                          <span className="text-xs text-muted">{formatDate(activity.created_at)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -595,9 +612,9 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="text-center py-6">
-              <Activity className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No recent activity</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <Activity className="mx-auto h-12 w-12 text-muted" />
+              <h3 className="mt-2 text-sm font-medium text-primary">No recent activity</h3>
+              <p className="mt-1 text-sm text-muted">
                 Activity will appear here as you work on tasks.
               </p>
             </div>

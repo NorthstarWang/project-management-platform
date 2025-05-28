@@ -7,17 +7,17 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  // Base styles
+  // Base styles using theme-aware classes
   'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
-        primary: 'bg-btn-primary text-btn-primary hover:bg-btn-primary-hover hover:scale-105 hover:shadow-lg active:bg-btn-primary-active active:scale-95 disabled:bg-btn-primary-disabled',
-        secondary: 'bg-btn-secondary text-btn-secondary border border-btn-secondary hover:bg-btn-secondary-hover hover:scale-105 hover:shadow-md active:bg-btn-secondary-active active:scale-95',
-        ghost: 'bg-transparent text-primary hover:bg-btn-ghost-hover hover:scale-105 active:bg-btn-ghost-active active:scale-95',
-        outline: 'border border-secondary bg-transparent hover:bg-secondary hover:scale-105 hover:shadow-md text-primary active:scale-95',
-        destructive: 'bg-error text-white hover:bg-red-600 hover:scale-105 hover:shadow-lg active:bg-red-700 active:scale-95',
-        link: 'text-accent underline-offset-4 hover:underline hover:scale-105 p-0 h-auto active:scale-95',
+        primary: 'bg-btn-primary text-btn-primary hover:bg-btn-primary-hover hover:scale-105 hover:shadow-lg active:bg-btn-primary-active active:scale-95 disabled:bg-btn-primary-disabled focus-visible:ring-accent',
+        secondary: 'bg-btn-secondary text-btn-secondary border border-btn-secondary hover:bg-btn-secondary-hover hover:scale-105 hover:shadow-md active:bg-btn-secondary-active active:scale-95 focus-visible:ring-accent',
+        ghost: 'bg-transparent text-primary hover:bg-btn-ghost-hover hover:scale-105 active:bg-btn-ghost-active active:scale-95 focus-visible:ring-accent',
+        outline: 'border border-secondary bg-transparent hover:bg-interactive-secondary-hover hover:scale-105 hover:shadow-md text-primary active:scale-95 focus-visible:ring-accent',
+        destructive: 'bg-error text-white hover:bg-red-600 hover:scale-105 hover:shadow-lg active:bg-red-700 active:scale-95 focus-visible:ring-red-500',
+        link: 'text-accent underline-offset-4 hover:underline hover:scale-105 p-0 h-auto active:scale-95 focus-visible:ring-accent',
       },
       size: {
         sm: 'h-8 px-3 text-xs',

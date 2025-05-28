@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/Select';
 import { toast } from '@/components/ui/CustomToast';
 import apiClient from '@/services/apiClient';
-import { track } from '@/services/analyticsLogger';
 
 interface RegisterForm {
   username: string;
@@ -26,6 +25,18 @@ interface RegisterForm {
   fullName: string;
   role: 'admin' | 'manager' | 'member';
 }
+
+// Helper function for analytics tracking
+const trackEvent = async (actionType: string, payload: any) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const { track } = await import('@/services/analyticsLogger');
+      track(actionType, payload);
+    } catch (error) {
+      console.warn('Analytics tracking failed:', error);
+    }
+  }
+};
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -87,7 +98,7 @@ export default function RegisterPage() {
       });
 
       // Track successful registration
-      track('USER_REGISTER', {
+      await trackEvent('USER_REGISTER', {
         username: form.username,
         email: form.email,
         role: form.role
@@ -109,15 +120,15 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-primary py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-primary">
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-secondary">
             Or{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/login" className="font-medium text-accent hover:text-accent">
               sign in to your existing account
             </Link>
           </p>
@@ -126,7 +137,7 @@ export default function RegisterPage() {
         <Card className="p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <Label htmlFor="fullName">Full Name *</Label>
+              <Label htmlFor="fullName" className="text-primary">Full Name *</Label>
               <Input
                 id="fullName"
                 name="fullName"
@@ -135,12 +146,12 @@ export default function RegisterPage() {
                 value={form.fullName}
                 onChange={handleInputChange('fullName')}
                 placeholder="Enter your full name"
-                className="mt-1"
+                className="mt-1 w-full bg-input border-input text-input placeholder-input focus:border-input-focus"
               />
             </div>
 
             <div>
-              <Label htmlFor="username">Username *</Label>
+              <Label htmlFor="username" className="text-primary">Username *</Label>
               <Input
                 id="username"
                 name="username"
@@ -149,12 +160,12 @@ export default function RegisterPage() {
                 value={form.username}
                 onChange={handleInputChange('username')}
                 placeholder="Choose a username"
-                className="mt-1"
+                className="mt-1 w-full bg-input border-input text-input placeholder-input focus:border-input-focus"
               />
             </div>
 
             <div>
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email" className="text-primary">Email *</Label>
               <Input
                 id="email"
                 name="email"
@@ -163,29 +174,29 @@ export default function RegisterPage() {
                 value={form.email}
                 onChange={handleInputChange('email')}
                 placeholder="Enter your email"
-                className="mt-1"
+                className="mt-1 w-full bg-input border-input text-input placeholder-input focus:border-input-focus"
               />
             </div>
 
             <div>
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role" className="text-primary">Role</Label>
               <Select
                 value={form.role}
                 onValueChange={handleRoleChange}
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 w-full bg-input border-input text-input focus:border-input-focus">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                <SelectContent className="bg-dropdown border-dropdown shadow-dropdown">
+                  <SelectItem value="member" className="text-dropdown-item hover:bg-dropdown-item-hover">Member</SelectItem>
+                  <SelectItem value="manager" className="text-dropdown-item hover:bg-dropdown-item-hover">Manager</SelectItem>
+                  <SelectItem value="admin" className="text-dropdown-item hover:bg-dropdown-item-hover">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="password">Password *</Label>
+              <Label htmlFor="password" className="text-primary">Password *</Label>
               <Input
                 id="password"
                 name="password"
@@ -194,12 +205,12 @@ export default function RegisterPage() {
                 value={form.password}
                 onChange={handleInputChange('password')}
                 placeholder="Create a password"
-                className="mt-1"
+                className="mt-1 w-full bg-input border-input text-input placeholder-input focus:border-input-focus"
               />
             </div>
 
             <div>
-              <Label htmlFor="confirmPassword">Confirm Password *</Label>
+              <Label htmlFor="confirmPassword" className="text-primary">Confirm Password *</Label>
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -208,7 +219,7 @@ export default function RegisterPage() {
                 value={form.confirmPassword}
                 onChange={handleInputChange('confirmPassword')}
                 placeholder="Confirm your password"
-                className="mt-1"
+                className="mt-1 w-full bg-input border-input text-input placeholder-input focus:border-input-focus"
               />
             </div>
 
