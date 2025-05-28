@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { generateInitials } from '@/lib/utils';
 
 const avatarVariants = cva(
-  'relative flex shrink-0 overflow-hidden rounded-full border-2 border-border',
+  'relative flex shrink-0 overflow-hidden rounded-full border-2 border-primary',
   {
     variants: {
       size: {

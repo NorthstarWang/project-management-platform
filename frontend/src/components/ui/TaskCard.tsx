@@ -6,7 +6,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { Card, CardContent, CardHeader } from './Card';
 import { Badge, StatusBadge, PriorityBadge } from './Badge';
 import { Avatar } from './Avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './DropdownMenu';
+import { CustomDropdownMenu } from './CustomDropdownMenu';
 import { Button } from './Button';
 import { MoreHorizontal, Calendar, MessageSquare, Paperclip, Eye } from 'lucide-react';
 
@@ -102,8 +102,8 @@ export function TaskCard({
           </div>
           
           {showActions && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <CustomDropdownMenu
+              trigger={
                 <Button
                   variant="ghost"
                   size="icon"
@@ -113,36 +113,38 @@ export function TaskCard({
                   <MoreHorizontal className="h-4 w-4" />
                   <span className="sr-only">Task actions</span>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                {onEdit && (
-                  <DropdownMenuItem onClick={onEdit}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Details
-                  </DropdownMenuItem>
-                )}
-                {onEdit && (
-                  <DropdownMenuItem onClick={onEdit}>
-                    Edit Task
-                  </DropdownMenuItem>
-                )}
-                {onMove && (
-                  <DropdownMenuItem onClick={onMove}>
-                    Move Task
-                  </DropdownMenuItem>
-                )}
-                {onAssign && (
-                  <DropdownMenuItem onClick={onAssign}>
-                    Assign Task
-                  </DropdownMenuItem>
-                )}
-                {onDelete && (
-                  <DropdownMenuItem onClick={onDelete} className="text-red-600">
-                    Delete Task
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+              items={[
+                ...(onEdit ? [{
+                  id: 'view',
+                  label: 'View Details',
+                  icon: <Eye className="h-4 w-4" />,
+                  onClick: onEdit
+                }] : []),
+                ...(onEdit ? [{
+                  id: 'edit',
+                  label: 'Edit Task',
+                  onClick: onEdit
+                }] : []),
+                ...(onMove ? [{
+                  id: 'move',
+                  label: 'Move Task',
+                  onClick: onMove
+                }] : []),
+                ...(onAssign ? [{
+                  id: 'assign',
+                  label: 'Assign Task',
+                  onClick: onAssign
+                }] : []),
+                ...(onDelete ? [{
+                  id: 'delete',
+                  label: 'Delete Task',
+                  onClick: onDelete
+                }] : [])
+              ]}
+              align="end"
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            />
           )}
         </div>
       </CardHeader>

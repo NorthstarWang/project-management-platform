@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
@@ -43,10 +44,15 @@ export interface CardProps
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant, size, hover, ...props }, ref) => (
-    <div
+    <motion.div
       ref={ref}
       className={cn(cardVariants({ variant, size, hover, className }))}
-      {...props}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      layout
+      {...(props as any)}
     />
   )
 );
@@ -57,10 +63,14 @@ const CardHeader = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div
+  <motion.div
     ref={ref}
     className={cn('flex flex-col space-y-1.5 pb-4', className)}
-    {...props}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.2, delay: 0.1 }}
+    layout
+    {...(props as any)}
   />
 ));
 
@@ -99,7 +109,15 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('pt-0', className)} {...props} />
+  <motion.div 
+    ref={ref} 
+    className={cn('pt-0', className)} 
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.2, delay: 0.2 }}
+    layout
+    {...(props as any)} 
+  />
 ));
 
 CardContent.displayName = 'CardContent';

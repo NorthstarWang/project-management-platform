@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Button,
   Card,
@@ -49,8 +49,8 @@ import {
   AlertDialogTrigger,
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
+  TooltipProvider,
   Separator,
   Breadcrumb,
   BreadcrumbItem,
@@ -61,7 +61,9 @@ import {
   ScrollArea,
   TaskCard,
 } from '@/components/ui';
+import { CustomDropdownMenu } from '@/components/ui/CustomDropdownMenu';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { Settings, User, LogOut, Edit, Trash2 } from 'lucide-react';
 
 export function ComponentShowcase() {
   const [progress, setProgress] = useState(33);
@@ -96,8 +98,15 @@ export function ComponentShowcase() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-primary p-8 space-y-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <AnimatePresence mode="wait">
+        <motion.div 
+          className="min-h-screen bg-primary p-8 space-y-8"
+          layout
+        >
+          <motion.div 
+            className="max-w-6xl mx-auto space-y-8"
+            layout
+          >
           {/* Header */}
           <motion.div 
             className="text-center space-y-4 relative"
@@ -114,11 +123,12 @@ export function ComponentShowcase() {
             </p>
           </motion.div>
 
-          <motion.div
+                      <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             className="space-y-8"
+            layout
           >
             {/* Breadcrumb */}
             <motion.div variants={itemVariants}>
@@ -318,32 +328,36 @@ export function ComponentShowcase() {
             </motion.div>
 
             {/* Accordion */}
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} layout>
               <Card className="bg-card border-card-content">
             <CardHeader>
               <CardTitle>Accordion Component</CardTitle>
             </CardHeader>
             <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>Is it accessible?</AccordionTrigger>
-                  <AccordionContent>
-                    Yes. It adheres to the WAI-ARIA design pattern.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>Is it styled?</AccordionTrigger>
-                  <AccordionContent>
-                    Yes. It comes with default styles that match the other components.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>Is it animated?</AccordionTrigger>
-                  <AccordionContent>
+              <AnimatePresence>
+                <motion.div layout>
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="item-1">
+                      <AccordionTrigger>Is it accessible?</AccordionTrigger>
+                      <AccordionContent>
+                        Yes. It adheres to the WAI-ARIA design pattern.
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="item-2">
+                      <AccordionTrigger>Is it styled?</AccordionTrigger>
+                      <AccordionContent>
+                        Yes. It comes with default styles that match the other components.
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="item-3">
+                      <AccordionTrigger>Is it animated?</AccordionTrigger>
+                      <AccordionContent>
                                          Yes. It&apos;s animated by default, but you can disable it if you prefer.
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </motion.div>
+              </AnimatePresence>
             </CardContent>
           </Card>
             </motion.div>
@@ -399,6 +413,42 @@ export function ComponentShowcase() {
                     <p>This is a tooltip</p>
                   </TooltipContent>
                 </Tooltip>
+
+                <CustomDropdownMenu
+                  trigger={<Button variant="outline">Custom Dropdown</Button>}
+                  items={[
+                    {
+                      id: 'profile',
+                      label: 'Profile',
+                      icon: <User className="h-4 w-4" />,
+                      onClick: () => console.log('Profile clicked')
+                    },
+                    {
+                      id: 'settings',
+                      label: 'Settings',
+                      icon: <Settings className="h-4 w-4" />,
+                      onClick: () => console.log('Settings clicked')
+                    },
+                    {
+                      id: 'edit',
+                      label: 'Edit',
+                      icon: <Edit className="h-4 w-4" />,
+                      onClick: () => console.log('Edit clicked')
+                    },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      icon: <Trash2 className="h-4 w-4" />,
+                      onClick: () => console.log('Delete clicked')
+                    },
+                    {
+                      id: 'logout',
+                      label: 'Logout',
+                      icon: <LogOut className="h-4 w-4" />,
+                      onClick: () => console.log('Logout clicked')
+                    }
+                  ]}
+                />
               </div>
             </CardContent>
           </Card>
@@ -483,8 +533,9 @@ export function ComponentShowcase() {
           </Card>
             </motion.div>
           </motion.div>
-        </div>
-      </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
     </TooltipProvider>
   );
 } 

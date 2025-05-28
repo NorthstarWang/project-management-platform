@@ -10,11 +10,13 @@ const Accordion = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Root>
 >(({ className, ...props }, ref) => (
-  <AccordionPrimitive.Root
-    ref={ref}
-    className={cn('transition-all duration-300 ease-in-out', className)}
-    {...props}
-  />
+  <motion.div layout>
+    <AccordionPrimitive.Root
+      ref={ref}
+      className={cn('w-full', className)}
+      {...props}
+    />
+  </motion.div>
 ));
 Accordion.displayName = 'Accordion';
 
@@ -22,11 +24,13 @@ const AccordionItem = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
 >(({ className, ...props }, ref) => (
-  <AccordionPrimitive.Item
-    ref={ref}
-    className={cn('border-b border-muted transition-all duration-300 ease-in-out', className)}
-    {...props}
-  />
+  <motion.div layout>
+    <AccordionPrimitive.Item
+      ref={ref}
+      className={cn('border-b border-muted transition-all duration-300 ease-in-out', className)}
+      {...props}
+    />
+  </motion.div>
 ));
 AccordionItem.displayName = 'AccordionItem';
 
@@ -56,14 +60,16 @@ const AccordionContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <AccordionPrimitive.Content
     ref={ref}
-    className="overflow-hidden text-sm transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+    className="AccordionContent overflow-hidden text-sm"
     {...props}
   >
     <motion.div 
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      layout
+      transition={{ 
+        type: "spring",
+        stiffness: 300,
+        damping: 30
+      }}
       className={cn('pb-4 pt-0 text-secondary', className)}
     >
       {children}
