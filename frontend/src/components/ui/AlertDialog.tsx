@@ -2,25 +2,34 @@
 
 import React from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { buttonVariants } from './Button';
 
 const AlertDialog = AlertDialogPrimitive.Root;
+
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
+
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
 const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Overlay
-    className={cn(
-      'fixed inset-0 z-50 bg-dialog-overlay backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-      className
-    )}
-    {...props}
-    ref={ref}
-  />
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.2, ease: 'easeInOut' }}
+  >
+    <AlertDialogPrimitive.Overlay
+      className={cn(
+        'fixed inset-0 z-50 bg-dialog-overlay backdrop-blur-sm',
+        className
+      )}
+      {...props}
+      ref={ref}
+    />
+  </motion.div>
 ));
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
@@ -30,14 +39,22 @@ const AlertDialogContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPortal>
     <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 bg-dialog border-dialog shadow-dialog p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-lg',
-        className
-      )}
-      {...props}
-    />
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
+      animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+      exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
+      transition={{ duration: 0.2, ease: 'easeInOut' }}
+      className="fixed left-[50%] top-[50%] z-50"
+    >
+      <AlertDialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          'grid w-full max-w-lg gap-4 bg-dialog border-dialog p-6 rounded-lg',
+          className
+        )}
+        {...props}
+      />
+    </motion.div>
   </AlertDialogPortal>
 ));
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
@@ -100,7 +117,10 @@ const AlertDialogAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
-    className={cn(buttonVariants(), className)}
+    className={cn(
+      'inline-flex h-10 items-center justify-center rounded-md bg-btn-primary text-btn-primary px-4 py-2 text-sm font-semibold ring-offset-background transition-colors hover:bg-btn-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
+      className
+    )}
     {...props}
   />
 ));
@@ -113,8 +133,7 @@ const AlertDialogCancel = React.forwardRef<
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      buttonVariants({ variant: 'outline' }),
-      'mt-2 sm:mt-0',
+      'mt-2 inline-flex h-10 items-center justify-center rounded-md border border-btn-secondary bg-btn-secondary text-btn-secondary px-4 py-2 text-sm font-semibold ring-offset-background transition-colors hover:bg-btn-secondary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer sm:mt-0',
       className
     )}
     {...props}

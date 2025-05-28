@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 /* ===== DARK THEME (Emerald/Green Palette) ===== */
 :root {
@@ -123,6 +123,7 @@
   --card-bg: var(--background-secondary);
   --card-hover: var(--color-emerald-darker);
   --card-border: var(--border-secondary);
+  --card-shadow: rgb(0 0 0 / 0.3);
   --card-content-bg: var(--color-firefly-darker);
   --card-content-border: var(--border-muted);
 
@@ -137,16 +138,19 @@
   /* Overlay Components */
   --dropdown-bg: var(--background-secondary);
   --dropdown-border: var(--border-secondary);
-  --dropdown-item-hover: rgb(175 248 200 / 0.08);
-  --dropdown-item-active: rgb(175 248 200 / 0.12);
+  --dropdown-shadow: rgb(0 0 0 / 0.4);
+  --dropdown-item-hover: rgb(0 211 127 / 0.15);
+  --dropdown-item-active: rgb(0 211 127 / 0.25);
   --dropdown-item-text: var(--text-primary);
 
   --dialog-bg: var(--background-secondary);
   --dialog-overlay: rgb(15 40 48 / 0.8);
   --dialog-border: var(--border-secondary);
+  --dialog-shadow: rgb(0 0 0 / 0.5);
 
   --toast-bg: var(--background-secondary);
   --toast-border: var(--border-secondary);
+  --toast-shadow: rgb(0 0 0 / 0.4);
 
   --tooltip-bg: var(--color-firefly-darker);
   --tooltip-text: var(--color-zircon);
@@ -201,6 +205,12 @@
   --priority-high-bg: rgb(255 159 67 / 0.1);
   --priority-urgent: #ff8a8a;
   --priority-urgent-bg: rgb(255 107 107 / 0.1);
+
+  /* Checkbox Component Styling */
+  --checkbox-bg: var(--background-surface);
+  --checkbox-border: var(--border-secondary);
+  --checkbox-checked: var(--interactive-primary);
+  --checkbox-checked-hover: var(--interactive-primary-hover);
 }
 
 /* ===== LIGHT THEME (Orange/Coral Palette) ===== */
@@ -325,6 +335,7 @@
   --card-bg: var(--background-secondary);
   --card-hover: #f8fffe;
   --card-border: var(--border-secondary);
+  --card-shadow: rgb(2 44 16 / 0.1);
   --card-content-bg: #f0fffe;
   --card-content-border: var(--border-muted);
 
@@ -339,16 +350,19 @@
   /* Overlay Components */
   --dropdown-bg: var(--background-secondary);
   --dropdown-border: var(--border-secondary);
-  --dropdown-item-hover: rgb(250 115 40 / 0.05);
-  --dropdown-item-active: rgb(250 115 40 / 0.08);
+  --dropdown-shadow: rgb(2 44 16 / 0.15);
+  --dropdown-item-hover: rgb(250 115 40 / 0.1);
+  --dropdown-item-active: rgb(250 115 40 / 0.15);
   --dropdown-item-text: var(--text-primary);
 
   --dialog-bg: var(--background-secondary);
   --dialog-overlay: rgb(2 44 16 / 0.3);
   --dialog-border: var(--border-secondary);
+  --dialog-shadow: rgb(2 44 16 / 0.2);
 
   --toast-bg: var(--background-secondary);
   --toast-border: var(--border-secondary);
+  --toast-shadow: rgb(2 44 16 / 0.15);
 
   --tooltip-bg: var(--color-pine);
   --tooltip-text: var(--color-morning-dew);
@@ -403,6 +417,12 @@
   --priority-high-bg: rgb(250 115 40 / 0.1);
   --priority-urgent: #e63946;
   --priority-urgent-bg: rgb(255 71 87 / 0.1);
+
+  /* Checkbox Component Styling */
+  --checkbox-bg: var(--background-surface);
+  --checkbox-border: var(--border-secondary);
+  --checkbox-checked: var(--interactive-primary);
+  --checkbox-checked-hover: var(--interactive-primary-hover);
 }
 
 /* ===== SYSTEM PREFERENCES ===== */
@@ -504,6 +524,7 @@ button:disabled, [role="button"]:disabled {
   --switch-bg-enhanced: var(--gray-8);
   --switch-checked-enhanced: var(--interactive-primary);
   --switch-thumb-enhanced: #ffffff;
+  --switch-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
   
   /* Component-specific backgrounds */
   --select-content-bg: var(--background-secondary);
@@ -840,6 +861,7 @@ h6 {
 /* Dropdown Utilities */
 .bg-dropdown { background-color: var(--dropdown-bg); }
 .border-dropdown { border-color: var(--dropdown-border); }
+.shadow-dropdown { box-shadow: 0 10px 15px -3px var(--dropdown-shadow); }
 .bg-dropdown-item-hover { background-color: var(--dropdown-item-hover); }
 .bg-dropdown-item-active { background-color: var(--dropdown-item-active); }
 .text-dropdown-item { color: var(--dropdown-item-text); }
@@ -848,10 +870,12 @@ h6 {
 .bg-dialog { background-color: var(--dialog-bg); }
 .bg-dialog-overlay { background-color: var(--dialog-overlay); }
 .border-dialog { border-color: var(--dialog-border); }
+.shadow-dialog { box-shadow: 0 20px 25px -5px var(--dialog-shadow); }
 
 /* Toast Utilities */
 .bg-toast { background-color: var(--toast-bg); }
 .border-toast { border-color: var(--toast-border); }
+.shadow-toast { box-shadow: 0 10px 15px -3px var(--toast-shadow); }
 
 /* Tooltip Utilities */
 .bg-tooltip { background-color: var(--tooltip-bg); }
@@ -994,7 +1018,7 @@ h6 {
 .bg-dnd-overlay { background-color: var(--dnd-overlay); }
 .bg-dnd-drop-zone { background-color: var(--dnd-drop-zone); }
 .bg-dnd-drop-zone-active { background-color: var(--dnd-drop-zone-active); }
-
+.shadow-dnd-drag { box-shadow: 0 10px 15px -3px var(--dnd-drag-shadow); }
 
 /* Interactive State Utilities */
 .bg-interactive-primary { background-color: var(--interactive-primary); }
@@ -1007,9 +1031,7 @@ h6 {
 .bg-interactive-secondary-active { background-color: var(--interactive-secondary-active); }
 .bg-interactive-secondary-disabled { background-color: var(--interactive-secondary-disabled); }
 
-/* ===== CSS KEYFRAME ANIMATIONS FOR RADIX PRIMITIVES ===== */
-
-/* Accordion Animations */
+/* ===== ANIMATIONS ===== */
 @keyframes accordion-down {
   from {
     height: 0;
@@ -1032,8 +1054,7 @@ h6 {
   }
 }
 
-/* Dialog Animations */
-@keyframes dialog-overlay-show {
+@keyframes fade-in {
   from {
     opacity: 0;
   }
@@ -1042,7 +1063,7 @@ h6 {
   }
 }
 
-@keyframes dialog-overlay-hide {
+@keyframes fade-out {
   from {
     opacity: 1;
   }
@@ -1051,82 +1072,163 @@ h6 {
   }
 }
 
-@keyframes dialog-content-show {
+@keyframes zoom-in-95 {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.96);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
 }
 
-@keyframes dialog-content-hide {
+@keyframes zoom-out-95 {
   from {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.96);
+    transform: scale(0.95);
   }
 }
 
-/* DropdownMenu Animations */
-@keyframes dropdown-show {
+@keyframes slide-in-from-top-2 {
   from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-8px);
+    transform: translateY(-0.5rem);
   }
   to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translateY(0);
   }
 }
 
-@keyframes dropdown-hide {
+@keyframes slide-in-from-bottom-2 {
   from {
-    opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translateY(0.5rem);
   }
   to {
-    opacity: 0;
-    transform: scale(0.95) translateY(-8px);
+    transform: translateY(0);
   }
 }
 
-/* Apply animations to components */
-.AccordionContent[data-state="open"] {
-  animation: accordion-down 300ms ease-out;
+@keyframes slide-in-from-left-2 {
+  from {
+    transform: translateX(-0.5rem);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
-.AccordionContent[data-state="closed"] {
-  animation: accordion-up 300ms ease-in;
+@keyframes slide-in-from-right-2 {
+  from {
+    transform: translateX(0.5rem);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
-.DialogOverlay[data-state="open"] {
-  animation: dialog-overlay-show 200ms ease-out;
+@keyframes slide-in-from-left-1\/2 {
+  from {
+    transform: translateX(-50%) translateY(-50%) translateX(-0.5rem);
+  }
+  to {
+    transform: translateX(-50%) translateY(-50%) translateX(0);
+  }
 }
 
-.DialogOverlay[data-state="closed"] {
-  animation: dialog-overlay-hide 200ms ease-in;
+@keyframes slide-in-from-top-48\% {
+  from {
+    transform: translateX(-50%) translateY(-50%) translateY(-0.5rem);
+  }
+  to {
+    transform: translateX(-50%) translateY(-50%) translateY(0);
+  }
 }
 
-.DialogContent[data-state="open"] {
-  animation: dialog-content-show 200ms ease-out;
+@keyframes slide-out-to-left-1\/2 {
+  from {
+    transform: translateX(-50%) translateY(-50%) translateX(0);
+  }
+  to {
+    transform: translateX(-50%) translateY(-50%) translateX(-0.5rem);
+  }
 }
 
-.DialogContent[data-state="closed"] {
-  animation: dialog-content-hide 200ms ease-in;
+@keyframes slide-out-to-top-48\% {
+  from {
+    transform: translateX(-50%) translateY(-50%) translateY(0);
+  }
+  to {
+    transform: translateX(-50%) translateY(-50%) translateY(-0.5rem);
+  }
 }
 
-.DropdownMenuContent[data-state="open"] {
-  animation: dropdown-show 150ms ease-out;
+/* Animation utility classes */
+.animate-accordion-down {
+  animation: accordion-down 0.3s ease-out;
 }
 
-.DropdownMenuContent[data-state="closed"] {
-  animation: dropdown-hide 100ms ease-in;
+.animate-accordion-up {
+  animation: accordion-up 0.3s ease-in;
+}
+
+.animate-in {
+  animation-fill-mode: forwards;
+}
+
+.animate-out {
+  animation-fill-mode: forwards;
+}
+
+.fade-in-0 {
+  animation: fade-in 0.15s ease-out;
+}
+
+.fade-out-0 {
+  animation: fade-out 0.15s ease-in;
+}
+
+.zoom-in-95 {
+  animation: zoom-in-95 0.15s ease-out;
+}
+
+.zoom-out-95 {
+  animation: zoom-out-95 0.15s ease-in;
+}
+
+.slide-in-from-top-2 {
+  animation: slide-in-from-top-2 0.15s ease-out;
+}
+
+.slide-in-from-bottom-2 {
+  animation: slide-in-from-bottom-2 0.15s ease-out;
+}
+
+.slide-in-from-left-2 {
+  animation: slide-in-from-left-2 0.15s ease-out;
+}
+
+.slide-in-from-right-2 {
+  animation: slide-in-from-right-2 0.15s ease-out;
+}
+
+.slide-in-from-left-1\/2 {
+  animation: slide-in-from-left-1\/2 0.15s ease-out;
+}
+
+.slide-in-from-top-\[48\%\] {
+  animation: slide-in-from-top-48\% 0.15s ease-out;
+}
+
+.slide-out-to-left-1\/2 {
+  animation: slide-out-to-left-1\/2 0.15s ease-in;
+}
+
+.slide-out-to-top-\[48\%\] {
+  animation: slide-out-to-top-48\% 0.15s ease-in;
 }
 
 /* ===== ACCESSIBILITY ===== */
@@ -1220,9 +1322,20 @@ h6 {
 .bg-switch-enhanced { background-color: var(--switch-bg-enhanced); }
 .bg-switch-checked-enhanced { background-color: var(--switch-checked-enhanced); }
 .bg-switch-thumb-enhanced { background-color: var(--switch-thumb-enhanced); }
+.shadow-switch { box-shadow: var(--switch-shadow); }
 
+/* ===== COMPONENT ANIMATIONS ===== */
 
-/* ===== TAB UNDERLINE ANIMATION ===== */
+/* Accordion Animations */
+.AccordionContent[data-state="open"] {
+  animation: accordion-down 300ms cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+.AccordionContent[data-state="closed"] {
+  animation: accordion-up 300ms cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+/* Tab Underline Animation */
 .tab-underline {
   position: relative;
 }
@@ -1230,54 +1343,77 @@ h6 {
 .tab-underline::after {
   content: '';
   position: absolute;
-  bottom: -2px;
+  bottom: -1px;
   left: 0;
   right: 0;
-  height: 3px;
-  background-color: var(--interactive-primary);
-  transform: scaleX(0);
-  transition: transform 0.3s ease-in-out;
-  transform-origin: center;
-  border-radius: 2px;
+  height: 2px;
+  background-color: transparent;
+  transition: background-color 0.3s ease;
 }
 
 .tab-underline[data-state="active"]::after {
-  transform: scaleX(1);
+  background-color: var(--tab-active);
 }
 
-/* ===== SWITCH COMPONENT STYLES ===== */
+/* Switch Component Styling */
 .switch-root {
-  background-color: var(--gray-4);
-  border: 2px solid var(--text-primary);
-  box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
+  background-color: var(--switch-bg);
+  position: relative;
 }
 
 .switch-root[data-state="checked"] {
-  background-color: var(--interactive-primary);
-  border-color: var(--interactive-primary);
+  background-color: var(--switch-checked);
 }
 
 .switch-thumb {
   transform: translateX(2px);
-  will-change: transform;
+  transition: transform 200ms;
 }
 
 .switch-thumb[data-state="checked"] {
-  transform: translateX(20px);
+  transform: translateX(22px);
 }
 
-/* ===== CHECKBOX COMPONENT STYLES ===== */
+/* ===== KEYFRAME ANIMATIONS ===== */
+@keyframes accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Checkbox Component Styling */
+.checkbox-root {
+  background-color: transparent;
+  position: relative;
+}
+
 .checkbox-root[data-state="checked"] {
-  background-color: var(--interactive-primary);
-  border-color: var(--interactive-primary);
+  background-color: var(--checkbox-checked);
+  border-color: var(--checkbox-checked);
 }
 
-/* Dark theme - tick should be white (against green accent background) */
-:root .checkbox-indicator {
+.checkbox-root[data-state="checked"] .checkbox-indicator {
   color: white;
 }
 
-/* Light theme - tick should be dark (against orange accent background) */
-[data-theme="light"] .checkbox-indicator {
-  color: var(--color-pine);
+/* Force white checkmark in both themes */
+.checkbox-root[data-state="checked"] svg {
+  color: white !important;
+  stroke: white !important;
 }

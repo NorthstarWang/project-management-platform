@@ -439,29 +439,179 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 └── profile
 ```
 
-## Development Priorities
+## Development Priorities - Focused 5-Page Implementation
 
-### Phase 1: Core Foundation
-1. Homepage (public)
-2. Login/Register pages
-3. Dashboard layout with header (including search bar and notification bell)
-4. Navigation components
+### Phase 1: Foundation & Authentication (8-12 hours)
+**Goal**: Get users authenticated and basic navigation working
 
-### Phase 2: Core Functionality
-1. Projects list and detail
-2. Board kanban interface with @dnd-kit
-3. Task management
+#### 1.1 Core Infrastructure (3-4 hours)
+- [ ] **Project setup & dependencies**
+  - Install @dnd-kit packages: `@dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities`
+  - Install state management: `zustand @tanstack/react-query axios`
+  - Configure API client with session management
+- [ ] **Layout foundation**
+  - Create `AuthLayout` component for login/register pages
+  - Create `DashboardLayout` component with header and sidebar
+  - Set up basic routing structure
+- [ ] **Theme & styling setup**
+  - Configure Radix UI themes (dark/light mode)
+  - Set up global CSS variables and utility classes
+  - Create reusable component library structure
 
-### Phase 3: Enhanced Features
-1. Activity log page
-2. Header search functionality
-3. Notification dropdown
-4. User management
+#### 1.2 Authentication Pages (3-4 hours)
+- [ ] **Homepage (`/`)**
+  - Simple landing page with platform overview
+  - Call-to-action buttons to login/register
+  - Basic responsive design
+  - **Components**: `Card`, `Button`
+- [ ] **Login Page (`/login`)**
+  - Username/password form with validation
+  - Session initialization on successful login
+  - Error handling with toast notifications
+  - Redirect to dashboard after login
+  - **API**: `POST /_synthetic/new_session`, `POST /api/login`
+  - **Components**: `Label`, `Button`, `Toast`
+- [ ] **Register Page (`/register`)**
+  - User registration form with role selection
+  - Form validation and error handling
+  - Redirect to login after successful registration
+  - **API**: `POST /api/register`
+  - **Components**: `Label`, `Select`, `Button`, `Toast`
 
-### Phase 4: Polish & Optimization
-1. Animations and transitions
-2. Performance optimization
-3. Accessibility improvements
+#### 1.3 Navigation & State (2-4 hours)
+- [ ] **Global state management**
+  - User authentication state (Zustand)
+  - Session management
+  - Basic error handling
+- [ ] **Navigation components**
+  - Header with user menu and logout
+  - Sidebar with main navigation links
+  - Breadcrumb component
+  - **Components**: `DropdownMenu`, `Avatar`, `Button`
+
+**Phase 1 Deliverables**: Users can register, login, and see basic navigation
+
+---
+
+### Phase 2: Core Dashboard & Projects (12-16 hours)
+**Goal**: Display user data and project management interface
+
+#### 2.1 Dashboard Page (4-6 hours)
+- [ ] **Dashboard (`/dashboard`)**
+  - Welcome message with current user info
+  - Quick stats cards (assigned tasks, projects, notifications)
+  - Recent activity feed (simplified)
+  - Quick access to user's boards and projects
+  - **API**: `GET /api/users/me`, `GET /api/users/me/boards`, `GET /api/users/me/assigned_tasks`
+  - **Components**: `Card`, `Avatar`, `Badge`, `Tabs`
+
+#### 2.2 Projects Management (6-8 hours)
+- [ ] **Projects List (`/projects`)**
+  - Grid/card view of user's accessible projects
+  - Project creation modal (admin/manager only)
+  - Basic project information display
+  - Navigation to project detail view
+  - **API**: `GET /api/projects`, `POST /api/projects`
+  - **Components**: `Card`, `Dialog`, `Badge`, `DropdownMenu`
+- [ ] **Project Detail (`/projects/[id]`)**
+  - Project information and description
+  - List of project boards in card format
+  - Board creation modal (manager only)
+  - Navigation to individual boards
+  - **API**: `GET /api/projects/{id}`, `GET /api/projects/{id}/boards`, `POST /api/boards`
+  - **Components**: `Card`, `Dialog`, `Tabs`, `Badge`
+
+#### 2.3 Shared Components (2-4 hours)
+- [ ] **Reusable components**
+  - `ProjectCard` - Project display component
+  - `BoardCard` - Board display component
+  - `UserAvatar` - User profile display
+  - `StatusBadge` - Status indicators
+  - `LoadingSpinner` - Loading states
+  - `EmptyState` - Empty data states
+
+**Phase 2 Deliverables**: Users can view dashboard, browse projects, and navigate to boards
+
+---
+
+### Phase 3: Board Interface & Task Management (16-20 hours)
+**Goal**: Complete Kanban board with drag-and-drop functionality
+
+#### 3.1 Basic Board Layout (6-8 hours)
+- [ ] **Board Detail (`/boards/[id]`) - Static Version**
+  - Board header with title and member avatars
+  - List columns display (To Do, In Progress, Done)
+  - Task cards in static layout (no drag-drop yet)
+  - Task creation modal
+  - **API**: `GET /api/boards/{id}`, `POST /api/tasks`
+  - **Components**: `Card`, `Dialog`, `Avatar`, `Badge`
+
+#### 3.2 Task Management (4-6 hours)
+- [ ] **Task components**
+  - `TaskCard` - Individual task display
+  - Task detail modal with editing capabilities
+  - Task creation and editing forms
+  - Priority and status indicators
+  - **API**: `GET /api/tasks/{id}/full`, `PUT /api/tasks/{id}`, `POST /api/comments`
+  - **Components**: `Dialog`, `Textarea`, `Select`, `Badge`
+
+#### 3.3 Drag & Drop Implementation (6-8 hours)
+- [ ] **@dnd-kit integration**
+  - Set up `DndContext` for the board
+  - Make task cards draggable with `useDraggable`
+  - Make lists droppable with `useDroppable`
+  - Implement task reordering within lists
+  - Implement task movement between lists
+  - Visual feedback with `DragOverlay`
+  - **API**: `PUT /api/tasks/{id}/move`
+  - **Components**: `DndContext`, `DragOverlay`, `Draggable`, `Droppable`
+
+#### 3.4 Board Management (2-4 hours)
+- [ ] **Board features**
+  - List creation and management
+  - Member management (manager only)
+  - Basic board settings
+  - **API**: `POST /api/lists`, `POST /api/boards/{id}/enroll_member`
+  - **Components**: `Dialog`, `DropdownMenu`, `Avatar`
+
+**Phase 3 Deliverables**: Fully functional Kanban board with drag-and-drop task management
+
+---
+
+## Implementation Timeline
+
+### **Realistic Weekend Timeline** (48-60 hours total)
+- **Friday Evening**: Phase 1 setup and authentication (8-12 hours)
+- **Saturday**: Phase 2 dashboard and projects (12-16 hours)  
+- **Sunday**: Phase 3 board interface and drag-drop (16-20 hours)
+- **Monday**: Testing, bug fixes, and polish (8-12 hours)
+
+### **Success Metrics**
+- [ ] Users can register and login
+- [ ] Dashboard shows personalized user data
+- [ ] Projects can be viewed and boards accessed
+- [ ] Tasks can be created, edited, and moved via drag-and-drop
+- [ ] Basic responsive design works on desktop and mobile
+- [ ] All API integrations work correctly
+- [ ] Error handling provides user feedback
+
+### **Deferred Features** (Post-Phase 3)
+- Global search functionality
+- Notification system and activity log
+- User and team management pages
+- Advanced role-based UI features
+- Comment threading and activity timeline
+- Advanced animations and polish
+- Mobile optimization
+- Accessibility improvements
+
+### **Technical Debt to Address Later**
+- Comprehensive error boundary implementation
+- Performance optimization (React.memo, useMemo)
+- Advanced state management patterns
+- Comprehensive testing suite
+- Advanced TypeScript patterns
+- SEO and meta tag optimization
 
 ## Required Dependencies
 
