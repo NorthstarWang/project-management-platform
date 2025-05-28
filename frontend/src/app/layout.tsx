@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Alike, Mulish } from "next/font/google";
 import { Theme } from "@radix-ui/themes";
+import { ToastProvider } from "@/components/ui/CustomToast";
 import "@radix-ui/themes/styles.css";
 import "./globals.css";
 
@@ -39,6 +40,7 @@ export default function RootLayout({
           hasBackground={false}
         >
           {children}
+          <ToastProvider />
         </Theme>
       </body>
     </html>

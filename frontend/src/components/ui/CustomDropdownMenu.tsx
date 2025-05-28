@@ -2,238 +2,151 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Check, Circle } from 'lucide-react';
+import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface DropdownMenuItem {
-  id: string;
+interface DropdownOption {
+  value: string;
   label: string;
   icon?: React.ReactNode;
-  disabled?: boolean;
-  type?: 'item' | 'checkbox' | 'radio';
-  checked?: boolean;
-  onClick?: () => void;
 }
 
-export interface DropdownMenuProps {
-  trigger: React.ReactNode;
-  items: DropdownMenuItem[];
+interface CustomDropdownMenuProps {
+  options: DropdownOption[];
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
   className?: string;
-  contentClassName?: string;
-  align?: 'start' | 'center' | 'end';
-  side?: 'top' | 'bottom' | 'left' | 'right';
-  sideOffset?: number;
-  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
 }
 
 export function CustomDropdownMenu({
-  trigger,
-  items,
+  options = [],
+  value,
+  onChange,
+  placeholder = 'Select an option',
   className,
-  contentClassName,
-  align = 'start',
-  side = 'bottom',
-  sideOffset = 4,
-  onOpenChange,
-}: DropdownMenuProps) {
+  disabled = false,
+}: CustomDropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const [selectedValue, setSelectedValue] = useState(value);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleToggle = () => {
-    const newOpen = !isOpen;
-    setIsOpen(newOpen);
-    onOpenChange?.(newOpen);
-  };
+  useEffect(() => {
+    setSelectedValue(value);
+  }, [value]);
 
-  const handleItemClick = (item: DropdownMenuItem) => {
-    if (!item.disabled) {
-      item.onClick?.();
-      setIsOpen(false);
-      onOpenChange?.(false);
-    }
-  };
-
-  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        contentRef.current &&
-        !contentRef.current.contains(event.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        onOpenChange?.(false);
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen, onOpenChange]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  // Close on escape key
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-        onOpenChange?.(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, onOpenChange]);
-
-  const getContentPosition = () => {
-    const baseClasses = 'absolute z-50';
-    
-    switch (side) {
-      case 'top':
-        return `${baseClasses} bottom-full mb-${sideOffset}`;
-      case 'bottom':
-        return `${baseClasses} top-full mt-${sideOffset}`;
-      case 'left':
-        return `${baseClasses} right-full mr-${sideOffset}`;
-      case 'right':
-        return `${baseClasses} left-full ml-${sideOffset}`;
-      default:
-        return `${baseClasses} top-full mt-${sideOffset}`;
-    }
+  const handleSelect = (optionValue: string) => {
+    setSelectedValue(optionValue);
+    onChange?.(optionValue);
+    setIsOpen(false);
   };
 
-  const getAlignmentClasses = () => {
-    if (side === 'top' || side === 'bottom') {
-      switch (align) {
-        case 'start':
-          return 'left-0';
-        case 'center':
-          return 'left-1/2 transform -translate-x-1/2';
-        case 'end':
-          return 'right-0';
-        default:
-          return 'left-0';
-      }
-    } else {
-      switch (align) {
-        case 'start':
-          return 'top-0';
-        case 'center':
-          return 'top-1/2 transform -translate-y-1/2';
-        case 'end':
-          return 'bottom-0';
-        default:
-          return 'top-0';
-      }
-    }
-  };
+  const safeOptions = Array.isArray(options) ? options : [];
+  const selectedOption = safeOptions.find(opt => opt.value === selectedValue);
 
   return (
-    <div className={cn('relative inline-block', className)}>
-      {/* Trigger */}
-      <motion.button
-        ref={triggerRef}
-        onClick={handleToggle}
-        className="flex items-center gap-2 cursor-pointer focus:outline-none"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{ duration: 0.1 }}
+    <div ref={dropdownRef} className={cn('relative', className)}>
+      <button
+        type="button"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={cn(
+          'flex h-10 w-full items-center justify-between rounded-md',
+          'border border-input bg-input px-3 py-2',
+          'text-sm text-input cursor-pointer',
+          'transition-all duration-200',
+          'hover:border-input-focus',
+          'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-primary',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+          isOpen && 'border-input-focus ring-2 ring-offset-2 ring-interactive-primary'
+        )}
       >
-        {trigger}
+        <span className="flex items-center gap-2 truncate">
+          {selectedOption ? (
+            <>
+              {selectedOption.icon}
+              {selectedOption.label}
+            </>
+          ) : (
+            <span className="text-muted">{placeholder}</span>
+          )}
+        </span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2, ease: 'easeInOut' }}
+          transition={{ duration: 0.2 }}
         >
-          <ChevronDown className="h-4 w-4 text-secondary" />
+          <ChevronDown className="h-4 w-4 opacity-50" />
         </motion.div>
-      </motion.button>
+      </button>
 
-      {/* Dropdown Content */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            ref={contentRef}
             initial={{ opacity: 0, scale: 0.95, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -8 }}
-            transition={{ 
-              duration: 0.15, 
-              ease: 'easeOut',
-              exit: { duration: 0.1, ease: 'easeIn' }
-            }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
             className={cn(
-              getContentPosition(),
-              getAlignmentClasses(),
-              'min-w-[8rem] overflow-hidden rounded-md bg-dropdown border-dropdown p-1 text-dropdown-item',
-              contentClassName
+              'absolute z-50 mt-1 w-full overflow-hidden',
+              'rounded-md border border-dropdown',
+              'bg-dropdown shadow-dropdown'
             )}
-            style={{
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-            }}
           >
-            {items.map((item) => (
-              <motion.div
-                key={item.id}
-                className={cn(
-                  'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors',
-                  'text-dropdown-item',
-                  item.disabled 
-                    ? 'pointer-events-none opacity-50' 
-                    : 'hover:bg-dropdown-item-hover focus:bg-dropdown-item-active'
-                )}
-                onClick={() => handleItemClick(item)}
-                onMouseEnter={() => setHoveredItem(item.id)}
-                onMouseLeave={() => setHoveredItem(null)}
-                whileHover={!item.disabled ? { 
-                  backgroundColor: 'var(--dropdown-item-hover)',
-                  x: 2
-                } : {}}
-                transition={{ duration: 0.1 }}
-              >
-                {/* Icon or Checkbox/Radio indicator */}
-                {item.type === 'checkbox' && (
-                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                    {item.checked && <Check className="h-4 w-4" />}
-                  </span>
-                )}
-                {item.type === 'radio' && (
-                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                    {item.checked && <Circle className="h-2 w-2 fill-current" />}
-                  </span>
-                )}
-                {item.icon && item.type === 'item' && (
-                  <span className="mr-2 h-4 w-4 flex items-center justify-center">
-                    {item.icon}
-                  </span>
-                )}
-
-                {/* Label */}
-                <span className={cn(
-                  item.type === 'checkbox' || item.type === 'radio' ? 'pl-6' : '',
-                  'flex-1'
-                )}>
-                  {item.label}
-                </span>
-
-                {/* Hover indicator */}
-                <AnimatePresence>
-                  {hoveredItem === item.id && !item.disabled && (
-                    <motion.div
-                      className="absolute inset-0 bg-dropdown-item-hover rounded-sm -z-10"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.1 }}
-                    />
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: 'auto' }}
+              exit={{ height: 0 }}
+              transition={{ duration: 0.15 }}
+              className="overflow-hidden"
+            >
+              <div className="max-h-60 overflow-y-auto overflow-x-hidden py-1">
+                {safeOptions.map((option, index) => (
+                  <motion.button
+                    key={option.value}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    onClick={() => handleSelect(option.value)}
+                    className={cn(
+                      'flex w-full items-center gap-2 px-2 py-2',
+                      'text-sm text-dropdown-item',
+                      'transition-all duration-150',
+                      'hover:bg-dropdown-item-hover',
+                      'focus:bg-dropdown-item-hover focus:outline-none',
+                      selectedValue === option.value && 'bg-dropdown-item-active font-medium'
+                    )}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span className="flex h-4 w-4 items-center justify-center flex-shrink-0">
+                      {selectedValue === option.value && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        >
+                          <Check className="h-3 w-3 text-interactive-primary" />
+                        </motion.div>
+                      )}
+                    </span>
+                    {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+                    <span className="flex-1 text-left">{option.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
