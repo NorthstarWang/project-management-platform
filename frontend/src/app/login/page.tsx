@@ -59,11 +59,11 @@ export default function LoginPage() {
       const sessionResponse = await apiClient.post('/_synthetic/new_session');
       const sessionId = sessionResponse.data.session_id;
       
-      // Store session ID for future requests
-      localStorage.setItem('session_id', sessionId);
+      // Set session ID in API client (this will also store it in localStorage)
+      apiClient.setSessionId(sessionId);
 
-      // Attempt login
-      const loginResponse = await apiClient.post(`/api/login?session_id=${sessionId}`, {
+      // Attempt login (session_id will be automatically included)
+      const loginResponse = await apiClient.post('/api/login', {
         username: form.username,
         password: form.password,
         email: '', // Required by backend but not used for login
@@ -93,8 +93,17 @@ export default function LoginPage() {
       }, 1000);
 
     } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || 'Invalid username or password');
+      console.error('Login failed:', error);
+      
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error?.data?.detail) {
+        errorMessage = error.data.detail;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -101,10 +101,8 @@ export function Sidebar() {
   };
 
   const handleLogout = () => {
-    // Clear user data
-    localStorage.removeItem('user');
-    localStorage.removeItem('session_id');
-    apiClient.removeUserIdHeader();
+    // Clear user data and session
+    apiClient.clearSession();
     
     toast.success('Logged out successfully');
     router.push('/login');

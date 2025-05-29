@@ -1,7 +1,7 @@
 /**
  * Simple API Client for Project Management Platform
  * 
- * Basic wrapper for API calls with optional logging
+ * Basic wrapper for API calls with optional logging and session management
  */
 
 export interface ApiResponse<T = any> {
@@ -18,12 +18,59 @@ export interface ApiError {
 class ApiClient {
   private baseURL: string;
   private defaultHeaders: Record<string, string>;
+  private sessionId: string | null = null;
 
   constructor(baseURL: string = 'http://localhost:8000') {
     this.baseURL = baseURL;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
+    
+    // Initialize session from localStorage on client side
+    if (typeof window !== 'undefined') {
+      this.restoreSession();
+    }
+  }
+
+  /**
+   * Restore session from localStorage
+   */
+  private restoreSession(): void {
+    const storedSessionId = localStorage.getItem('session_id');
+    const storedUser = localStorage.getItem('user');
+    
+    if (storedSessionId) {
+      this.sessionId = storedSessionId;
+    }
+    
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        this.setUserIdHeader(user.id);
+      } catch (error) {
+        console.warn('Failed to parse stored user data:', error);
+        // Clear invalid data
+        localStorage.removeItem('user');
+        localStorage.removeItem('session_id');
+      }
+    }
+  }
+
+  /**
+   * Set session ID for API requests
+   */
+  setSessionId(sessionId: string): void {
+    this.sessionId = sessionId;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('session_id', sessionId);
+    }
+  }
+
+  /**
+   * Get current session ID
+   */
+  getSessionId(): string | null {
+    return this.sessionId;
   }
 
   /**
@@ -41,10 +88,27 @@ class ApiClient {
   }
 
   /**
-   * Build URL with query parameters
+   * Clear session data
+   */
+  clearSession(): void {
+    this.sessionId = null;
+    this.removeUserIdHeader();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('session_id');
+      localStorage.removeItem('user');
+    }
+  }
+
+  /**
+   * Build URL with query parameters, automatically including session_id
    */
   private buildURL(endpoint: string, params?: Record<string, string>): string {
     const url = new URL(endpoint, this.baseURL);
+    
+    // Automatically add session_id if available and not already present
+    if (this.sessionId && !params?.session_id && !url.searchParams.has('session_id')) {
+      url.searchParams.append('session_id', this.sessionId);
+    }
     
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -151,22 +215,22 @@ class ApiClient {
   /**
    * POST request
    */
-  async post<T = any>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
-    return this.request<T>('POST', endpoint, body);
+  async post<T = any>(endpoint: string, body?: any, params?: Record<string, string>): Promise<ApiResponse<T>> {
+    return this.request<T>('POST', endpoint, body, params);
   }
 
   /**
    * PUT request
    */
-  async put<T = any>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
-    return this.request<T>('PUT', endpoint, body);
+  async put<T = any>(endpoint: string, body?: any, params?: Record<string, string>): Promise<ApiResponse<T>> {
+    return this.request<T>('PUT', endpoint, body, params);
   }
 
   /**
    * DELETE request
    */
-  async delete<T = any>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>('DELETE', endpoint);
+  async delete<T = any>(endpoint: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
+    return this.request<T>('DELETE', endpoint, undefined, params);
   }
 }
 
