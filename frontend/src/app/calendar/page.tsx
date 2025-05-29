@@ -50,18 +50,14 @@ export default function CalendarPage() {
   useEffect(() => {
     // Check if user is logged in
     const userData = localStorage.getItem('user');
-    const sessionId = localStorage.getItem('session_id');
     
-    if (!userData || !sessionId) {
+    if (!userData) {
       router.push('/login');
       return;
     }
 
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
-    
-    // Set user ID header for API calls
-    apiClient.setUserIdHeader(parsedUser.id);
     
     // Log calendar page view
     track('PAGE_VIEW', {

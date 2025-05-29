@@ -41,7 +41,7 @@ class MockAuthService {
     // Initialize from localStorage on client side
     if (typeof window !== 'undefined') {
       this.sessionId = localStorage.getItem('session_id');
-      const userData = localStorage.getItem('user_data');
+      const userData = localStorage.getItem('user');
       if (userData) {
         try {
           this.currentUser = JSON.parse(userData);
@@ -128,7 +128,7 @@ class MockAuthService {
 
       // Store user data
       if (typeof window !== 'undefined') {
-        localStorage.setItem('user_data', JSON.stringify(userData));
+        localStorage.setItem('user', JSON.stringify(userData));
       }
 
       // Log the login event
@@ -241,7 +241,7 @@ class MockAuthService {
 
     if (typeof window !== 'undefined') {
       localStorage.removeItem('session_id');
-      localStorage.removeItem('user_data');
+      localStorage.removeItem('user');
     }
   }
 

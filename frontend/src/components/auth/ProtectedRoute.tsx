@@ -50,15 +50,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         user = JSON.parse(userData);
       } catch (parseError) {
         console.error('Failed to parse user data:', parseError);
-        localStorage.removeItem('user');
-        localStorage.removeItem('session_id');
+        apiClient.clearSession();
         setIsAuthenticated(false);
         setIsLoading(false);
         router.push('/login');
         return;
       }
 
+      // Ensure API client has the session and user data
+      apiClient.setSessionId(sessionId);
       apiClient.setUserIdHeader(user.id);
+      
       console.log('Validating session for user:', user.username, 'with session:', sessionId);
 
       // Verify session is still valid by making a test API call
@@ -81,9 +83,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         if (error?.status === 401 || error?.status === 403) {
           // Authentication/authorization error - clear credentials
           console.log('Authentication error, clearing credentials');
-          localStorage.removeItem('user');
-          localStorage.removeItem('session_id');
-          apiClient.removeUserIdHeader();
+          apiClient.clearSession();
           setIsAuthenticated(false);
           setIsLoading(false);
           router.push('/login');
@@ -96,9 +96,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         } else {
           // Other server errors - clear credentials to be safe
           console.log('Server error during validation, clearing credentials');
-          localStorage.removeItem('user');
-          localStorage.removeItem('session_id');
-          apiClient.removeUserIdHeader();
+          apiClient.clearSession();
           setIsAuthenticated(false);
           setIsLoading(false);
           router.push('/login');
@@ -106,12 +104,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       }
     } catch (error) {
       console.error('Authentication check failed:', error);
+      apiClient.clearSession();
       setIsAuthenticated(false);
       setIsLoading(false);
-      
-      if (!isPublicRoute) {
-        router.push('/login');
-      }
+      router.push('/login');
     }
   };
 
