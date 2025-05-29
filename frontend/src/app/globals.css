@@ -580,36 +580,31 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 400;
   line-height: 1.2;
   margin: 0;
+  padding: 0;
 }
 
 h1 {
   font-size: 2.5rem;
-  margin-bottom: 1rem;
 }
 
 h2 {
   font-size: 2rem;
-  margin-bottom: 0.875rem;
 }
 
 h3 {
   font-size: 1.5rem;
-  margin-bottom: 0.75rem;
 }
 
 h4 {
   font-size: 1.25rem;
-  margin-bottom: 0.625rem;
 }
 
 h5 {
   font-size: 1.125rem;
-  margin-bottom: 0.5rem;
 }
 
 h6 {
   font-size: 1rem;
-  margin-bottom: 0.5rem;
 }
 
 /* ===== COMPONENT OVERRIDES ===== */

@@ -20,6 +20,7 @@ import {
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
 import { track } from '@/services/analyticsLogger';
+import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
 
 interface User {
   id: string;
@@ -135,6 +136,19 @@ export default function MembersPage() {
         role: selectedRole
       }
     });
+
+    // Add enhanced search tracking
+    track('MEMBERS_SEARCH_INTERACTION', {
+      interaction_type: 'search_input',
+      search_query: query,
+      search_query_length: query.length,
+      active_filters: {
+        team_filter: selectedTeam,
+        role_filter: selectedRole
+      },
+      total_members_count: users.length,
+      timestamp: new Date().toISOString()
+    });
   };
 
   const handleFilterChange = (filterType: string, value: string) => {
@@ -149,6 +163,20 @@ export default function MembersPage() {
       page: 'members',
       filter_type: filterType,
       filter_value: value
+    });
+
+    // Add enhanced filter tracking
+    track('MEMBERS_FILTER_INTERACTION', {
+      interaction_type: 'filter_change',
+      filter_type: filterType,
+      filter_value: value,
+      previous_value: filterType === 'team' ? selectedTeam : selectedRole,
+      current_search_query: searchQuery,
+      timestamp: new Date().toISOString(),
+      resulting_filter_state: {
+        team: filterType === 'team' ? value : selectedTeam,
+        role: filterType === 'role' ? value : selectedRole
+      }
     });
   };
 
@@ -304,18 +332,16 @@ export default function MembersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Card key={i} className="p-6">
-                <div className="animate-pulse">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="h-12 w-12 bg-gray-3 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-3 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-3 rounded w-1/2"></div>
-                    </div>
+                <div className="flex items-center space-x-4 mb-4">
+                  <SkeletonAvatar size="lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton width="75%" />
+                    <Skeleton width="50%" size="sm" />
                   </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-gray-3 rounded w-full"></div>
-                    <div className="h-3 bg-gray-3 rounded w-2/3"></div>
-                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Skeleton width="100%" />
+                  <Skeleton width="67%" />
                 </div>
               </Card>
             ))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
+import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
 import { 
   FolderOpen, 
   CheckSquare, 
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
+import authService from '@/services/authService';
 
 interface User {
   id: string;
@@ -100,31 +102,7 @@ export default function DashboardPage() {
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    
-    if (!userData) {
-      router.push('/login');
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    
-    // Log dashboard page view
-    trackEvent('PAGE_VIEW', {
-      page_name: 'dashboard',
-      page_url: '/dashboard',
-      user_id: parsedUser.id,
-      user_role: parsedUser.role
-    });
-    
-    // Load dashboard data
-    loadDashboardData();
-  }, [router]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -170,7 +148,73 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const initializeDashboard = useCallback(async () => {
+    try {
+      console.log('📊 Dashboard: Starting initialization...');
+      
+      // Wait for auth service to be ready
+      await authService.waitForInitialization();
+      console.log('📊 Dashboard: Auth service ready');
+      
+      // Ensure we have a valid user
+      const user = authService.getCurrentUser();
+      if (!user) {
+        console.log('❌ Dashboard: No user found, redirecting to login');
+        router.push('/login');
+        return;
+      }
+
+      console.log('📊 Dashboard: User found:', user.username);
+      setUser(user);
+      
+      // Ensure API client is properly configured
+      const isConfigured = authService.ensureApiClientConfigured();
+      if (!isConfigured) {
+        console.log('❌ Dashboard: API client not configured, redirecting to login');
+        router.push('/login');
+        return;
+      }
+
+      console.log('📊 Dashboard: API client configured');
+
+      // Additional verification: Make a test call to ensure authentication is working
+      try {
+        console.log('🧪 Dashboard: Testing API authentication...');
+        await apiClient.get('/api/users/me');
+        console.log('✅ Dashboard: API authentication test passed');
+      } catch (authTestError) {
+        console.error('❌ Dashboard: API authentication test failed:', authTestError);
+        console.log('🔄 Dashboard: Redirecting to login due to auth test failure');
+        router.push('/login');
+        return;
+      }
+
+      console.log('✅ Dashboard: All authentication checks passed');
+
+      // Track user login
+      trackEvent('USER_LOGIN', {
+        user_id: user.id,
+        username: user.username,
+        user_role: user.role
+      });
+      
+      // Only load dashboard data after all authentication is confirmed
+      console.log('📊 Dashboard: Loading data...');
+      await loadDashboardData();
+      console.log('✅ Dashboard: Initialization completed successfully');
+      
+    } catch (error) {
+      console.error('❌ Dashboard: Initialization failed:', error);
+      router.push('/login');
+    }
+  }, [router, loadDashboardData]);
+
+  useEffect(() => {
+    // Wait for authentication and then load data
+    initializeDashboard();
+  }, [initializeDashboard]);
 
   const loadRecentCommentsAndActivities = async (tasks: Task[]) => {
     try {
@@ -221,6 +265,14 @@ export default function DashboardPage() {
       action,
       project_id: projectId,
       page: 'dashboard'
+    });
+
+    // Add more specific synthetic API tracking
+    trackEvent('DASHBOARD_INTERACTION', {
+      interaction_type: 'quick_action',
+      action_name: action,
+      target_project_id: projectId,
+      timestamp: new Date().toISOString()
     });
 
     switch (action) {
@@ -414,9 +466,9 @@ export default function DashboardPage() {
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-4 bg-gray-3 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-3 rounded w-1/2"></div>
+                  <div key={i} className="space-y-2">
+                    <Skeleton width="75%" />
+                    <Skeleton width="50%" size="sm" />
                   </div>
                 ))}
               </div>
@@ -459,9 +511,9 @@ export default function DashboardPage() {
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-4 bg-gray-3 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-3 rounded w-1/2"></div>
+                  <div key={i} className="space-y-2">
+                    <Skeleton width="75%" />
+                    <Skeleton width="50%" size="sm" />
                   </div>
                 ))}
               </div>
@@ -513,9 +565,9 @@ export default function DashboardPage() {
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-4 bg-gray-3 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-3 rounded w-1/2"></div>
+                  <div key={i} className="space-y-2">
+                    <Skeleton width="75%" />
+                    <Skeleton width="50%" size="sm" />
                   </div>
                 ))}
               </div>
@@ -566,11 +618,11 @@ export default function DashboardPage() {
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="animate-pulse flex items-center space-x-3">
-                  <div className="h-8 w-8 bg-gray-3 rounded-full"></div>
-                  <div className="flex-1">
-                    <div className="h-4 bg-gray-3 rounded w-3/4 mb-1"></div>
-                    <div className="h-3 bg-gray-3 rounded w-1/2"></div>
+                <div key={i} className="flex items-center space-x-3">
+                  <SkeletonAvatar size="md" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton width="75%" />
+                    <Skeleton width="50%" size="sm" />
                   </div>
                 </div>
               ))}

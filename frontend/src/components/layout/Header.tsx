@@ -39,9 +39,7 @@ export function Header() {
           {/* Right side actions */}
           <div className="flex items-center space-x-4">
             {/* Theme Toggle */}
-            <div className="flex items-center justify-center">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
 
             {/* Notifications */}
             <Button variant="ghost" size="sm" className="relative">

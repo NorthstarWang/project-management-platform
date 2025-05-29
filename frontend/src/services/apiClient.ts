@@ -100,6 +100,18 @@ class ApiClient {
   }
 
   /**
+   * Debug method to inspect current API client state
+   */
+  getDebugInfo(): any {
+    return {
+      sessionId: this.sessionId,
+      headers: { ...this.defaultHeaders },
+      hasUserIdHeader: !!this.defaultHeaders['x-user-id'],
+      userIdValue: this.defaultHeaders['x-user-id']
+    };
+  }
+
+  /**
    * Build URL with query parameters, automatically including session_id
    */
   private buildURL(endpoint: string, params?: Record<string, string>): string {
@@ -145,10 +157,13 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = this.buildURL(endpoint, params);
     
+    // Create a fresh copy of headers to avoid mutation issues
+    const requestHeaders = { ...this.defaultHeaders };
+    
     try {
       const response = await fetch(url, {
         method,
-        headers: this.defaultHeaders,
+        headers: requestHeaders,
         body: body ? JSON.stringify(body) : undefined,
       });
 

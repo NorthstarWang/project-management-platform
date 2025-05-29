@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import apiClient from '@/services/apiClient';
+import authService from '@/services/authService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -18,98 +18,82 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const publicRoutes = ['/', '/login', '/register'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
-  useEffect(() => {
-    checkAuthentication();
-  }, [pathname]);
-
-  const checkAuthentication = async () => {
+  const checkAuthentication = useCallback(async () => {
     try {
-      // If it's a public route, allow access
+      console.log('🔍 ProtectedRoute: Checking authentication for route:', pathname);
+
+      // Wait for auth service to initialize
+      await authService.waitForInitialization();
+      console.log('🔍 ProtectedRoute: Auth service initialized');
+
+      // Check if authenticated user is trying to access public routes
+      if (authService.shouldRedirectFromPublicRoute(pathname)) {
+        console.log('✅ ProtectedRoute: Authenticated user accessing public route, redirecting to dashboard');
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        router.push('/dashboard');
+        return;
+      }
+
+      // If it's a public route and user is not authenticated, allow access
       if (isPublicRoute) {
+        console.log('✅ ProtectedRoute: Public route access allowed');
         setIsAuthenticated(true);
         setIsLoading(false);
         return;
       }
 
-      // Check for stored user data and session
-      const userData = localStorage.getItem('user');
-      const sessionId = localStorage.getItem('session_id');
-
-      if (!userData || !sessionId) {
-        // No stored credentials, redirect to login
-        console.log('No stored credentials found, redirecting to login');
+      // For protected routes, check authentication
+      if (!authService.isAuthenticated()) {
+        console.log('❌ ProtectedRoute: No authentication found, redirecting to login');
         setIsAuthenticated(false);
         setIsLoading(false);
         router.push('/login');
         return;
       }
 
-      // Parse user data and set up API client
-      let user;
-      try {
-        user = JSON.parse(userData);
-      } catch (parseError) {
-        console.error('Failed to parse user data:', parseError);
-        apiClient.clearSession();
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      // Ensure API client has the session and user data
-      apiClient.setSessionId(sessionId);
-      apiClient.setUserIdHeader(user.id);
+      // Ensure API client is properly configured before allowing access
+      console.log('🔧 ProtectedRoute: Ensuring API client is configured...');
+      const isConfigured = authService.ensureApiClientConfigured();
       
-      console.log('Validating session for user:', user.username, 'with session:', sessionId);
+      if (!isConfigured) {
+        console.log('❌ ProtectedRoute: Failed to configure API client, redirecting to login');
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        router.push('/login');
+        return;
+      }
 
-      // Verify session is still valid by making a test API call
-      try {
-        const response = await apiClient.get('/api/users/me');
-        console.log('Session validation successful:', response.data);
-        
-        // Session is valid
+      // Validate the current session with a simple test
+      console.log('🧪 ProtectedRoute: Validating current session...');
+      const isValid = await authService.validateSession();
+      
+      if (isValid) {
+        console.log('✅ ProtectedRoute: Session validation successful');
         setIsAuthenticated(true);
         setIsLoading(false);
-      } catch (error: any) {
-        console.error('Session validation failed:', {
-          error: error,
-          message: error?.message,
-          status: error?.status,
-          data: error?.data
-        });
-        
-        // Check if it's a network error vs authentication error
-        if (error?.status === 401 || error?.status === 403) {
-          // Authentication/authorization error - clear credentials
-          console.log('Authentication error, clearing credentials');
-          apiClient.clearSession();
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          router.push('/login');
-        } else if (!error?.status) {
-          // Network error - backend might be down, allow access but show warning
-          console.warn('Network error during session validation, allowing access');
-          setIsAuthenticated(true);
-          setIsLoading(false);
-          // Could show a toast warning about connectivity issues
-        } else {
-          // Other server errors - clear credentials to be safe
-          console.log('Server error during validation, clearing credentials');
-          apiClient.clearSession();
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          router.push('/login');
-        }
+      } else {
+        console.log('❌ ProtectedRoute: Session validation failed, redirecting to login');
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        router.push('/login');
       }
+
     } catch (error) {
-      console.error('Authentication check failed:', error);
-      apiClient.clearSession();
+      console.error('❌ ProtectedRoute: Authentication check failed:', error);
       setIsAuthenticated(false);
       setIsLoading(false);
-      router.push('/login');
+      
+      // Only redirect to login if this is not a public route
+      if (!isPublicRoute) {
+        router.push('/login');
+      }
     }
-  };
+  }, [pathname, isPublicRoute, router]);
+
+  useEffect(() => {
+    checkAuthentication();
+  }, [checkAuthentication]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
