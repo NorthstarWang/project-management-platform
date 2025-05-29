@@ -7,17 +7,10 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { 
   CustomDialog as Dialog,
   CustomDialogContent as DialogContent,
-  CustomDialogHeader as DialogHeader,
-  CustomDialogTitle as DialogTitle,
-  CustomDialogDescription as DialogDescription,
-  CustomDialogFooter as DialogFooter,
 } from '@/components/ui/CustomDialog';
 import { 
   Plus, 
@@ -26,10 +19,7 @@ import {
   MessageSquare,
   Paperclip,
   Eye,
-  Users,
-  User,
-  Clock,
-  AlertCircle
+  Users
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
@@ -112,81 +102,81 @@ function TaskCardContent({ task }: { task: Task }) {
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 1) return 'Today';
+    if (diffDays <= 1) return 'Today';
     if (diffDays === 2) return 'Yesterday';
-    if (diffDays <= 7) return `${diffDays - 1} days ago`;
+    if (diffDays <= 7) return `${diffDays - 1}d ago`;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getDueDateColor = (dueDateString: string) => {
+    const dueDate = new Date(dueDateString);
+    const now = new Date();
+    const diffTime = dueDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'text-error'; // Overdue
+    if (diffDays <= 1) return 'text-error'; // Due today or tomorrow
+    if (diffDays <= 3) return 'text-warning'; // Due soon
+    return 'text-muted-foreground'; // Normal due date
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Task Title and Description */}
-      <div className="flex-1 mb-3">
-        <h3 className="font-medium text-primary text-sm leading-tight mb-2">
+      {/* Task Title - Always exactly 2 lines with ellipsis */}
+      <div className="mb-3 h-16 flex-shrink-0">
+        <h3 className="font-medium text-primary text-sm leading-5 line-clamp-2 h-16 transition-colors duration-300">
           {task.title}
         </h3>
-
-        {/* Task Description */}
-        {task.description && (
-          <p className="text-xs text-secondary line-clamp-2 mb-3">
-            {task.description}
-          </p>
-        )}
       </div>
 
-      {/* Due Date (if exists) */}
+      {/* Due Date Section - Variable height, positioned at bottom of section */}
       {task.due_date && (
-        <div className="flex items-center space-x-1 text-xs text-warning mb-3">
-          <Calendar className="h-3 w-3" />
-          <span>Due {formatDate(task.due_date)}</span>
+        <div className="mb-4 flex flex-col justify-end">
+          <div className={`flex items-center space-x-1 text-xs ${getDueDateColor(task.due_date)} transition-colors duration-300`}>
+            <Calendar className="h-3 w-3 flex-shrink-0" />
+            <span>Due {formatDate(task.due_date)}</span>
+          </div>
         </div>
       )}
 
-      {/* Bottom Section - Priority and Metadata */}
-      <div className="mt-auto space-y-3">
-        {/* Priority Badge */}
-        <div className="flex justify-start">
+      {/* Bottom Row - Priority, Avatar, Comments, Created Date - Fixed at bottom */}
+      <div className="flex items-center justify-between mt-auto h-8 flex-shrink-0">
+        {/* Left side - Priority and Assignee */}
+        <div className="flex items-center space-x-2">
           <Badge variant={getPriorityColor(task.priority)} size="sm">
             {task.priority}
           </Badge>
+          {task.assignee_name ? (
+            <Avatar size="sm" name={task.assignee_name} className="transition-all duration-300" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center border border-accent/20 flex-shrink-0 transition-all duration-300">
+              <span className="text-xs text-accent">?</span>
+            </div>
+          )}
         </div>
 
-        {/* Bottom Row - Avatar, Comments, Created Date */}
-        <div className="flex items-center justify-between">
-          {/* Left side - Assignee */}
-          <div className="flex items-center">
-            {task.assignee_name ? (
-              <Avatar size="sm" name={task.assignee_name} />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <span className="text-xs text-muted">?</span>
-              </div>
-            )}
-          </div>
+        {/* Right side - Comments and Created Date */}
+        <div className="flex items-center space-x-3 text-xs text-muted-foreground transition-colors duration-300">
+          {/* Comments Count */}
+          {(task.comments_count || 0) > 0 && (
+            <div className="flex items-center space-x-1 text-accent transition-colors duration-300">
+              <MessageSquare className="h-3 w-3 flex-shrink-0" />
+              <span>{task.comments_count}</span>
+            </div>
+          )}
+          
+          {/* Attachments Count */}
+          {(task.attachments_count || 0) > 0 && (
+            <div className="flex items-center space-x-1 text-accent transition-colors duration-300">
+              <Paperclip className="h-3 w-3 flex-shrink-0" />
+              <span>{task.attachments_count}</span>
+            </div>
+          )}
 
-          {/* Right side - Comments and Created Date */}
-          <div className="flex items-center space-x-3 text-xs text-muted">
-            {/* Comments Count */}
-            {task.comments_count && task.comments_count > 0 && (
-              <div className="flex items-center space-x-1">
-                <MessageSquare className="h-3 w-3" />
-                <span>{task.comments_count}</span>
-              </div>
-            )}
-            
-            {/* Attachments Count */}
-            {task.attachments_count && task.attachments_count > 0 && (
-              <div className="flex items-center space-x-1">
-                <Paperclip className="h-3 w-3" />
-                <span>{task.attachments_count}</span>
-              </div>
-            )}
-
-            {/* Created Date */}
-            <span className="text-xs text-muted">
-              {formatCreatedDate(task.created_at)}
-            </span>
-          </div>
+          {/* Created Date */}
+          <span className="text-xs text-secondary whitespace-nowrap transition-colors duration-300">
+            {formatCreatedDate(task.created_at)}
+          </span>
         </div>
       </div>
     </div>
@@ -199,9 +189,12 @@ interface TaskCardProps {
 }
 
 function TaskCard({ task, onClick }: TaskCardProps) {
+  // Variable height based on content
+  const baseHeight = task.due_date ? 'min-h-[140px]' : 'min-h-[120px]';
+  
   return (
     <div
-      className="bg-card rounded-lg border border-card p-4 shadow-sm hover:shadow-md transition-all cursor-pointer min-h-[140px] flex flex-col"
+      className={`bg-card rounded-lg border border-card p-4 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${baseHeight} flex flex-col theme-transition`}
       onClick={() => onClick(task)}
       data-testid={`task-card-${task.id}`}
     >
@@ -218,23 +211,19 @@ interface ListColumnProps {
 }
 
 function ListColumn({ list, tasks, onTaskClick, onAddTask }: ListColumnProps) {
-  const getListColor = (listName: string) => {
-    const name = listName.toLowerCase();
-    if (name.includes('todo') || name.includes('backlog')) return 'bg-card border-secondary';
-    if (name.includes('progress') || name.includes('doing')) return 'bg-card border-accent';
-    if (name.includes('review') || name.includes('testing')) return 'bg-card border-warning';
-    if (name.includes('done') || name.includes('completed')) return 'bg-card border-success';
-    return 'bg-card border-secondary';
+  const getListColor = () => {
+    // Make all columns consistent with just border variations
+    return 'bg-card border-card';
   };
 
   return (
     <div className="flex-shrink-0 w-full lg:w-96">
-      <div className={`rounded-lg border-2 p-4 h-full transition-colors flex flex-col ${getListColor(list.name)}`}>
+      <div className={`rounded-lg border p-4 h-full transition-all duration-300 flex flex-col theme-transition ${getListColor()}`}>
         {/* List Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <h2 className="font-semibold text-primary leading-none text-lg">{list.name}</h2>
-            <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-full font-medium leading-none">
+            <h2 className="font-semibold text-primary leading-none text-lg transition-colors duration-300">{list.name}</h2>
+            <span className="inline-flex items-center justify-center w-6 h-6 bg-accent/10 text-accent text-xs rounded-full font-medium leading-none border border-accent/20 transition-all duration-300">
               {tasks.length}
             </span>
           </div>
@@ -260,7 +249,7 @@ function ListColumn({ list, tasks, onTaskClick, onAddTask }: ListColumnProps) {
         {/* Add Task Button - Always at bottom */}
         <Button
           variant="ghost"
-          className="w-full mt-4 border-2 border-dashed border-secondary hover:border-accent flex-shrink-0"
+          className="w-full mt-4 border border-dashed border-secondary hover:border-accent hover:bg-muted/50 flex-shrink-0 transition-all duration-300"
           onClick={() => onAddTask(list.id)}
           data-testid={`add-task-${list.id}`}
           leftIcon={<Plus className="h-4 w-4" />}
@@ -417,13 +406,13 @@ export default function BoardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Board Header */}
-        <div className="bg-card rounded-lg shadow-card p-6 border border-card">
+        <div className="bg-card rounded-lg shadow-card p-6 border border-card transition-all duration-300 theme-transition">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-primary">
+              <h1 className="text-2xl font-bold text-primary transition-colors duration-300">
                 {loading ? 'Loading...' : board?.name || 'Board'}
               </h1>
-              <p className="text-secondary mt-1">
+              <p className="text-secondary mt-1 transition-colors duration-300">
                 {loading ? 'Loading board details...' : board?.description || 'Board description'}
               </p>
             </div>
@@ -434,9 +423,12 @@ export default function BoardPage() {
               <Button variant="outline" size="sm" leftIcon={<Eye className="h-4 w-4" />}>
                 View
               </Button>
-              <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} data-testid="add-list-button">
-                Add List
-              </Button>
+              {/* Only show Add List button for admins and managers */}
+              {user && (user.role === 'admin' || user.role === 'manager') && (
+                <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} data-testid="add-list-button">
+                  Add List
+                </Button>
+              )}
             </div>
           </div>
         </div>
