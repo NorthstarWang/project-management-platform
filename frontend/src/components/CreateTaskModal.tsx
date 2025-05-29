@@ -164,9 +164,9 @@ export default function CreateTaskModal({
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <CheckCircle className="h-12 w-12 text-success mx-auto mb-2" />
+              <CheckCircle className="h-12 w-12 text-primary mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-primary">Task Basics</h3>
-              <p className="text-sm text-secondary">Let&apos;s start with the essential information</p>
+              <p className="text-sm text-muted-foreground">Let&apos;s start with the essential information</p>
             </div>
             
             <div className="space-y-4">
@@ -180,7 +180,7 @@ export default function CreateTaskModal({
                   className="mt-1"
                 />
                 {formData.title.length > 0 && formData.title.length < 3 && (
-                  <p className="text-xs text-error mt-1">Title must be at least 3 characters</p>
+                  <p className="text-xs text-destructive mt-1">Title must be at least 3 characters</p>
                 )}
               </div>
 
@@ -203,11 +203,11 @@ export default function CreateTaskModal({
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <div className="h-12 w-12 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                <ChevronRight className="h-6 w-6 text-accent" />
+              <div className="h-12 w-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                <ChevronRight className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold text-primary">Choose List</h3>
-              <p className="text-sm text-secondary">Where should this task be placed?</p>
+              <p className="text-sm text-muted-foreground">Where should this task be placed?</p>
             </div>
             
             <div>
@@ -240,9 +240,9 @@ export default function CreateTaskModal({
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <User className="h-12 w-12 text-info mx-auto mb-2" />
+              <User className="h-12 w-12 text-primary mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-primary">Assignment & Priority</h3>
-              <p className="text-sm text-secondary">Who will work on this and how urgent is it?</p>
+              <p className="text-sm text-muted-foreground">Who will work on this and how urgent is it?</p>
             </div>
             
             <div className="space-y-4">
@@ -258,8 +258,8 @@ export default function CreateTaskModal({
                   <SelectContent>
                     <SelectItem value="">
                       <div className="flex items-center">
-                        <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mr-2">
-                          <span className="text-xs text-muted">?</span>
+                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center mr-2 border border-border">
+                          <span className="text-xs text-muted-foreground">?</span>
                         </div>
                         <span>Unassigned</span>
                       </div>
@@ -270,7 +270,7 @@ export default function CreateTaskModal({
                           <Avatar size="xs" name={user.full_name} className="mr-2" />
                           <div>
                             <span className="font-medium">{user.full_name}</span>
-                            <span className="text-xs text-muted ml-2">({user.role})</span>
+                            <span className="text-xs text-muted-foreground ml-2">({user.role})</span>
                           </div>
                         </div>
                       </SelectItem>
@@ -325,9 +325,9 @@ export default function CreateTaskModal({
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <Calendar className="h-12 w-12 text-warning mx-auto mb-2" />
+              <Calendar className="h-12 w-12 text-primary mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-primary">Due Date</h3>
-              <p className="text-sm text-secondary">When should this task be completed?</p>
+              <p className="text-sm text-muted-foreground">When should this task be completed?</p>
             </div>
             
             <div>
@@ -340,25 +340,25 @@ export default function CreateTaskModal({
                 className="mt-1"
                 min={new Date().toISOString().slice(0, 16)}
               />
-              <p className="text-xs text-muted mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Leave empty if no specific deadline is required
               </p>
             </div>
 
             {/* Summary */}
-            <div className="mt-6 p-4 bg-card-content rounded-lg border border-card-content">
+            <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border">
               <h4 className="font-medium text-primary mb-3">Task Summary</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted">Title:</span>
+                  <span className="text-muted-foreground">Title:</span>
                   <span className="text-primary font-medium">{formData.title}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted">List:</span>
+                  <span className="text-muted-foreground">List:</span>
                   <span className="text-primary">{lists.find(l => l.id === formData.list_id)?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted">Priority:</span>
+                  <span className="text-muted-foreground">Priority:</span>
                   <Badge variant={formData.priority === 'high' || formData.priority === 'urgent' ? 'high' : 
                                 formData.priority === 'medium' ? 'medium' : 'low'} size="sm">
                     {formData.priority}
@@ -366,7 +366,7 @@ export default function CreateTaskModal({
                 </div>
                 {formData.assignee_id && (
                   <div className="flex justify-between">
-                    <span className="text-muted">Assignee:</span>
+                    <span className="text-muted-foreground">Assignee:</span>
                     <span className="text-primary">
                       {users.find(u => u.id === formData.assignee_id)?.full_name}
                     </span>
@@ -374,7 +374,7 @@ export default function CreateTaskModal({
                 )}
                 {formData.due_date && (
                   <div className="flex justify-between">
-                    <span className="text-muted">Due:</span>
+                    <span className="text-muted-foreground">Due:</span>
                     <span className="text-primary">
                       {new Date(formData.due_date).toLocaleDateString()}
                     </span>
@@ -405,7 +405,7 @@ export default function CreateTaskModal({
           <div
             key={i}
             className={`w-3 h-3 rounded-full transition-colors ${
-              i + 1 <= currentStep ? 'bg-accent' : 'bg-gray-200 dark:bg-gray-700'
+              i + 1 <= currentStep ? 'bg-primary' : 'bg-muted border border-border'
             }`}
           />
         ))}
@@ -422,6 +422,7 @@ export default function CreateTaskModal({
             variant="outline" 
             onClick={prevStep}
             disabled={currentStep === 1}
+            className="flex items-center"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
@@ -443,6 +444,7 @@ export default function CreateTaskModal({
               <Button 
                 onClick={nextStep}
                 disabled={!validateStep(currentStep)}
+                className="flex items-center"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-1" />
