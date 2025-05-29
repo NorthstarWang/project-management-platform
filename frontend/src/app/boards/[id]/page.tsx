@@ -7,6 +7,18 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Select } from '@/components/ui/Select';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { 
+  CustomDialog as Dialog,
+  CustomDialogContent as DialogContent,
+  CustomDialogHeader as DialogHeader,
+  CustomDialogTitle as DialogTitle,
+  CustomDialogDescription as DialogDescription,
+  CustomDialogFooter as DialogFooter,
+} from '@/components/ui/CustomDialog';
 import { 
   Plus, 
   MoreHorizontal, 
@@ -14,27 +26,15 @@ import {
   MessageSquare,
   Paperclip,
   Eye,
-  Users
+  Users,
+  User,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCorners,
-  useDroppable
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
+import CreateTaskModal from '@/components/CreateTaskModal';
+import TaskDetailModal from '@/components/TaskDetailModal';
 
 interface User {
   id: string;
@@ -88,7 +88,7 @@ const trackEvent = async (actionType: string, payload: any) => {
 };
 
 // Helper component for task card content
-function TaskCardContent({ task, showDragHandle = false }: { task: Task; showDragHandle?: boolean }) {
+function TaskCardContent({ task }: { task: Task }) {
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case 'high': return 'high';
@@ -106,71 +106,90 @@ function TaskCardContent({ task, showDragHandle = false }: { task: Task; showDra
     });
   };
 
+  const formatCreatedDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'Today';
+    if (diffDays === 2) return 'Yesterday';
+    if (diffDays <= 7) return `${diffDays - 1} days ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
-    <>
-      {showDragHandle && (
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <div className="w-1 h-4 bg-gray-4 rounded-full"></div>
-            <div className="w-1 h-4 bg-gray-4 rounded-full"></div>
-          </div>
-          <div className="text-xs text-muted">#{task.id.slice(-4)}</div>
-        </div>
-      )}
-      
-      <div className="space-y-3">
-        {/* Task Title */}
-        <h3 className="font-medium text-primary text-sm leading-tight">
+    <div className="flex flex-col h-full">
+      {/* Task Title and Description */}
+      <div className="flex-1 mb-3">
+        <h3 className="font-medium text-primary text-sm leading-tight mb-2">
           {task.title}
         </h3>
 
         {/* Task Description */}
         {task.description && (
-          <p className="text-xs text-secondary line-clamp-2">
+          <p className="text-xs text-secondary line-clamp-2 mb-3">
             {task.description}
           </p>
         )}
+      </div>
 
+      {/* Due Date (if exists) */}
+      {task.due_date && (
+        <div className="flex items-center space-x-1 text-xs text-warning mb-3">
+          <Calendar className="h-3 w-3" />
+          <span>Due {formatDate(task.due_date)}</span>
+        </div>
+      )}
+
+      {/* Bottom Section - Priority and Metadata */}
+      <div className="mt-auto space-y-3">
         {/* Priority Badge */}
-        <div className="flex items-center justify-between">
+        <div className="flex justify-start">
           <Badge variant={getPriorityColor(task.priority)} size="sm">
             {task.priority}
           </Badge>
-          {task.due_date && (
-            <div className="flex items-center space-x-1 text-xs text-muted">
-              <Calendar className="h-3 w-3" />
-              <span>{formatDate(task.due_date)}</span>
-            </div>
-          )}
         </div>
 
-        {/* Bottom Row */}
+        {/* Bottom Row - Avatar, Comments, Created Date */}
         <div className="flex items-center justify-between">
-          {/* Assignee */}
-          <div className="flex items-center space-x-2">
-            {task.assignee_name && (
-              <Avatar size="xs" name={task.assignee_name} />
+          {/* Left side - Assignee */}
+          <div className="flex items-center">
+            {task.assignee_name ? (
+              <Avatar size="sm" name={task.assignee_name} />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <span className="text-xs text-muted">?</span>
+              </div>
             )}
           </div>
 
-          {/* Metadata */}
-          <div className="flex items-center space-x-2 text-xs text-muted">
+          {/* Right side - Comments and Created Date */}
+          <div className="flex items-center space-x-3 text-xs text-muted">
+            {/* Comments Count */}
             {task.comments_count && task.comments_count > 0 && (
               <div className="flex items-center space-x-1">
                 <MessageSquare className="h-3 w-3" />
                 <span>{task.comments_count}</span>
               </div>
             )}
+            
+            {/* Attachments Count */}
             {task.attachments_count && task.attachments_count > 0 && (
               <div className="flex items-center space-x-1">
                 <Paperclip className="h-3 w-3" />
                 <span>{task.attachments_count}</span>
               </div>
             )}
+
+            {/* Created Date */}
+            <span className="text-xs text-muted">
+              {formatCreatedDate(task.created_at)}
+            </span>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -180,48 +199,13 @@ interface TaskCardProps {
 }
 
 function TaskCard({ task, onClick }: TaskCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.3 : 1,
-    zIndex: isDragging ? 1000 : 'auto',
-  };
-
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={`bg-card rounded-lg border border-card p-4 shadow-sm hover:shadow-md transition-all select-none ${
-        isDragging ? 'shadow-xl border-accent' : ''
-      }`}
+      className="bg-card rounded-lg border border-card p-4 shadow-sm hover:shadow-md transition-all cursor-pointer min-h-[140px] flex flex-col"
+      onClick={() => onClick(task)}
       data-testid={`task-card-${task.id}`}
     >
-      {/* Drag Handle */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
-      >
-        <div className="flex items-center space-x-2">
-          <div className="w-1 h-4 bg-gray-4 rounded-full"></div>
-          <div className="w-1 h-4 bg-gray-4 rounded-full"></div>
-        </div>
-        <div className="text-xs text-muted">#{task.id.slice(-4)}</div>
-      </div>
-
-      {/* Task Content - Clickable */}
-      <div onClick={() => onClick(task)} className="cursor-pointer">
-        <TaskCardContent task={task} />
-      </div>
+      <TaskCardContent task={task} />
     </div>
   );
 }
@@ -234,13 +218,6 @@ interface ListColumnProps {
 }
 
 function ListColumn({ list, tasks, onTaskClick, onAddTask }: ListColumnProps) {
-  const {
-    setNodeRef,
-    isOver,
-  } = useDroppable({
-    id: `droppable-${list.id}`,
-  });
-
   const getListColor = (listName: string) => {
     const name = listName.toLowerCase();
     if (name.includes('todo') || name.includes('backlog')) return 'bg-card border-secondary';
@@ -251,13 +228,13 @@ function ListColumn({ list, tasks, onTaskClick, onAddTask }: ListColumnProps) {
   };
 
   return (
-    <div className="flex-shrink-0 w-full lg:w-80">
-      <div className={`rounded-lg border-2 p-4 h-full transition-colors ${getListColor(list.name)} ${isOver ? 'border-accent bg-accent-1' : ''}`}>
+    <div className="flex-shrink-0 w-full lg:w-96">
+      <div className={`rounded-lg border-2 p-4 h-full transition-colors flex flex-col ${getListColor(list.name)}`}>
         {/* List Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <h2 className="font-semibold text-primary">{list.name}</h2>
-            <span className="bg-gray-3 text-primary text-xs px-2 py-1 rounded-full">
+          <div className="flex items-center gap-3">
+            <h2 className="font-semibold text-primary leading-none text-lg">{list.name}</h2>
+            <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-full font-medium leading-none">
               {tasks.length}
             </span>
           </div>
@@ -268,25 +245,22 @@ function ListColumn({ list, tasks, onTaskClick, onAddTask }: ListColumnProps) {
 
         {/* Tasks Container */}
         <div
-          ref={setNodeRef}
-          className="space-y-3 min-h-[200px] lg:min-h-[400px]"
+          className="space-y-3 min-h-[200px] lg:min-h-[400px] flex-1"
           data-testid={`list-${list.id}`}
         >
-          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            {tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onClick={onTaskClick}
-              />
-            ))}
-          </SortableContext>
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onClick={onTaskClick}
+            />
+          ))}
         </div>
 
-        {/* Add Task Button */}
+        {/* Add Task Button - Always at bottom */}
         <Button
           variant="ghost"
-          className="w-full mt-4 border-2 border-dashed border-secondary hover:border-accent"
+          className="w-full mt-4 border-2 border-dashed border-secondary hover:border-accent flex-shrink-0"
           onClick={() => onAddTask(list.id)}
           data-testid={`add-task-${list.id}`}
           leftIcon={<Plus className="h-4 w-4" />}
@@ -308,16 +282,12 @@ export default function BoardPage() {
   const [lists, setLists] = useState<List[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 3,
-      },
-    })
-  );
+  const [showTaskDetail, setShowTaskDetail] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [createTaskListId, setCreateTaskListId] = useState<string>('');
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
@@ -380,73 +350,20 @@ export default function BoardPage() {
     }
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const task = tasks.find(t => t.id === active.id);
-    setActiveTask(task || null);
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveTask(null);
-
-    if (!over) return;
-
-    const activeTask = tasks.find(t => t.id === active.id);
-    if (!activeTask) return;
-
-    // Determine the target list
-    let targetListId: string;
-    let targetPosition: number;
-
-    // Check if dropped on a droppable list container
-    if (over.id.toString().startsWith('droppable-')) {
-      targetListId = over.id.toString().replace('droppable-', '');
-      const listTasks = tasks.filter(t => t.list_id === targetListId);
-      targetPosition = listTasks.length;
-    } else {
-      // Dropped on another task
-      const targetTask = tasks.find(t => t.id === over.id);
-      if (!targetTask) return;
-      
-      targetListId = targetTask.list_id;
-      targetPosition = targetTask.position;
-    }
-
-    // If no change, return
-    if (activeTask.list_id === targetListId && activeTask.position === targetPosition) {
-      return;
-    }
-
-    try {
-      // Optimistically update the UI
-      const updatedTasks = tasks.map(task => {
-        if (task.id === activeTask.id) {
-          return { ...task, list_id: targetListId, position: targetPosition };
-        }
-        return task;
-      });
-      setTasks(updatedTasks);
-
-      // Make API call to move the task
-      await apiClient.put(`/api/tasks/${activeTask.id}/move`, {
-        list_id: targetListId,
-        position: targetPosition
-      });
-
-      toast.success('Task moved successfully');
-
-    } catch (error: any) {
-      console.error('Failed to move task:', error);
-      toast.error('Failed to move task');
-      
-      // Revert the optimistic update
-      setTasks(tasks);
-    }
-  };
-
   const handleTaskClick = (task: Task) => {
+    // Add enhanced task interaction tracking
+    trackEvent('TASK_INTERACTION', {
+      interaction_type: 'task_click',
+      task_id: task.id,
+      task_title: task.title,
+      task_priority: task.priority,
+      task_status: task.status,
+      board_id: boardId,
+      timestamp: new Date().toISOString()
+    });
+
     setSelectedTask(task);
+    setShowTaskDetail(true);
   };
 
   const handleAddTask = (listId: string) => {
@@ -457,14 +374,39 @@ export default function BoardPage() {
       list_id: listId
     });
     
-    // TODO: Open add task modal
-    toast.info('Add task functionality coming soon');
+    // Add enhanced task creation tracking
+    trackEvent('TASK_CREATION_ATTEMPT', {
+      interaction_type: 'add_task_button',
+      board_id: boardId,
+      target_list_id: listId,
+      timestamp: new Date().toISOString(),
+      current_tasks_count: getTasksForList(listId).length
+    });
+    
+    setCreateTaskListId(listId);
+    setShowCreateTask(true);
   };
 
   const getTasksForList = (listId: string) => {
     return tasks
       .filter(task => task.list_id === listId)
       .sort((a, b) => a.position - b.position);
+  };
+
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const response = await apiClient.get('/api/users');
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      // Fallback to current user only
+      if (user) {
+        setUsers([user]);
+      }
+    } finally {
+      setLoadingUsers(false);
+    }
   };
 
   if (!user) {
@@ -505,11 +447,11 @@ export default function BoardPage() {
             {[1, 2, 3].map((i) => (
               <div key={i} className="w-full">
                 <Card className="p-4 h-96">
-                  <div className="animate-pulse">
-                    <div className="h-6 bg-gray-3 rounded w-1/2 mb-4"></div>
+                  <div className="space-y-4">
+                    <Skeleton width="50%" />
                     <div className="space-y-3">
                       {[1, 2, 3].map((j) => (
-                        <div key={j} className="h-20 bg-gray-3 rounded"></div>
+                        <Skeleton key={j} height="5rem" />
                       ))}
                     </div>
                   </div>
@@ -518,15 +460,10 @@ export default function BoardPage() {
             ))}
           </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            {/* Desktop Layout - Horizontal Scroll */}
+          <div>
+            {/* Desktop Layout - Flex Wrap */}
             <div className="hidden lg:block">
-              <div className="flex space-x-6 overflow-x-auto pb-6" data-testid="board-lists">
+              <div className="flex flex-wrap gap-6" data-testid="board-lists">
                 {lists.map((list) => (
                   <ListColumn
                     key={list.id}
@@ -554,73 +491,39 @@ export default function BoardPage() {
                 ))}
               </div>
             </div>
-
-            <DragOverlay>
-              {activeTask ? (
-                <div className="w-80 bg-card rounded-lg border border-accent p-4 shadow-2xl rotate-2 opacity-95">
-                  <TaskCardContent task={activeTask} showDragHandle />
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        )}
-
-        {/* Task Detail Modal - Right Aligned */}
-        {selectedTask && (
-          <div className="fixed inset-0 z-50 flex items-start justify-end">
-            <div 
-              className="absolute inset-0 bg-dialog-overlay"
-              onClick={() => setSelectedTask(null)}
-            />
-            <div className="relative bg-card w-96 h-full shadow-xl overflow-y-auto border-l border-card">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-primary">Task Details</h2>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setSelectedTask(null)}
-                    data-testid="close-task-modal"
-                  >
-                    ×
-                  </Button>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-primary">{selectedTask.title}</h3>
-                    <p className="text-sm text-secondary mt-1">{selectedTask.description}</p>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <Badge variant={selectedTask.priority === 'high' ? 'high' : selectedTask.priority === 'medium' ? 'medium' : 'low'}>
-                      {selectedTask.priority}
-                    </Badge>
-                    {selectedTask.assignee_name && (
-                      <div className="flex items-center space-x-2">
-                        <Avatar size="sm" name={selectedTask.assignee_name} />
-                        <span className="text-sm text-secondary">{selectedTask.assignee_name}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {selectedTask.due_date && (
-                    <div className="flex items-center space-x-2 text-sm text-secondary">
-                      <Calendar className="h-4 w-4" />
-                      <span>Due: {new Date(selectedTask.due_date).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                  
-                  <div className="pt-4 border-t border-secondary">
-                    <p className="text-sm text-muted">
-                      Task details and comments will be implemented in the next phase.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
+
+        {/* Task Creation Modal - Centered */}
+        <Dialog open={showCreateTask} onOpenChange={setShowCreateTask}>
+          <DialogContent className="max-w-2xl">
+            <CreateTaskModal 
+              listId={createTaskListId}
+              lists={lists}
+              users={users}
+              loadingUsers={loadingUsers}
+              onClose={() => setShowCreateTask(false)}
+              onTaskCreated={loadBoardData}
+              onLoadUsers={loadUsers}
+            />
+          </DialogContent>
+        </Dialog>
+        
+        {/* Task Detail Modal - Centered */}
+        <Dialog open={showTaskDetail} onOpenChange={setShowTaskDetail}>
+          <DialogContent className="max-w-4xl max-h-[90vh]">
+            {selectedTask && (
+              <TaskDetailModal
+                task={selectedTask}
+                lists={lists}
+                users={users}
+                currentUser={user!}
+                onClose={() => setShowTaskDetail(false)}
+                onTaskUpdated={loadBoardData}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

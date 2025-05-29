@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -8,24 +8,12 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Card } from '@/components/ui/Card';
 import { toast } from '@/components/ui/CustomToast';
-import apiClient from '@/services/apiClient';
+import authService from '@/services/authService';
 
 interface LoginForm {
   username: string;
   password: string;
 }
-
-// Helper function for analytics tracking
-const trackEvent = async (actionType: string, payload: any) => {
-  if (typeof window !== 'undefined') {
-    try {
-      const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
-    } catch (error) {
-      console.warn('Analytics tracking failed:', error);
-    }
-  }
-};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,6 +22,18 @@ export default function LoginPage() {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      await authService.waitForInitialization();
+      if (authService.isAuthenticated()) {
+        console.log('✅ User already authenticated, redirecting to dashboard');
+        router.push('/dashboard');
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const handleInputChange = (field: keyof LoginForm) => (
     e: React.ChangeEvent<HTMLInputElement>
@@ -55,55 +55,23 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Initialize session first
-      const sessionResponse = await apiClient.post('/_synthetic/new_session');
-      const sessionId = sessionResponse.data.session_id;
-      
-      // Set session ID in API client (this will also store it in localStorage)
-      apiClient.setSessionId(sessionId);
-
-      // Attempt login (session_id will be automatically included)
-      const loginResponse = await apiClient.post('/api/login', {
+      const result = await authService.login({
         username: form.username,
-        password: form.password,
-        email: '', // Required by backend but not used for login
-        full_name: '', // Required by backend but not used for login
-        role: 'member' // Required by backend but not used for login
+        password: form.password
       });
 
-      // Set user ID header for future API calls
-      const userData = loginResponse.data;
-      apiClient.setUserIdHeader(userData.id);
-      
-      // Store user data
-      localStorage.setItem('user', JSON.stringify(userData));
-
-      // Track successful login
-      await trackEvent('USER_LOGIN', {
-        username: form.username,
-        user_id: userData.id,
-        role: userData.role
-      });
-
-      toast.success('Login successful! Redirecting...');
-
-      // Redirect to dashboard
-      setTimeout(() => {
+      if (result.success && result.user) {
+        toast.success('Login successful! Redirecting...');
+        
+        // Immediate redirect to dashboard
         router.push('/dashboard');
-      }, 1000);
+      } else {
+        toast.error(result.error || 'Login failed. Please try again.');
+      }
 
     } catch (error: any) {
-      console.error('Login failed:', error);
-      
-      let errorMessage = 'Login failed. Please try again.';
-      
-      if (error?.data?.detail) {
-        errorMessage = error.data.detail;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
+      console.error('❌ Login process failed:', error);
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -132,6 +100,7 @@ export default function LoginPage() {
                 id="username"
                 name="username"
                 type="text"
+                autoComplete="username"
                 required
                 value={form.username}
                 onChange={handleInputChange('username')}
@@ -146,6 +115,7 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 required
                 value={form.password}
                 onChange={handleInputChange('password')}

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
+import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
 
 interface User {
   id: string;
@@ -176,6 +177,16 @@ export default function ProjectPage() {
       board_id: boardId
     });
     
+    // Add enhanced board interaction tracking
+    trackEvent('PROJECT_BOARD_INTERACTION', {
+      interaction_type: 'board_navigation',
+      board_id: boardId,
+      project_id: projectId,
+      timestamp: new Date().toISOString(),
+      navigation_source: 'project_detail_page',
+      total_boards_in_project: boards.length
+    });
+    
     router.push(`/boards/${boardId}`);
   };
 
@@ -184,6 +195,17 @@ export default function ProjectPage() {
     trackEvent('CREATE_BOARD_CLICK', {
       page: 'project',
       project_id: projectId
+    });
+    
+    // Add enhanced board creation tracking
+    trackEvent('PROJECT_BOARD_CREATION_ATTEMPT', {
+      interaction_type: 'create_board_button',
+      project_id: projectId,
+      current_boards_count: boards.length,
+      user_role: user?.role,
+      timestamp: new Date().toISOString(),
+      project_name: project?.name,
+      team_members_count: teamMembers.length
     });
     
     // TODO: Open create board modal
@@ -295,9 +317,7 @@ export default function ProjectPage() {
               {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-32 bg-gray-3 rounded-lg"></div>
-                    </div>
+                    <Skeleton key={i} height="8rem" />
                   ))}
                 </div>
               ) : boards.length > 0 ? (
@@ -358,11 +378,11 @@ export default function ProjectPage() {
               {loading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse flex items-center space-x-3">
-                      <div className="h-8 w-8 bg-gray-3 rounded-full"></div>
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-3 rounded w-3/4 mb-1"></div>
-                        <div className="h-3 bg-gray-3 rounded w-1/2"></div>
+                    <div key={i} className="flex items-center space-x-3">
+                      <SkeletonAvatar size="sm" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton width="75%" />
+                        <Skeleton width="50%" size="sm" />
                       </div>
                     </div>
                   ))}

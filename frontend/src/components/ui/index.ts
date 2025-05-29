@@ -6,6 +6,7 @@ export * from './Badge';
 export * from './Avatar';
 export * from './TaskCard';
 export * from './ThemeToggle';
+export * from './Skeleton';
 
 // Layout & Navigation
 export * from './Breadcrumb';
