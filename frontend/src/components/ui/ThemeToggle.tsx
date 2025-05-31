@@ -67,8 +67,8 @@ export function ThemeToggle() {
       disabled={isTransitioning}
     >
       <div className="absolute inset-0 flex items-center justify-center">
-        <Sun className={`h-4 w-4 transition-all duration-300 ${theme === 'light' ? 'rotate-0 scale-100' : 'rotate-90 scale-0'}`} />
-        <Moon className={`absolute h-4 w-4 transition-all duration-300 ${theme === 'dark' ? 'rotate-0 scale-100' : 'rotate-90 scale-0'}`} />
+        <Sun className={`h-4 w-4 text-muted transition-all duration-300 ${theme === 'light' ? 'rotate-0 scale-100' : 'rotate-90 scale-0'}`} />
+        <Moon className={`absolute h-4 w-4 text-muted transition-all duration-300 ${theme === 'dark' ? 'rotate-0 scale-100' : 'rotate-90 scale-0'}`} />
       </div>
     </Button>
   );

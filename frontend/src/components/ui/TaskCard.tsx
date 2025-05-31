@@ -181,7 +181,7 @@ export function TaskCard({
 
         {/* Footer */}
         <div className="flex items-center justify-between">
-          {/* Assignee */}
+          {/* Assignee - Always show profile pic */}
           <div className="flex items-center">
             {assignee ? (
               <Avatar
@@ -191,29 +191,36 @@ export function TaskCard({
                 className="mr-2"
               />
             ) : (
-              <div className="h-8 w-8 rounded-full bg-surface border-2 border-dashed border-secondary flex items-center justify-center mr-2">
-                <span className="text-xs text-muted">?</span>
+              <div className="h-8 w-8 rounded-full bg-surface border-2 border-dashed border-unassigned flex items-center justify-center mr-2">
+                <span className="text-xs font-medium text-unassigned">?</span>
               </div>
             )}
-            <span className="text-xs text-secondary">
+            <span className={cn(
+              "text-xs",
+              assignee ? "text-secondary" : "text-unassigned"
+            )}>
               {assignee?.name || 'Unassigned'}
             </span>
           </div>
 
-          {/* Metadata */}
-          <div className="flex items-center gap-3 text-xs text-muted">
-            {/* Due Date */}
+          {/* Due Date - Always on the right */}
+          <div className="flex items-center gap-1 text-xs">
             {dueDate && (
               <div className={cn(
                 'flex items-center gap-1',
-                isOverdue && 'text-red-500',
-                isDueSoon && !isOverdue && 'text-yellow-600'
+                isOverdue && 'text-error',
+                isDueSoon && !isOverdue && 'text-warning'
               )}>
                 <Calendar className="h-3 w-3" />
                 <span>{new Date(dueDate).toLocaleDateString()}</span>
               </div>
             )}
+          </div>
+        </div>
 
+        {/* Additional Metadata Row - Comments and Attachments */}
+        {(commentsCount > 0 || attachmentsCount > 0) && (
+          <div className="flex items-center justify-end gap-3 text-xs text-muted pt-1 border-t border-muted">
             {/* Comments */}
             {commentsCount > 0 && (
               <div className="flex items-center gap-1">
@@ -230,7 +237,7 @@ export function TaskCard({
               </div>
             )}
           </div>
-        </div>
+        )}
 
         {/* Last Updated */}
         {(updatedAt || createdAt) && !compact && (

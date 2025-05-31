@@ -102,7 +102,8 @@
   --accent-info-text: #c8b8f7;
 
   --accent-error: #ff6b6b;
-  --accent-error-bg: rgb(255 107 107 / 0.1);
+  --accent-error-bg: #7f1d1d;
+  --accent-error-bg-disabled: rgb(255 107 107 / 0.1);
   --accent-error-border: rgb(255 107 107 / 0.3);
   --accent-error-text: #ff8a8a;
 
@@ -315,7 +316,8 @@
   --accent-info-text: #4a9de6;
 
   --accent-error: #ff4757;
-  --accent-error-bg: rgb(255 71 87 / 0.1);
+  --accent-error-bg: #dc2626;
+  --accent-error-bg-disabled: rgb(255 71 87 / 0.1);
   --accent-error-border: rgb(255 71 87 / 0.3);
   --accent-error-text: #e63946;
 
@@ -916,6 +918,7 @@ h6 {
 .border-info { border-color: var(--accent-info-border); }
 
 .bg-error { background-color: var(--accent-error-bg); }
+.bg-error-disabled { background-color: var(--accent-error-bg-disabled); }
 .text-error { color: var(--accent-error-text); }
 .border-error { border-color: var(--accent-error-border); }
 
@@ -1438,3 +1441,17 @@ h6 {
   -webkit-box-orient: horizontal;
   -webkit-line-clamp: none;
 }
+
+/* ===== TASK CARD UTILITIES ===== */
+.border-unassigned { 
+  border-color: var(--accent-error); 
+}
+.text-unassigned { 
+  color: var(--accent-error); 
+}
+
+/* ===== PRIORITY INDICATOR UTILITIES ===== */
+.bg-priority-low-solid { background-color: var(--priority-low); }
+.bg-priority-medium-solid { background-color: var(--priority-medium); }
+.bg-priority-high-solid { background-color: var(--priority-high); }
+.bg-priority-urgent-solid { background-color: var(--priority-urgent); }

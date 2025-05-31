@@ -147,7 +147,7 @@ function DroppableList({ list, children, tasks, onAddTask }: DroppableListProps)
                 d="M12 4v16m8-8H4" 
               />
             </svg>
-            Add a card
+            Add Task
           </button>
         )}
       </div>
@@ -402,7 +402,7 @@ export function DragAndDrop({
                 >
                   {/* Task Card Content */}
                   <div className={cn(
-                    'bg-card rounded-lg border border-card-border p-4',
+                    'bg-card rounded-lg border border-card p-4',
                     'hover:shadow-md hover:bg-card-hover transition-all duration-200',
                     'cursor-pointer select-none space-y-3'
                   )}>
@@ -433,17 +433,26 @@ export function DragAndDrop({
 
                     {/* Task Footer */}
                     <div className="flex items-center justify-between">
-                      {task.assignee_name && (
-                        <div className="flex items-center space-x-2">
-                          <div className="h-6 w-6 rounded-full bg-surface flex items-center justify-center text-xs font-medium text-primary">
+                      {/* Assignee - Always show profile pic */}
+                      <div className="flex items-center space-x-2">
+                        {task.assignee_name ? (
+                          <div className="h-6 w-6 rounded-full bg-surface border border-secondary flex items-center justify-center text-xs font-medium text-primary">
                             {task.assignee_name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-xs text-secondary">
-                            {task.assignee_name}
-                          </span>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="h-6 w-6 rounded-full bg-surface border border-dashed border-unassigned flex items-center justify-center">
+                            <span className="text-xs font-medium text-unassigned">?</span>
+                          </div>
+                        )}
+                        <span className={cn(
+                          "text-xs",
+                          task.assignee_name ? "text-secondary" : "text-unassigned"
+                        )}>
+                          {task.assignee_name || 'Unassigned'}
+                        </span>
+                      </div>
 
+                      {/* Due Date - Always on the right */}
                       {task.due_date && (
                         <span className="text-xs text-muted">
                           {new Date(task.due_date).toLocaleDateString()}
@@ -453,7 +462,7 @@ export function DragAndDrop({
 
                     {/* Task Metadata */}
                     {(task.comments_count || task.attachments_count) && (
-                      <div className="flex items-center gap-3 pt-2 border-t border-muted">
+                      <div className="flex items-center gap-3 pt-2 border-t border-secondary">
                         {task.comments_count ? (
                           <div className="flex items-center gap-1 text-xs text-muted">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

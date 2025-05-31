@@ -8,14 +8,14 @@ import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
   // Base styles using theme-aware classes
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
-        primary: 'bg-btn-primary text-btn-primary hover:bg-btn-primary-hover hover:scale-105 hover:shadow-lg active:bg-btn-primary-active active:scale-95 disabled:bg-btn-primary-disabled focus-visible:ring-accent',
+        primary: 'bg-btn-primary text-btn-primary hover:bg-btn-primary-hover hover:scale-105 hover:shadow-lg active:bg-btn-primary-active active:scale-95 disabled:bg-btn-primary-disabled disabled:text-white/50 focus-visible:ring-accent',
         secondary: 'bg-btn-secondary text-btn-secondary border border-btn-secondary hover:bg-btn-secondary-hover hover:scale-105 hover:shadow-md active:bg-btn-secondary-active active:scale-95 focus-visible:ring-accent',
         ghost: 'bg-transparent text-primary hover:bg-btn-ghost-hover hover:scale-105 active:bg-btn-ghost-active active:scale-95 focus-visible:ring-accent',
-        outline: 'border border-secondary bg-transparent hover:bg-interactive-secondary-hover hover:scale-105 hover:shadow-md text-primary active:scale-95 focus-visible:ring-accent',
+        outline: 'border border-secondary bg-transparent hover:bg-interactive-secondary-hover hover:scale-105 hover:shadow-md text-primary active:scale-95 disabled:border-secondary/50 disabled:text-primary/50 focus-visible:ring-accent',
         destructive: 'bg-error text-white hover:bg-red-600 hover:scale-105 hover:shadow-lg active:bg-red-700 active:scale-95 focus-visible:ring-red-500',
         link: 'text-accent underline-offset-4 hover:underline hover:scale-105 p-0 h-auto active:scale-95 focus-visible:ring-accent',
       },
@@ -73,10 +73,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled || loading}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={disabled || loading ? {} : { scale: 1.05 }}
+        whileTap={disabled || loading ? {} : { scale: 0.95 }}
         initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
+        animate={{ 
+          opacity: disabled || loading ? 0.5 : 1, 
+          scale: 1 
+        }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
         layout
         {...(props as any)}
@@ -109,7 +112,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           <motion.span 
             className="mr-2"
             initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
+            animate={{ 
+              opacity: disabled || loading ? 0.5 : 1, 
+              x: 0 
+            }}
             transition={{ delay: 0.1 }}
           >
             {leftIcon}
@@ -117,7 +123,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         <motion.span
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          animate={{ opacity: disabled || loading ? 0.5 : 1 }}
           transition={{ delay: 0.1 }}
         >
           {children}
@@ -126,7 +132,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           <motion.span 
             className="ml-2"
             initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
+            animate={{ 
+              opacity: disabled || loading ? 0.5 : 1, 
+              x: 0 
+            }}
             transition={{ delay: 0.1 }}
           >
             {rightIcon}

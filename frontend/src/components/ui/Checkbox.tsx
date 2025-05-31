@@ -13,11 +13,10 @@ const Checkbox = React.forwardRef<
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(
-      'peer h-5 w-5 shrink-0 rounded-sm border-2 border-checkbox',
+      'checkbox-root h-5 w-5 shrink-0 rounded-sm border-2 border-checkbox',
       'ring-offset-background transition-all duration-200',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
       'disabled:cursor-not-allowed disabled:opacity-50',
-      'data-[state=checked]:bg-checkbox-checked data-[state=checked]:border-checkbox-checked',
       'hover:border-checkbox-checked',
       className
     )}
@@ -26,7 +25,7 @@ const Checkbox = React.forwardRef<
     <AnimatePresence>
       {props.checked !== false && (
         <CheckboxPrimitive.Indicator
-          className={cn('flex items-center justify-center text-current')}
+          className={cn('checkbox-indicator flex items-center justify-center text-current')}
         >
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
@@ -39,7 +38,7 @@ const Checkbox = React.forwardRef<
               duration: 0.2 
             }}
           >
-            <Check className="h-3.5 w-3.5 text-white dark:text-white stroke-[3]" />
+            <Check className="h-3.5 w-3.5 stroke-[3]" />
           </motion.div>
         </CheckboxPrimitive.Indicator>
       )}
