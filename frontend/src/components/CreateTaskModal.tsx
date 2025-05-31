@@ -4,13 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { 
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/Select';
+import { CustomDropdownMenu } from '@/components/ui/CustomDropdownMenu';
 import { 
   DialogHeader,
   DialogTitle,
@@ -98,7 +92,9 @@ export default function CreateTaskModal({
   }, [users.length, loadingUsers, onLoadUsers]);
 
   const handleInputChange = (field: keyof TaskFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Convert "unassigned" back to empty string for assignee_id
+    const actualValue = field === 'assignee_id' && value === 'unassigned' ? '' : value;
+    setFormData(prev => ({ ...prev, [field]: actualValue }));
   };
 
   const validateStep = (step: number): boolean => {
@@ -212,26 +208,17 @@ export default function CreateTaskModal({
             
             <div>
               <Label htmlFor="list">Target List *</Label>
-              <Select
+              <CustomDropdownMenu
                 value={formData.list_id}
-                onValueChange={(value) => handleInputChange('list_id', value)}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select a list..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {lists.map((list) => (
-                    <SelectItem key={list.id} value={list.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{list.name}</span>
-                        <Badge variant="secondary" size="sm" className="ml-2">
-                          {list.position}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => handleInputChange('list_id', value)}
+                placeholder="Select a list..."
+                className="mt-1"
+                options={lists.map((list) => ({
+                  value: list.id,
+                  label: list.name,
+                  icon: <Badge variant="secondary" size="sm">{list.position}</Badge>
+                }))}
+              />
             </div>
           </div>
         );
@@ -248,74 +235,60 @@ export default function CreateTaskModal({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="assignee">Assign to</Label>
-                <Select
-                  value={formData.assignee_id}
-                  onValueChange={(value) => handleInputChange('assignee_id', value)}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select an assignee..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">
-                      <div className="flex items-center">
-                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center mr-2 border border-border">
-                          <span className="text-xs text-muted-foreground">?</span>
-                        </div>
-                        <span>Unassigned</span>
+                <CustomDropdownMenu
+                  value={formData.assignee_id || 'unassigned'}
+                  onChange={(value) => handleInputChange('assignee_id', value)}
+                  placeholder="Select an assignee..."
+                  className="mt-1"
+                  options={[
+                    {
+                      value: 'unassigned',
+                      label: 'Unassigned',
+                      icon: <div className="w-6 h-6 rounded-full bg-surface border-2 border-dashed border-unassigned flex items-center justify-center mr-2">
+                        <span className="text-xs text-unassigned">?</span>
                       </div>
-                    </SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        <div className="flex items-center">
-                          <Avatar size="xs" name={user.full_name} className="mr-2" />
-                          <div>
-                            <span className="font-medium">{user.full_name}</span>
-                            <span className="text-xs text-muted-foreground ml-2">({user.role})</span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    },
+                    ...users.map((user) => ({
+                      value: user.id,
+                      label: `${user.full_name} (${user.role})`,
+                      icon: <Avatar size="xs" name={user.full_name} className="mr-2" />
+                    }))
+                  ]}
+                />
               </div>
 
               <div>
                 <Label htmlFor="priority">Priority</Label>
-                <Select
+                <CustomDropdownMenu
                   value={formData.priority}
-                  onValueChange={(value) => handleInputChange('priority', value as any)}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-priority-low mr-2"></div>
-                        Low Priority
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="medium">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-priority-medium mr-2"></div>
-                        Medium Priority
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="high">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-priority-high mr-2"></div>
-                        High Priority
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="urgent">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-priority-urgent mr-2"></div>
+                  onChange={(value) => handleInputChange('priority', value as any)}
+                  className="mt-1"
+                  options={[
+                    {
+                      value: 'low',
+                      label: 'Low Priority',
+                      icon: <div className="w-3 h-3 rounded-full bg-priority-low-solid mr-2"></div>
+                    },
+                    {
+                      value: 'medium',
+                      label: 'Medium Priority',
+                      icon: <div className="w-3 h-3 rounded-full bg-priority-medium-solid mr-2"></div>
+                    },
+                    {
+                      value: 'high',
+                      label: 'High Priority',
+                      icon: <div className="w-3 h-3 rounded-full bg-priority-high-solid mr-2"></div>
+                    },
+                    {
+                      value: 'urgent',
+                      label: 'Urgent',
+                      icon: <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full bg-priority-urgent-solid mr-2"></div>
                         <AlertCircle className="h-3 w-3 mr-1" />
-                        Urgent
                       </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                    }
+                  ]}
+                />
               </div>
             </div>
           </div>
@@ -404,8 +377,10 @@ export default function CreateTaskModal({
         {Array.from({ length: totalSteps }, (_, i) => (
           <div
             key={i}
-            className={`w-3 h-3 rounded-full transition-colors ${
-              i + 1 <= currentStep ? 'bg-primary' : 'bg-muted border border-border'
+            className={`w-3 h-3 rounded-full transition-all duration-200 ${
+              i + 1 <= currentStep 
+                ? 'bg-success border-2 border-success' 
+                : 'bg-surface border-2 border-secondary'
             }`}
           />
         ))}

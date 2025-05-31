@@ -1,13 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Bell, Settings } from 'lucide-react';
+import { Search, Bell, Settings, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
-export function Header() {
+interface User {
+  id: string;
+  username: string;
+  full_name: string;
+  role: string;
+  email: string;
+}
+
+interface HeaderProps {
+  currentUser?: User | null;
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
+}
+
+export function Header({ currentUser, onMenuClick, showMenuButton = false }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
@@ -18,10 +32,22 @@ export function Header() {
 
   return (
     <header className="bg-card shadow-sm border-b border-card transition-all duration-300 theme-transition">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
+          {/* Mobile menu button */}
+          {showMenuButton && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onMenuClick}
+              className="lg:hidden mr-2"
+            >
+              <Menu className="h-5 w-5 text-muted" />
+            </Button>
+          )}
+
           {/* Search Bar */}
-          <div className="flex-1 max-w-lg">
+          <div className="flex-1 max-w-2xl mr-8">
             <form onSubmit={handleSearch} className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-5 w-5 text-muted transition-colors duration-300" />
@@ -57,7 +83,11 @@ export function Header() {
 
             {/* User Avatar */}
             <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 transition-all duration-300">
-              <Avatar size="sm" name="User Name" className="transition-all duration-300" />
+              <Avatar 
+                size="sm" 
+                name={currentUser?.full_name || "User"} 
+                className="transition-all duration-300" 
+              />
             </Button>
           </div>
         </div>

@@ -109,7 +109,18 @@ export function CustomDialogContent({
     };
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (contentRef.current && !contentRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      
+      // Check if the click is on a dropdown portal element
+      let element: Node | null = target;
+      while (element && element !== document.body) {
+        if (element instanceof Element && element.hasAttribute('data-dropdown-portal')) {
+          return; // Don't close modal if clicking on dropdown
+        }
+        element = element.parentNode;
+      }
+      
+      if (contentRef.current && !contentRef.current.contains(target)) {
         onOpenChange(false);
         onClose?.();
       }

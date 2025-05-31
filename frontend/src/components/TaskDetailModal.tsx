@@ -1,21 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
-import { 
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/Select';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { CustomDropdownMenu } from '@/components/ui/CustomDropdownMenu';
 import { 
   DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/CustomDialog';
@@ -23,12 +18,13 @@ import {
   User,
   Calendar,
   MessageSquare,
-  Edit,
   Save,
   X,
   Send,
   AlertCircle,
-  Trash2
+  Trash2,
+  RefreshCw,
+  Check
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
@@ -104,14 +100,15 @@ export default function TaskDetailModal({
   onClose,
   onTaskUpdated
 }: TaskDetailModalProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [isAddingComment, setIsAddingComment] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
+  // Original task data for comparison
+  const [originalTask] = useState(task);
   
-  const [editForm, setEditForm] = useState({
+  // Auto-save settings
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [lastAutoSaved, setLastAutoSaved] = useState<Date | null>(null);
+  
+  // Form state (always editable)
+  const [formData, setFormData] = useState({
     title: task.title,
     description: task.description,
     assignee_id: task.assignee_id || '',
@@ -119,6 +116,60 @@ export default function TaskDetailModal({
     due_date: task.due_date || '',
     list_id: task.list_id
   });
+
+  // Change tracking
+  const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Loading states
+  const [isSaving, setIsSaving] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isAddingComment, setIsAddingComment] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Load auto-saved changes from localStorage
+  useEffect(() => {
+    const autoSavedKey = `task-autosave-${task.id}`;
+    const autoSaved = localStorage.getItem(autoSavedKey);
+    
+    if (autoSaved) {
+      try {
+        const savedData = JSON.parse(autoSaved);
+        setFormData(savedData.formData);
+        setModifiedFields(new Set(savedData.modifiedFields));
+        setHasUnsavedChanges(savedData.modifiedFields.length > 0);
+        setLastAutoSaved(new Date(savedData.timestamp));
+      } catch (error) {
+        console.warn('Failed to restore auto-saved data:', error);
+      }
+    }
+  }, [task.id]);
+
+  // Auto-save changes to localStorage
+  const autoSave = useCallback(() => {
+    if (!autoSaveEnabled) return;
+    
+    const autoSavedKey = `task-autosave-${task.id}`;
+    const dataToSave = {
+      formData,
+      modifiedFields: Array.from(modifiedFields),
+      timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem(autoSavedKey, JSON.stringify(dataToSave));
+    setLastAutoSaved(new Date());
+  }, [task.id, formData, modifiedFields, autoSaveEnabled]);
+
+  // Auto-save when form data changes
+  useEffect(() => {
+    if (hasUnsavedChanges && autoSaveEnabled) {
+      const timer = setTimeout(autoSave, 1000); // Auto-save after 1 second of inactivity
+      return () => clearTimeout(timer);
+    }
+  }, [formData, hasUnsavedChanges, autoSave, autoSaveEnabled]);
 
   useEffect(() => {
     loadComments();
@@ -165,36 +216,86 @@ export default function TaskDetailModal({
     }
   };
 
+  // Handle field changes and track modifications
+  const handleFieldChange = (field: string, value: string) => {
+    // Convert "unassigned" back to empty string for assignee_id
+    const actualValue = field === 'assignee_id' && value === 'unassigned' ? '' : value;
+    setFormData(prev => ({ ...prev, [field]: actualValue }));
+    
+    // Check if field is different from original
+    const originalValue = originalTask[field as keyof Task] || '';
+    const isModified = actualValue !== originalValue;
+    
+    setModifiedFields(prev => {
+      const newSet = new Set(prev);
+      if (isModified) {
+        newSet.add(field);
+      } else {
+        newSet.delete(field);
+      }
+      return newSet;
+    });
+    
+    setHasUnsavedChanges(true);
+  };
+
+  // Save changes to server
   const handleSaveChanges = async () => {
+    if (!hasUnsavedChanges) return;
+    
     try {
-      setIsUpdating(true);
+      setIsSaving(true);
       
       const updates = {
-        title: editForm.title.trim(),
-        description: editForm.description.trim(),
-        assignee_id: editForm.assignee_id || undefined,
-        priority: editForm.priority,
-        due_date: editForm.due_date || undefined,
-        list_id: editForm.list_id
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        assignee_id: formData.assignee_id || undefined,
+        priority: formData.priority,
+        due_date: formData.due_date || undefined,
+        list_id: formData.list_id
       };
 
       await apiClient.put(`/api/tasks/${task.id}`, updates);
       
       trackEvent('TASK_UPDATE', {
         task_id: task.id,
-        updates: Object.keys(updates),
+        updates: Array.from(modifiedFields),
         timestamp: new Date().toISOString()
       });
       
-      toast.success('Task updated successfully!');
-      setIsEditing(false);
+      // Clear auto-saved data after successful save
+      localStorage.removeItem(`task-autosave-${task.id}`);
+      setModifiedFields(new Set());
+      setHasUnsavedChanges(false);
+      setLastAutoSaved(null);
+      
+      toast.success('Task saved successfully!');
       onTaskUpdated();
     } catch (error: any) {
-      console.error('Failed to update task:', error);
-      toast.error(error.response?.data?.detail || 'Failed to update task');
+      console.error('Failed to save task:', error);
+      toast.error(error.response?.data?.detail || 'Failed to save task');
     } finally {
-      setIsUpdating(false);
+      setIsSaving(false);
     }
+  };
+
+  // Discard all changes
+  const handleDiscardChanges = () => {
+    setFormData({
+      title: originalTask.title,
+      description: originalTask.description,
+      assignee_id: originalTask.assignee_id || '',
+      priority: originalTask.priority,
+      due_date: originalTask.due_date || '',
+      list_id: originalTask.list_id
+    });
+    
+    setModifiedFields(new Set());
+    setHasUnsavedChanges(false);
+    localStorage.removeItem(`task-autosave-${task.id}`);
+    setLastAutoSaved(null);
+    
+    toast.success('Changes discarded');
   };
 
   const handleAddComment = async () => {
@@ -228,11 +329,8 @@ export default function TaskDetailModal({
   };
 
   const handleDeleteTask = async () => {
-    if (!window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-      return;
-    }
-
     try {
+      setIsDeleting(true);
       await apiClient.delete(`/api/tasks/${task.id}`);
       
       trackEvent('TASK_DELETE', {
@@ -241,17 +339,18 @@ export default function TaskDetailModal({
         timestamp: new Date().toISOString()
       });
       
+      // Clean up auto-saved data
+      localStorage.removeItem(`task-autosave-${task.id}`);
+      
       toast.success('Task deleted successfully!');
       onTaskUpdated();
       onClose();
     } catch (error: any) {
       console.error('Failed to delete task:', error);
       toast.error(error.response?.data?.detail || 'Failed to delete task');
+    } finally {
+      setIsDeleting(false);
     }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
   const getPriorityColor = (priority: string) => {
@@ -269,81 +368,54 @@ export default function TaskDetailModal({
       <DialogHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1 pr-4">
-            {isEditing ? (
-              <div className="space-y-2">
-                <Input
-                  value={editForm.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                  className="text-lg font-semibold"
-                  placeholder="Task title..."
-                />
-              </div>
-            ) : (
-              <DialogTitle className="text-xl">{task.title}</DialogTitle>
-            )}
+            <div className="space-y-2">
+              <Input
+                value={formData.title}
+                onChange={(e) => handleFieldChange('title', e.target.value)}
+                className={`text-xl font-semibold bg-transparent border-none p-0 focus:bg-input focus:border-input-border focus:p-2 focus:rounded transition-all ${
+                  modifiedFields.has('title') ? 'text-accent font-semibold' : ''
+                }`}
+                placeholder="Task title..."
+              />
+            </div>
             <DialogDescription className="mt-2">
               Task #{task.id.slice(-6)} • Created {formatRelativeDate(task.created_at)}
             </DialogDescription>
-          </div>
-        </div>
-        
-        {/* Action Buttons Row - Separate from header to prevent overlapping */}
-        <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-secondary">
-          {!isEditing ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing(true)}
-              leftIcon={<Edit className="h-4 w-4" />}
-            >
-              Edit
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditForm({
-                    title: task.title,
-                    description: task.description,
-                    assignee_id: task.assignee_id || '',
-                    priority: task.priority,
-                    due_date: task.due_date || '',
-                    list_id: task.list_id
-                  });
-                }}
-                leftIcon={<X className="h-4 w-4" />}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSaveChanges}
-                disabled={isUpdating}
-                leftIcon={<Save className="h-4 w-4" />}
-              >
-                {isUpdating ? 'Saving...' : 'Save'}
-              </Button>
+            
+            {/* Auto-save indicator and toggle */}
+            <div className="flex items-center justify-end gap-4 text-xs mt-2">
+              {lastAutoSaved && (
+                <div className="flex items-center gap-1 text-muted">
+                  <Check className="h-3 w-3" />
+                  Auto-saved at {lastAutoSaved.toLocaleTimeString()}
+                </div>
+              )}
+              
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={autoSaveEnabled}
+                  onCheckedChange={(checked) => setAutoSaveEnabled(checked === true)}
+                />
+                <span className="text-muted">Auto-save</span>
+              </label>
             </div>
-          )}
+          </div>
         </div>
       </DialogHeader>
 
-      <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto">
+      <div className="space-y-6 py-4 pl-2 pr-6 max-h-[60vh] overflow-y-auto">
         {/* Status and Priority Section */}
         <div className="flex items-center gap-4 flex-wrap">
-          <Badge variant={getPriorityColor(isEditing ? editForm.priority : task.priority)} size="sm">
-            {isEditing ? editForm.priority : task.priority} priority
+          <Badge variant={getPriorityColor(formData.priority)} size="sm">
+            {formData.priority} priority
           </Badge>
           <Badge variant="secondary" size="sm">
             {task.status.replace('_', ' ')}
           </Badge>
-          {task.due_date && (
+          {formData.due_date && (
             <Badge variant="warning" size="sm">
               <Calendar className="h-3 w-3 mr-1" />
-              Due {formatRelativeDate(task.due_date)}
+              Due {formatRelativeDate(formData.due_date)}
             </Badge>
           )}
         </div>
@@ -352,163 +424,124 @@ export default function TaskDetailModal({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Description */}
           <div className="md:col-span-2">
-            <Label className="text-sm font-medium text-primary mb-2 block">Description</Label>
-            {isEditing ? (
-              <textarea
-                value={editForm.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Add task description, user stories, acceptance criteria..."
-                className="w-full min-h-[120px] px-3 py-2 bg-input border border-input-border rounded-md text-input placeholder:text-input-placeholder focus:border-input-border-focus focus:outline-none resize-none"
-                rows={6}
-              />
-            ) : (
-              <div className="bg-card-content p-4 rounded-lg border border-card-content">
-                {task.description ? (
-                  <div className="whitespace-pre-wrap text-sm text-secondary leading-relaxed">
-                    {task.description}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted italic">No description provided</p>
-                )}
-              </div>
-            )}
+            <Label className={`text-sm font-medium mb-2 block ${
+              modifiedFields.has('description') ? 'text-accent' : 'text-primary'
+            }`}>
+              Description {modifiedFields.has('description') && <span className="text-accent">•</span>}
+            </Label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => handleFieldChange('description', e.target.value)}
+              placeholder="Add task description, user stories, acceptance criteria..."
+              className={`w-full min-h-[120px] px-3 py-2 bg-input border rounded-md text-input placeholder:text-input-placeholder focus:border-input-border-focus focus:outline-none resize-none transition-all ${
+                modifiedFields.has('description') ? 'border-accent' : 'border-input-border'
+              }`}
+              rows={6}
+            />
           </div>
 
           {/* Assignee */}
           <div>
-            <Label className="text-sm font-medium text-primary mb-2 block flex items-center">
+            <Label className={`text-sm font-medium mb-2 block flex items-center ${
+              modifiedFields.has('assignee_id') ? 'text-accent' : 'text-primary'
+            }`}>
               <User className="h-4 w-4 mr-2" />
-              Assigned to
+              Assigned to {modifiedFields.has('assignee_id') && <span className="text-accent ml-1">•</span>}
             </Label>
-            {isEditing ? (
-              <Select
-                value={editForm.assignee_id}
-                onValueChange={(value) => handleInputChange('assignee_id', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select assignee..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">
-                    <span className="text-muted">Unassigned</span>
-                  </SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      <div className="flex items-center">
-                        <Avatar size="xs" name={user.full_name} className="mr-2" />
-                        <span>{user.full_name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="flex items-center space-x-2">
-                {task.assignee_name ? (
-                  <>
-                    <Avatar size="sm" name={task.assignee_name} />
-                    <span className="text-sm text-primary">{task.assignee_name}</span>
-                  </>
-                ) : (
-                  <span className="text-sm text-muted">Unassigned</span>
-                )}
-              </div>
-            )}
+            <CustomDropdownMenu
+              value={formData.assignee_id || 'unassigned'}
+              onChange={(value) => handleFieldChange('assignee_id', value)}
+              placeholder="Select assignee..."
+              className={modifiedFields.has('assignee_id') ? 'border-accent' : ''}
+              options={[
+                {
+                  value: 'unassigned',
+                  label: 'Unassigned',
+                  icon: null
+                },
+                ...users.map((user) => ({
+                  value: user.id,
+                  label: user.full_name,
+                  icon: <Avatar size="xs" name={user.full_name} className="mr-2" />
+                }))
+              ]}
+            />
           </div>
 
           {/* Priority */}
           <div>
-            <Label className="text-sm font-medium text-primary mb-2 block flex items-center">
+            <Label className={`text-sm font-medium mb-2 block flex items-center ${
+              modifiedFields.has('priority') ? 'text-accent' : 'text-primary'
+            }`}>
               <AlertCircle className="h-4 w-4 mr-2" />
-              Priority
+              Priority {modifiedFields.has('priority') && <span className="text-accent ml-1">•</span>}
             </Label>
-            {isEditing ? (
-              <Select
-                value={editForm.priority}
-                onValueChange={(value) => handleInputChange('priority', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-priority-low mr-2"></div>
-                      Low Priority
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="medium">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-priority-medium mr-2"></div>
-                      Medium Priority
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="high">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-priority-high mr-2"></div>
-                      High Priority
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="urgent">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-priority-urgent mr-2"></div>
-                      <AlertCircle className="h-3 w-3 mr-1" />
-                      Urgent
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <Badge variant={getPriorityColor(task.priority)} size="sm">
-                {task.priority}
-              </Badge>
-            )}
+            <CustomDropdownMenu
+              value={formData.priority}
+              onChange={(value) => handleFieldChange('priority', value)}
+              className={modifiedFields.has('priority') ? 'border-accent' : ''}
+              options={[
+                {
+                  value: 'low',
+                  label: 'Low Priority',
+                  icon: <div className="w-3 h-3 rounded-full bg-priority-low-solid mr-2"></div>
+                },
+                {
+                  value: 'medium',
+                  label: 'Medium Priority',
+                  icon: <div className="w-3 h-3 rounded-full bg-priority-medium-solid mr-2"></div>
+                },
+                {
+                  value: 'high',
+                  label: 'High Priority',
+                  icon: <div className="w-3 h-3 rounded-full bg-priority-high-solid mr-2"></div>
+                },
+                {
+                  value: 'urgent',
+                  label: 'Urgent',
+                  icon: <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-priority-urgent-solid mr-2"></div>
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                  </div>
+                }
+              ]}
+            />
           </div>
 
           {/* Due Date */}
           <div>
-            <Label className="text-sm font-medium text-primary mb-2 block flex items-center">
+            <Label className={`text-sm font-medium mb-2 block flex items-center ${
+              modifiedFields.has('due_date') ? 'text-accent' : 'text-primary'
+            }`}>
               <Calendar className="h-4 w-4 mr-2" />
-              Due Date
+              Due Date {modifiedFields.has('due_date') && <span className="text-accent ml-1">•</span>}
             </Label>
-            {isEditing ? (
-              <Input
-                type="datetime-local"
-                value={editForm.due_date}
-                onChange={(e) => handleInputChange('due_date', e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-              />
-            ) : (
-              <span className="text-sm text-primary">
-                {task.due_date ? formatDetailedDate(task.due_date) : 'No due date'}
-              </span>
-            )}
+            <Input
+              type="datetime-local"
+              value={formData.due_date}
+              onChange={(e) => handleFieldChange('due_date', e.target.value)}
+              min={new Date().toISOString().slice(0, 16)}
+              className={modifiedFields.has('due_date') ? 'border-accent' : ''}
+            />
           </div>
 
           {/* List */}
           <div>
-            <Label className="text-sm font-medium text-primary mb-2 block">Current List</Label>
-            {isEditing ? (
-              <Select
-                value={editForm.list_id}
-                onValueChange={(value) => handleInputChange('list_id', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {lists.map((list) => (
-                    <SelectItem key={list.id} value={list.id}>
-                      {list.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <span className="text-sm text-primary font-medium">
-                {lists.find(l => l.id === task.list_id)?.name || 'Unknown List'}
-              </span>
-            )}
+            <Label className={`text-sm font-medium mb-2 block ${
+              modifiedFields.has('list_id') ? 'text-accent' : 'text-primary'
+            }`}>
+              Current List {modifiedFields.has('list_id') && <span className="text-accent">•</span>}
+            </Label>
+            <CustomDropdownMenu
+              value={formData.list_id}
+              onChange={(value) => handleFieldChange('list_id', value)}
+              className={modifiedFields.has('list_id') ? 'border-accent' : ''}
+              options={lists.map((list) => ({
+                value: list.id,
+                label: list.name,
+                icon: null
+              }))}
+            />
           </div>
         </div>
 
@@ -601,31 +634,55 @@ export default function TaskDetailModal({
 
       <DialogFooter>
         <div className="flex justify-between w-full">
-          <Button 
-            variant="outline" 
-            onClick={handleDeleteTask}
-            className="text-error hover:bg-error hover:text-white"
-            leftIcon={<Trash2 className="h-4 w-4" />}
-          >
-            Delete
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-error hover:bg-error hover:text-white"
+              leftIcon={<Trash2 className="h-4 w-4" />}
+            >
+              Delete
+            </Button>
+          </div>
           
-          <div className="flex space-x-2">
+          <div className="flex gap-2">
+            {hasUnsavedChanges && (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={handleDiscardChanges}
+                  leftIcon={<X className="h-4 w-4" />}
+                >
+                  Discard Changes
+                </Button>
+                <Button 
+                  onClick={handleSaveChanges} 
+                  disabled={isSaving}
+                  leftIcon={isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                >
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </>
+            )}
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
-            {isEditing && (
-              <Button 
-                onClick={handleSaveChanges} 
-                disabled={isUpdating}
-                leftIcon={<Save className="h-4 w-4" />}
-              >
-                {isUpdating ? 'Saving...' : 'Save Changes'}
-              </Button>
-            )}
           </div>
         </div>
       </DialogFooter>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteTask}
+        title="Delete Task"
+        description={`Are you sure you want to delete "${task.title}"? This action cannot be undone and will remove all comments and attachments associated with this task.`}
+        confirmText="Delete Task"
+        cancelText="Keep Task"
+        type="danger"
+        loading={isDeleting}
+      />
     </>
   );
 } 
