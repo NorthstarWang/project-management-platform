@@ -24,7 +24,8 @@ import {
   AlertCircle,
   Trash2,
   RefreshCw,
-  Check
+  Check,
+  CheckCircle
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
@@ -38,6 +39,7 @@ interface Task {
   assignee_name?: string;
   priority: string;
   status: string;
+  task_type?: string;
   due_date?: string;
   position: number;
   created_at: string;
@@ -64,11 +66,19 @@ interface User {
 interface Comment {
   id: string;
   content: string;
-  user_id: string;
-  user_name: string;
   task_id: string;
+  author_id: string;
+  author: {
+    id: string;
+    username: string;
+    full_name: string;
+    email: string;
+    role: string;
+  };
+  parent_comment_id?: string;
   created_at: string;
   updated_at?: string;
+  replies?: Comment[];
 }
 
 interface TaskDetailModalProps {
@@ -114,7 +124,9 @@ export default function TaskDetailModal({
     assignee_id: task.assignee_id || '',
     priority: task.priority,
     due_date: task.due_date || '',
-    list_id: task.list_id
+    list_id: task.list_id,
+    status: task.status,
+    task_type: task.task_type || 'task'
   });
 
   // Change tracking
@@ -216,25 +228,63 @@ export default function TaskDetailModal({
     }
   };
 
+  // Helper function to determine task status based on list name (same as DragAndDrop)
+  const getStatusFromListName = (listName: string): string => {
+    const name = listName.toLowerCase();
+    if (name.includes('done') || name.includes('completed')) return 'done';
+    if (name.includes('progress') || name.includes('in progress')) return 'in_progress';
+    if (name.includes('review')) return 'review';
+    if (name.includes('archive')) return 'archived';
+    if (name.includes('backlog')) return 'backlog';
+    if (name.includes('todo') || name.includes('to do')) return 'todo';
+    return 'todo'; // default
+  };
+
   // Handle field changes and track modifications
   const handleFieldChange = (field: string, value: string) => {
     // Convert "unassigned" back to empty string for assignee_id
     const actualValue = field === 'assignee_id' && value === 'unassigned' ? '' : value;
-    setFormData(prev => ({ ...prev, [field]: actualValue }));
     
-    // Check if field is different from original
-    const originalValue = originalTask[field as keyof Task] || '';
-    const isModified = actualValue !== originalValue;
-    
-    setModifiedFields(prev => {
-      const newSet = new Set(prev);
-      if (isModified) {
-        newSet.add(field);
+    // If changing list, also update status to match list semantics
+    if (field === 'list_id') {
+      const targetList = lists.find(l => l.id === value);
+      if (targetList) {
+        const newStatus = getStatusFromListName(targetList.name);
+        setFormData(prev => ({ 
+          ...prev, 
+          [field]: actualValue,
+          status: newStatus 
+        }));
+        
+        // Track both list and status as modified
+        setModifiedFields(prev => {
+          const newSet = new Set(prev);
+          newSet.add('list_id');
+          newSet.add('status');
+          return newSet;
+        });
       } else {
-        newSet.delete(field);
+        setFormData(prev => ({ ...prev, [field]: actualValue }));
       }
-      return newSet;
-    });
+    } else {
+      setFormData(prev => ({ ...prev, [field]: actualValue }));
+    }
+    
+    // Check if field is different from original (only for non-list fields or when list change is handled above)
+    if (field !== 'list_id') {
+      const originalValue = originalTask[field as keyof Task] || '';
+      const isModified = actualValue !== originalValue;
+      
+      setModifiedFields(prev => {
+        const newSet = new Set(prev);
+        if (isModified) {
+          newSet.add(field);
+        } else {
+          newSet.delete(field);
+        }
+        return newSet;
+      });
+    }
     
     setHasUnsavedChanges(true);
   };
@@ -252,7 +302,9 @@ export default function TaskDetailModal({
         assignee_id: formData.assignee_id || undefined,
         priority: formData.priority,
         due_date: formData.due_date || undefined,
-        list_id: formData.list_id
+        list_id: formData.list_id,
+        status: formData.status,
+        task_type: formData.task_type
       };
 
       await apiClient.put(`/api/tasks/${task.id}`, updates);
@@ -287,7 +339,9 @@ export default function TaskDetailModal({
       assignee_id: originalTask.assignee_id || '',
       priority: originalTask.priority,
       due_date: originalTask.due_date || '',
-      list_id: originalTask.list_id
+      list_id: originalTask.list_id,
+      status: originalTask.status,
+      task_type: originalTask.task_type || 'task'
     });
     
     setModifiedFields(new Set());
@@ -317,7 +371,13 @@ export default function TaskDetailModal({
         timestamp: new Date().toISOString()
       });
       
-      setComments(prev => [...prev, response.data]);
+      // If the response doesn't include author data, add it manually
+      const newCommentWithAuthor = response.data.author ? response.data : {
+        ...response.data,
+        author: currentUser
+      };
+      
+      setComments(prev => [...prev, newCommentWithAuthor]);
       setNewComment('');
       toast.success('Comment added successfully!');
     } catch (error: any) {
@@ -331,9 +391,67 @@ export default function TaskDetailModal({
   const handleDeleteTask = async () => {
     try {
       setIsDeleting(true);
+      
+      // Soft delete - move to deleted status instead of permanent deletion
+      const updates = {
+        status: 'deleted'
+      };
+      
+      await apiClient.put(`/api/tasks/${task.id}`, updates);
+      
+      trackEvent('TASK_SOFT_DELETE', {
+        task_id: task.id,
+        task_title: task.title,
+        previous_status: task.status,
+        timestamp: new Date().toISOString()
+      });
+      
+      toast.success('Task moved to recycle bin successfully!');
+      onTaskUpdated();
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to delete task:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete task');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRecoverTask = async () => {
+    try {
+      setIsDeleting(true);
+      
+      // Recover deleted task - move back to todo status
+      const updates = {
+        status: 'todo'
+      };
+      
+      await apiClient.put(`/api/tasks/${task.id}`, updates);
+      
+      trackEvent('TASK_RECOVER', {
+        task_id: task.id,
+        task_title: task.title,
+        recovered_to_status: 'todo',
+        timestamp: new Date().toISOString()
+      });
+      
+      toast.success('Task recovered successfully!');
+      onTaskUpdated();
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to recover task:', error);
+      toast.error(error.response?.data?.detail || 'Failed to recover task');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    try {
+      setIsDeleting(true);
       await apiClient.delete(`/api/tasks/${task.id}`);
       
-      trackEvent('TASK_DELETE', {
+      trackEvent('TASK_PERMANENT_DELETE', {
         task_id: task.id,
         task_title: task.title,
         timestamp: new Date().toISOString()
@@ -342,12 +460,12 @@ export default function TaskDetailModal({
       // Clean up auto-saved data
       localStorage.removeItem(`task-autosave-${task.id}`);
       
-      toast.success('Task deleted successfully!');
+      toast.success('Task permanently deleted!');
       onTaskUpdated();
       onClose();
     } catch (error: any) {
-      console.error('Failed to delete task:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete task');
+      console.error('Failed to permanently delete task:', error);
+      toast.error(error.response?.data?.detail || 'Failed to permanently delete task');
     } finally {
       setIsDeleting(false);
     }
@@ -360,6 +478,30 @@ export default function TaskDetailModal({
       case 'medium': return 'medium';
       case 'low': return 'low';
       default: return 'secondary';
+    }
+  };
+
+  const getStatusVariant = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'todo':
+      case 'to_do': return 'todo';
+      case 'in_progress': 
+      case 'progress': return 'progress';
+      case 'review': return 'review';
+      case 'done':
+      case 'completed': return 'done';
+      default: return 'secondary';
+    }
+  };
+
+  const getTaskTypeColor = (taskType?: string): string => {
+    switch (taskType?.toLowerCase()) {
+      case 'feature': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'bug': return 'bg-red-100 text-red-800 border-red-200';
+      case 'research': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'fix': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'story': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -406,11 +548,22 @@ export default function TaskDetailModal({
       <div className="space-y-6 py-4 pl-2 pr-6 max-h-[60vh] overflow-y-auto">
         {/* Status and Priority Section */}
         <div className="flex items-center gap-4 flex-wrap">
+          {formData.task_type && (
+            <Badge 
+              variant="secondary" 
+              size="sm"
+              className={getTaskTypeColor(formData.task_type)}
+            >
+              {formData.task_type}
+              {modifiedFields.has('task_type') && <span className="ml-1 text-accent">•</span>}
+            </Badge>
+          )}
           <Badge variant={getPriorityColor(formData.priority)} size="sm">
             {formData.priority} priority
           </Badge>
-          <Badge variant="secondary" size="sm">
-            {task.status.replace('_', ' ')}
+          <Badge variant={getStatusVariant(formData.status)} size="sm">
+            {formData.status.replace('_', ' ')}
+            {modifiedFields.has('status') && <span className="ml-1 text-accent">•</span>}
           </Badge>
           {formData.due_date && (
             <Badge variant="warning" size="sm">
@@ -508,6 +661,53 @@ export default function TaskDetailModal({
             />
           </div>
 
+          {/* Task Type */}
+          <div>
+            <Label className={`text-sm font-medium mb-2 block flex items-center ${
+              modifiedFields.has('task_type') ? 'text-accent' : 'text-primary'
+            }`}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Task Type {modifiedFields.has('task_type') && <span className="text-accent ml-1">•</span>}
+            </Label>
+            <CustomDropdownMenu
+              value={formData.task_type}
+              onChange={(value) => handleFieldChange('task_type', value)}
+              className={modifiedFields.has('task_type') ? 'border-accent' : ''}
+              options={[
+                {
+                  value: 'feature',
+                  label: 'Feature',
+                  icon: <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                },
+                {
+                  value: 'bug',
+                  label: 'Bug',
+                  icon: <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                },
+                {
+                  value: 'research',
+                  label: 'Research',
+                  icon: <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                },
+                {
+                  value: 'fix',
+                  label: 'Fix',
+                  icon: <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
+                },
+                {
+                  value: 'story',
+                  label: 'Story',
+                  icon: <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                },
+                {
+                  value: 'task',
+                  label: 'Task',
+                  icon: <div className="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
+                }
+              ]}
+            />
+          </div>
+
           {/* Due Date */}
           <div>
             <Label className={`text-sm font-medium mb-2 block flex items-center ${
@@ -531,6 +731,9 @@ export default function TaskDetailModal({
               modifiedFields.has('list_id') ? 'text-accent' : 'text-primary'
             }`}>
               Current List {modifiedFields.has('list_id') && <span className="text-accent">•</span>}
+              {modifiedFields.has('status') && (
+                <span className="text-xs text-accent ml-2">(Status will update)</span>
+              )}
             </Label>
             <CustomDropdownMenu
               value={formData.list_id}
@@ -587,12 +790,12 @@ export default function TaskDetailModal({
             ) : comments.length > 0 ? (
               comments.map((comment) => (
                 <div key={comment.id} className="flex space-x-3">
-                  <Avatar size="sm" name={comment.user_name} />
+                  <Avatar size="sm" name={comment.author.full_name} />
                   <div className="flex-1">
                     <div className="bg-card-content p-3 rounded-lg">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-primary">
-                          {comment.user_name}
+                          {comment.author.full_name}
                         </span>
                         <span className="text-xs text-muted">
                           {formatRelativeDate(comment.created_at)}
@@ -635,14 +838,36 @@ export default function TaskDetailModal({
       <DialogFooter>
         <div className="flex justify-between w-full">
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-error hover:bg-error hover:text-white"
-              leftIcon={<Trash2 className="h-4 w-4" />}
-            >
-              Delete
-            </Button>
+            {task.status === 'deleted' ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={handleRecoverTask}
+                  className="text-success hover:bg-success hover:text-white"
+                  leftIcon={<RefreshCw className="h-4 w-4" />}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Recovering...' : 'Recover Task'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-error hover:bg-error hover:text-white"
+                  leftIcon={<Trash2 className="h-4 w-4" />}
+                >
+                  Delete Permanently
+                </Button>
+              </>
+            ) : (
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-error hover:bg-error hover:text-white"
+                leftIcon={<Trash2 className="h-4 w-4" />}
+              >
+                Delete
+              </Button>
+            )}
           </div>
           
           <div className="flex gap-2">
@@ -671,15 +896,19 @@ export default function TaskDetailModal({
         </div>
       </DialogFooter>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete/Permanent Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={handleDeleteTask}
-        title="Delete Task"
-        description={`Are you sure you want to delete "${task.title}"? This action cannot be undone and will remove all comments and attachments associated with this task.`}
-        confirmText="Delete Task"
-        cancelText="Keep Task"
+        onConfirm={task.status === 'deleted' ? handlePermanentDelete : handleDeleteTask}
+        title={task.status === 'deleted' ? "Permanently Delete Task" : "Delete Task"}
+        description={
+          task.status === 'deleted' 
+            ? `Are you sure you want to permanently delete "${task.title}"? This action cannot be undone and will remove all comments and attachments associated with this task.`
+            : `Are you sure you want to delete "${task.title}"? The task will be moved to the recycle bin where it can be recovered later.`
+        }
+        confirmText={task.status === 'deleted' ? "Delete Permanently" : "Move to Recycle Bin"}
+        cancelText="Cancel"
         type="danger"
         loading={isDeleting}
       />
