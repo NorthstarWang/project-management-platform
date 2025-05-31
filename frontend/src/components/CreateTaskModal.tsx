@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { CustomDropdownMenu } from '@/components/ui/CustomDropdownMenu';
+import { CustomDropdownMenu as DropdownMenu } from '@/components/ui/CustomDropdownMenu';
 import { 
   DialogHeader,
   DialogTitle,
@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 interface List {
   id: string;
@@ -38,6 +40,19 @@ interface User {
   full_name: string;
   role: string;
   email: string;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  list_id: string;
+  assignee_id?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: string;
+  due_date?: string;
+  position: number;
+  created_at: string;
 }
 
 interface CreateTaskModalProps {
@@ -57,6 +72,13 @@ interface TaskFormData {
   assignee_id: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   due_date: string;
+  task_type: 'feature' | 'bug' | 'research' | 'fix' | 'story' | 'task';
+}
+
+interface ListTaskCounts {
+  [listId: string]: {
+    [priority: string]: number;
+  };
 }
 
 export default function CreateTaskModal({
@@ -70,16 +92,19 @@ export default function CreateTaskModal({
 }: CreateTaskModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [listTaskCounts, setListTaskCounts] = useState<ListTaskCounts>({});
   const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
     list_id: listId,
     assignee_id: '',
     priority: 'medium',
-    due_date: ''
+    due_date: '',
+    task_type: 'task'
   });
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   useEffect(() => {
     setFormData(prev => ({ ...prev, list_id: listId }));
@@ -90,6 +115,41 @@ export default function CreateTaskModal({
       onLoadUsers();
     }
   }, [users.length, loadingUsers, onLoadUsers]);
+
+  useEffect(() => {
+    loadBoardTasks();
+  }, [lists]);
+
+  const loadBoardTasks = async () => {
+    if (lists.length === 0) return;
+    
+    try {
+      setLoadingTasks(true);
+      const boardId = lists[0]?.board_id;
+      if (!boardId) return;
+
+      const response = await apiClient.get(`/api/boards/${boardId}/tasks`);
+      const boardTasks: Task[] = response.data;
+      
+      // Calculate task counts by priority for each list
+      const counts: ListTaskCounts = {};
+      lists.forEach(list => {
+        counts[list.id] = { low: 0, medium: 0, high: 0, urgent: 0 };
+      });
+      
+      boardTasks.forEach(task => {
+        if (counts[task.list_id]) {
+          counts[task.list_id][task.priority]++;
+        }
+      });
+      
+      setListTaskCounts(counts);
+    } catch (error) {
+      console.error('Failed to load board tasks:', error);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
 
   const handleInputChange = (field: keyof TaskFormData, value: string) => {
     // Convert "unassigned" back to empty string for assignee_id
@@ -106,6 +166,8 @@ export default function CreateTaskModal({
       case 3:
         return true; // Optional step
       case 4:
+        return true; // Optional step
+      case 5:
         return true; // Optional step
       default:
         return false;
@@ -137,6 +199,8 @@ export default function CreateTaskModal({
         assignee_id: formData.assignee_id || undefined,
         priority: formData.priority,
         due_date: formData.due_date || undefined,
+        task_type: formData.task_type,
+        // Status will be determined from list name on backend
       };
 
       const response = await apiClient.post('/api/tasks', taskData);
@@ -152,6 +216,73 @@ export default function CreateTaskModal({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getPriorityBadgeVariant = (priority: string): 'urgent' | 'high' | 'medium' | 'low' => {
+    switch (priority) {
+      case 'urgent': return 'urgent';
+      case 'high': return 'high'; 
+      case 'medium': return 'medium';
+      case 'low': return 'low';
+      default: return 'low';
+    }
+  };
+
+  const createListOptions = () => {
+    return lists.map((list) => {
+      const counts = listTaskCounts[list.id] || { low: 0, medium: 0, high: 0, urgent: 0 };
+      const totalTasks = counts.low + counts.medium + counts.high + counts.urgent;
+      
+      // Only show badges if there are tasks
+      if (totalTasks === 0) {
+        return {
+          value: list.id,
+          label: list.name,
+          icon: null
+        };
+      }
+      
+      // Create priority badges for non-zero counts with proper colors
+      const priorityBadges: React.ReactNode[] = [];
+      if (counts.urgent > 0) {
+        priorityBadges.push(
+          <Badge key="urgent" size="sm" className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 text-white border-0">
+            {counts.urgent}
+          </Badge>
+        );
+      }
+      if (counts.high > 0) {
+        priorityBadges.push(
+          <Badge key="high" size="sm" className="ml-1 px-1.5 py-0.5 text-xs bg-orange-500 text-white border-0">
+            {counts.high}
+          </Badge>
+        );
+      }
+      if (counts.medium > 0) {
+        priorityBadges.push(
+          <Badge key="medium" size="sm" className="ml-1 px-1.5 py-0.5 text-xs bg-yellow-500 text-black border-0">
+            {counts.medium}
+          </Badge>
+        );
+      }
+      if (counts.low > 0) {
+        priorityBadges.push(
+          <Badge key="low" size="sm" className="ml-1 px-1.5 py-0.5 text-xs bg-green-500 text-white border-0">
+            {counts.low}
+          </Badge>
+        );
+      }
+
+      return {
+        value: list.id,
+        label: list.name,
+        icon: (
+          <div className="flex items-center ml-auto">
+            {priorityBadges}
+          </div>
+        )
+      };
+    });
   };
 
   const renderStepContent = () => {
@@ -173,7 +304,7 @@ export default function CreateTaskModal({
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   placeholder="Enter a clear, descriptive task title..."
-                  className="mt-1"
+                  className="mt-1 w-full min-w-[400px]"
                 />
                 {formData.title.length > 0 && formData.title.length < 3 && (
                   <p className="text-xs text-destructive mt-1">Title must be at least 3 characters</p>
@@ -208,16 +339,13 @@ export default function CreateTaskModal({
             
             <div>
               <Label htmlFor="list">Target List *</Label>
-              <CustomDropdownMenu
+              <DropdownMenu
                 value={formData.list_id}
                 onChange={(value) => handleInputChange('list_id', value)}
-                placeholder="Select a list..."
+                placeholder={loadingTasks ? "Loading task counts..." : "Select a list..."}
                 className="mt-1"
-                options={lists.map((list) => ({
-                  value: list.id,
-                  label: list.name,
-                  icon: <Badge variant="secondary" size="sm">{list.position}</Badge>
-                }))}
+                disabled={loadingTasks}
+                options={loadingTasks ? [] : createListOptions()}
               />
             </div>
           </div>
@@ -235,7 +363,7 @@ export default function CreateTaskModal({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="assignee">Assign to</Label>
-                <CustomDropdownMenu
+                <DropdownMenu
                   value={formData.assignee_id || 'unassigned'}
                   onChange={(value) => handleInputChange('assignee_id', value)}
                   placeholder="Select an assignee..."
@@ -259,7 +387,7 @@ export default function CreateTaskModal({
 
               <div>
                 <Label htmlFor="priority">Priority</Label>
-                <CustomDropdownMenu
+                <DropdownMenu
                   value={formData.priority}
                   onChange={(value) => handleInputChange('priority', value as any)}
                   className="mt-1"
@@ -298,6 +426,60 @@ export default function CreateTaskModal({
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
+              <div className="h-12 w-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                <CheckCircle className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-primary">Task Type</h3>
+              <p className="text-sm text-muted-foreground">What type of task is this?</p>
+            </div>
+            
+            <div>
+              <Label htmlFor="task_type">Task Type</Label>
+              <DropdownMenu
+                value={formData.task_type}
+                onChange={(value) => handleInputChange('task_type', value as any)}
+                className="mt-1"
+                options={[
+                  {
+                    value: 'feature',
+                    label: 'Feature',
+                    icon: <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                  },
+                  {
+                    value: 'bug',
+                    label: 'Bug',
+                    icon: <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                  },
+                  {
+                    value: 'research',
+                    label: 'Research',
+                    icon: <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                  },
+                  {
+                    value: 'fix',
+                    label: 'Fix',
+                    icon: <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
+                  },
+                  {
+                    value: 'story',
+                    label: 'Story',
+                    icon: <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                  },
+                  {
+                    value: 'task',
+                    label: 'Task',
+                    icon: <div className="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
+                  }
+                ]}
+              />
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-4">
+            <div className="text-center mb-6">
               <Calendar className="h-12 w-12 text-primary mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-primary">Due Date</h3>
               <p className="text-sm text-muted-foreground">When should this task be completed?</p>
@@ -305,16 +487,15 @@ export default function CreateTaskModal({
             
             <div>
               <Label htmlFor="due_date">Due Date</Label>
-              <Input
-                id="due_date"
-                type="datetime-local"
-                value={formData.due_date}
-                onChange={(e) => handleInputChange('due_date', e.target.value)}
+              <DatePicker
+                value={formData.due_date ? new Date(formData.due_date) : null}
+                onChange={(value) => handleInputChange('due_date', value ? value.toISOString().split('T')[0] : '')}
                 className="mt-1"
-                min={new Date().toISOString().slice(0, 16)}
+                placeholder="Select due date"
+                minDate={new Date()}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Leave empty if no specific deadline is required
+                Set a due date for this task
               </p>
             </div>
 
@@ -332,9 +513,14 @@ export default function CreateTaskModal({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Priority:</span>
-                  <Badge variant={formData.priority === 'high' || formData.priority === 'urgent' ? 'high' : 
-                                formData.priority === 'medium' ? 'medium' : 'low'} size="sm">
+                  <Badge variant={getPriorityBadgeVariant(formData.priority)} size="sm">
                     {formData.priority}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Type:</span>
+                  <Badge variant="secondary" size="sm">
+                    {formData.task_type}
                   </Badge>
                 </div>
                 {formData.assignee_id && (
@@ -387,8 +573,18 @@ export default function CreateTaskModal({
       </div>
 
       {/* Step Content */}
-      <div className="min-h-[300px]">
-        {renderStepContent()}
+      <div className="min-h-[300px] relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            {renderStepContent()}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <DialogFooter>
