@@ -3,6 +3,8 @@ import { Alike, Mulish } from "next/font/google";
 import { Theme } from "@radix-ui/themes";
 import { ToastProvider } from "@/components/ui/CustomToast";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { GlobalOverlayProvider } from "@/components/providers/GlobalOverlayProvider";
 import "@radix-ui/themes/styles.css";
 import "./globals.css";
 
@@ -34,17 +36,21 @@ export default function RootLayout({
       <body
         className={`${alike.variable} ${mulish.variable} antialiased`}
       >
-        <Theme
-          radius="medium"
-          scaling="100%"
-          panelBackground="solid"
-          hasBackground={false}
-        >
-          <ProtectedRoute>
-            {children}
-          </ProtectedRoute>
-          <ToastProvider />
-        </Theme>
+        <GlobalOverlayProvider>
+          <ThemeProvider>
+            <Theme
+              radius="medium"
+              scaling="100%"
+              panelBackground="solid"
+              hasBackground={false}
+            >
+              <ProtectedRoute>
+                {children}
+              </ProtectedRoute>
+              <ToastProvider />
+            </Theme>
+          </ThemeProvider>
+        </GlobalOverlayProvider>
       </body>
     </html>
   );

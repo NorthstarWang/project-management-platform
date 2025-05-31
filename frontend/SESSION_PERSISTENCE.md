@@ -92,11 +92,11 @@ const response = await apiClient.get('/api/users/me');
 
 ## Testing
 
-A test page is available at `/test-session` to verify session persistence:
-- Shows current session information
-- Tests API calls with stored session
-- Provides actions to test session management
-- Includes instructions for manual testing
+Session persistence functionality can be verified through:
+- Manual testing by logging in and refreshing the browser
+- Checking that the user remains authenticated after browser restart
+- Verifying API calls continue to work with stored session data
+- Testing logout functionality clears stored data properly
 
 ## Usage Examples
 

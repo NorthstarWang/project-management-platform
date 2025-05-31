@@ -95,6 +95,35 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     checkAuthentication();
   }, [checkAuthentication]);
 
+  // Listen for storage changes (logout events)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // If session_id or user was removed, it means logout occurred
+      if ((e.key === 'session_id' || e.key === 'user') && e.newValue === null) {
+        console.log('🔄 ProtectedRoute: Detected logout via storage change, re-checking auth');
+        checkAuthentication();
+      }
+    };
+
+    // Listen for changes in localStorage
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for manual localStorage clearing
+    const originalRemoveItem = localStorage.removeItem;
+    localStorage.removeItem = function(key) {
+      originalRemoveItem.call(this, key);
+      if (key === 'session_id' || key === 'user') {
+        console.log('🔄 ProtectedRoute: Detected auth data removal, re-checking auth');
+        setTimeout(() => checkAuthentication(), 10);
+      }
+    };
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      localStorage.removeItem = originalRemoveItem;
+    };
+  }, [checkAuthentication]);
+
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (

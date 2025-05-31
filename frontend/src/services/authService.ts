@@ -119,7 +119,7 @@ class AuthenticationService {
 
       // Step 1: Initialize a new session
       console.log('📝 Step 1: Creating new session...');
-      const sessionResponse = await fetch('http://localhost:8000/_synthetic/new_session?seed=login', {
+      const sessionResponse = await fetch('http://localhost:8000/_synthetic/new_session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,10 +152,7 @@ class AuthenticationService {
         },
         body: JSON.stringify({
           username: credentials.username,
-          password: credentials.password,
-          email: '', // Required by backend
-          full_name: '', // Required by backend
-          role: 'member' // Required by backend
+          password: credentials.password
         }),
       });
 
@@ -216,9 +213,12 @@ class AuthenticationService {
    * Logout and clear session
    */
   async logout(): Promise<void> {
+    console.log('🔄 Starting logout process...');
+    
     try {
       // Log the logout event if we have a session
       if (this.sessionId && this.currentUser) {
+        console.log('📝 Logging logout event...');
         await this.logEvent('USER_LOGOUT', {
           user_id: this.currentUser.id,
           username: this.currentUser.username,
@@ -226,16 +226,31 @@ class AuthenticationService {
       }
     } catch (error) {
       console.warn('Failed to log logout event:', error);
-    } finally {
-      this.clearSession();
     }
+    
+    // Always clear session regardless of logging success/failure
+    console.log('🧹 Clearing session data...');
+    this.clearSession();
+    
+    console.log('✅ Logout process completed');
   }
 
   /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {
-    return !!(this.sessionId && this.currentUser);
+    const hasSessionData = !!(this.sessionId && this.currentUser);
+    const hasStorageData = typeof window !== 'undefined' && 
+      !!(localStorage.getItem('session_id') && localStorage.getItem('user'));
+    
+    // If memory and storage are out of sync, clear everything
+    if (hasSessionData !== hasStorageData) {
+      console.log('⚠️ Auth state mismatch detected, clearing session');
+      this.clearSession();
+      return false;
+    }
+    
+    return hasSessionData;
   }
 
   /**
@@ -283,19 +298,36 @@ class AuthenticationService {
   }
 
   /**
-   * Clear all session data
+   * Clear all session data - Enhanced for security
    */
   private clearSession(): void {
+    console.log('🧹 Clearing all authentication data...');
+    
+    // Clear memory state
     this.sessionId = null;
     this.currentUser = null;
     this.isInitialized = true;
     
+    // Clear localStorage
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('session_id');
-      localStorage.removeItem('user');
+      try {
+        localStorage.removeItem('session_id');
+        localStorage.removeItem('user');
+        console.log('✅ LocalStorage cleared');
+      } catch (error) {
+        console.error('Failed to clear localStorage:', error);
+      }
     }
     
-    apiClient.clearSession();
+    // Clear API client session
+    try {
+      apiClient.clearSession();
+      console.log('✅ API client session cleared');
+    } catch (error) {
+      console.error('Failed to clear API client session:', error);
+    }
+    
+    console.log('✅ Session clearing completed');
   }
 
   /**

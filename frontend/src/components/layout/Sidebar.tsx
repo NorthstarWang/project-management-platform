@@ -15,8 +15,10 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { cn } from '@/lib/utils';
 import apiClient from '@/services/apiClient';
+import authService from '@/services/authService';
 import { toast } from '@/components/ui/CustomToast';
 
 interface User {
@@ -100,12 +102,40 @@ export function Sidebar() {
     });
   };
 
-  const handleLogout = () => {
-    // Clear user data and session
-    apiClient.clearSession();
-    
-    toast.success('Logged out successfully');
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      console.log('🔄 Starting logout process...');
+      
+      // Call the proper authService logout method
+      await authService.logout();
+      
+      console.log('✅ Logout successful, redirecting to login');
+      toast.success('Logged out successfully');
+      
+      // Force redirect to login page
+      router.push('/login');
+      
+      // Force reload to ensure all state is cleared
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('❌ Logout failed:', error);
+      
+      // Fallback: manually clear everything and redirect
+      localStorage.removeItem('session_id');
+      localStorage.removeItem('user');
+      apiClient.clearSession();
+      
+      toast.error('Logout encountered an issue but session was cleared');
+      
+      // Force redirect regardless
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      } else {
+        router.push('/login');
+      }
+    }
   };
 
   const truncateText = (text: string, maxLength: number = 20) => {
@@ -267,14 +297,17 @@ export function Sidebar() {
 
         {/* Logout Button */}
         <div className="px-4 py-4 border-t border-secondary">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start text-secondary hover:text-primary"
-          >
-            <LogOut className="mr-3 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2 mb-3">
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="flex-1 justify-start text-secondary hover:text-primary"
+            >
+              <LogOut className="mr-3 h-4 w-4" />
+              Logout
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </div>

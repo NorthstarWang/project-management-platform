@@ -8,6 +8,22 @@ interface ThemeTransitionOverlayProps {
   onComplete?: () => void;
 }
 
+// Pre-defined theme colors (not dependent on CSS variables)
+const THEME_COLORS = {
+  dark: {
+    background: '#0F2830', // Firefly
+    accent: '#00D37F', // Green
+    contrast: '#ECFFFE', // Morning dew
+    muted: '#5a7a6f'
+  },
+  light: {
+    background: '#ECFFFE', // Morning dew
+    accent: '#FA7328', // Orange
+    contrast: '#022C10', // Pine
+    muted: '#8ba39a'
+  }
+} as const;
+
 export function ThemeTransitionOverlay({ 
   isVisible, 
   targetTheme = 'dark', 
@@ -15,11 +31,12 @@ export function ThemeTransitionOverlay({
 }: ThemeTransitionOverlayProps) {
   const [progress, setProgress] = React.useState(0);
   const [waveProgress, setWaveProgress] = React.useState(0);
+  const [fadeOpacity, setFadeOpacity] = React.useState(0);
   
   // Capture initial themes at the start of animation
   const initialThemes = React.useRef<{
-    original: 'light' | 'dark';  // What user was seeing before click
-    target: 'light' | 'dark';   // What user will see after transition
+    original: 'light' | 'dark';  // What user is currently seeing
+    target: 'light' | 'dark';   // What user wants to switch to
     captured: boolean;
   }>({
     original: 'dark',
@@ -29,80 +46,107 @@ export function ThemeTransitionOverlay({
 
   React.useEffect(() => {
     if (isVisible && !initialThemes.current.captured) {
-      // The original theme is what the user WAS seeing (opposite of target)
-      // The target theme is what the user WILL see (what they clicked to switch to)
+      // Get the actual current theme from DOM or localStorage
+      let currentTheme: 'light' | 'dark' = 'dark';
+      
+      try {
+        // First try to get from localStorage
+        const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+        if (savedTheme) {
+          currentTheme = savedTheme;
+        } else {
+          // Fallback: check DOM attribute
+          const hasLightTheme = document.documentElement.hasAttribute('data-theme') && 
+                                document.documentElement.getAttribute('data-theme') === 'light';
+          currentTheme = hasLightTheme ? 'light' : 'dark';
+        }
+      } catch {
+        // Fallback to dark if detection fails
+        currentTheme = 'dark';
+      }
+      
       initialThemes.current = {
-        original: targetTheme, // User wants to switch to this (but we'll show it as original)
-        target: targetTheme === 'light' ? 'dark' : 'light', // User was seeing the opposite (but we'll show it as target)
+        original: targetTheme,  // What user is currently seeing
+        target: currentTheme,     // What user wants to switch to
         captured: true
       };
+      
+      // Reset all progress states
+      setProgress(0);
+      setWaveProgress(0);
+      setFadeOpacity(0);
     } else if (!isVisible) {
       initialThemes.current.captured = false;
+      setProgress(0);
+      setWaveProgress(0);
+      setFadeOpacity(0);
     }
   }, [isVisible, targetTheme]);
 
   React.useEffect(() => {
     if (isVisible) {
-      setProgress(0);
-      setWaveProgress(0);
+      // Start with fade-in effect
+      const fadeInTimeout = setTimeout(() => {
+        setFadeOpacity(1);
+      }, 50);
       
-      // Start wave animation immediately
-      const waveInterval = setInterval(() => {
-        setWaveProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(waveInterval);
-            return 100;
-          }
-          return prev + 1.39; // Smooth wave over 3 seconds
-        });
-      }, 42);
+      // Start wave animation after fade-in
+      const startAnimationTimeout = setTimeout(() => {
+        const waveInterval = setInterval(() => {
+          setWaveProgress(prev => {
+            if (prev >= 100) {
+              clearInterval(waveInterval);
+              return 100;
+            }
+            return prev + 1.39; // Smooth wave over 3 seconds
+          });
+        }, 42);
 
-      // Start progress animation
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
-            setTimeout(() => {
-              onComplete?.();
-            }, 200);
-            return 100;
-          }
-          return prev + 1.39; // Same timing as wave
-        });
-      }, 42);
+        // Start progress animation
+        const progressInterval = setInterval(() => {
+          setProgress(prev => {
+            if (prev >= 100) {
+              clearInterval(progressInterval);
+              
+              // Start fade-out effect
+              setTimeout(() => {
+                setFadeOpacity(0);
+              }, 100);
+              
+              // Complete transition after fade-out
+              setTimeout(() => {
+                onComplete?.();
+              }, 400);
+              return 100;
+            }
+            return prev + 1.39; // Same timing as wave
+          });
+        }, 42);
+
+        return () => {
+          clearInterval(waveInterval);
+          clearInterval(progressInterval);
+        };
+      }, 200); // Delay start of animation for smooth fade-in
 
       return () => {
-        clearInterval(waveInterval);
-        clearInterval(progressInterval);
+        clearTimeout(fadeInTimeout);
+        clearTimeout(startAnimationTimeout);
       };
     }
   }, [isVisible, onComplete]);
 
-  if (!isVisible) return null;
+  if (!isVisible) {
+    return null;
+  }
 
-  // Use captured themes - these represent the visual transition the user should see
-  const originalTheme = initialThemes.current.captured ? initialThemes.current.original : targetTheme;
-  const finalTheme = initialThemes.current.captured ? initialThemes.current.target : (targetTheme === 'light' ? 'dark' : 'light');
+  // Use captured themes - get actual current theme vs target theme
+  const originalTheme = initialThemes.current.captured ? initialThemes.current.original : 'dark';
+  const finalTheme = initialThemes.current.captured ? initialThemes.current.target : targetTheme;
 
-  // Hardcoded theme colors
-  const lightThemeBackground = '#ECFFFE'; // Morning dew
-  const darkThemeBackground = '#0F2830'; // Firefly
-  const lightThemeAccent = '#FA7328'; // Orange
-  const darkThemeAccent = '#00D37F'; // Green
-  const lightThemeTextDark = '#022C10'; // Pine
-  const darkThemeTextLight = '#ECFFFE'; // Morning dew
-  const lightThemeTextMuted = '#8ba39a';
-  const darkThemeTextMuted = '#5a7a6f';
-
-  // Define ORIGINAL (what user was seeing) and FINAL (what user will see) theme colors
-  const originalBackground = originalTheme === 'light' ? lightThemeBackground : darkThemeBackground;
-  const finalBackground = finalTheme === 'light' ? lightThemeBackground : darkThemeBackground;
-  const originalAccent = originalTheme === 'light' ? lightThemeAccent : darkThemeAccent;
-  const finalAccent = finalTheme === 'light' ? lightThemeAccent : darkThemeAccent;
-  const originalContrastBackground = originalTheme === 'light' ? lightThemeTextDark : darkThemeTextLight;
-  const finalContrastBackground = finalTheme === 'light' ? lightThemeTextDark : darkThemeTextLight;
-  const originalMutedText = originalTheme === 'light' ? lightThemeTextMuted : darkThemeTextMuted;
-  const finalMutedText = finalTheme === 'light' ? lightThemeTextMuted : darkThemeTextMuted;
+  // Get pre-defined colors for original and final themes
+  const originalColors = THEME_COLORS[originalTheme];
+  const finalColors = THEME_COLORS[finalTheme];
 
   // Calculate wave position for visual effect (diagonal sweep from bottom-right to top-left)
   const wavePosition = waveProgress * 1.5;
@@ -131,41 +175,60 @@ export function ThemeTransitionOverlay({
   const transitionFactor = waveProgress / 100;
 
   // Interpolated colors for center components (transition from original to final)
-  const currentAccentColor = interpolateColor(originalAccent, finalAccent, transitionFactor);
-  const currentContrastColor = interpolateColor(originalContrastBackground, finalContrastBackground, transitionFactor);
-  const currentMutedColor = interpolateColor(originalMutedText, finalMutedText, transitionFactor);
+  const currentAccentColor = interpolateColor(originalColors.accent, finalColors.accent, transitionFactor);
+  const currentContrastColor = interpolateColor(originalColors.contrast, finalColors.contrast, transitionFactor);
+  const currentMutedColor = interpolateColor(originalColors.muted, finalColors.muted, transitionFactor);
 
   return (
     <div 
-      className="fixed inset-0 overflow-hidden" 
       style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'hidden',
         width: '100vw', 
         height: '100vh',
-        zIndex: 9999
+        zIndex: 99999,
+        opacity: fadeOpacity,
+        transition: 'opacity 0.3s ease-in-out'
       }}
     >
       {/* Base Background - Show final theme background */}
       <div 
-        className="absolute inset-0 w-full h-full"
         style={{
-          backgroundColor: finalBackground
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: finalColors.background
         }}
       />
 
       {/* Wave Transition Effect - From ORIGINAL theme to FINAL theme */}
       <div 
-        className="absolute inset-0 w-full h-full"
         style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
           background: `
             linear-gradient(
               135deg,
-              ${originalBackground} 0%,
-              ${originalBackground} ${Math.max(0, wavePosition - 40)}%,
-              ${originalAccent} ${Math.max(0, wavePosition - 20)}%,
-              ${finalAccent} ${Math.min(100, wavePosition)}%,
-              ${finalBackground} ${Math.min(100, wavePosition + 20)}%,
-              ${finalBackground} ${Math.min(100, wavePosition + 40)}%,
-              ${finalBackground} 100%
+              ${originalColors.background} 0%,
+              ${originalColors.background} ${Math.max(0, wavePosition - 40)}%,
+              ${originalColors.accent} ${Math.max(0, wavePosition - 20)}%,
+              ${finalColors.accent} ${Math.min(100, wavePosition)}%,
+              ${finalColors.background} ${Math.min(100, wavePosition + 20)}%,
+              ${finalColors.background} ${Math.min(100, wavePosition + 40)}%,
+              ${finalColors.background} 100%
             )
           `,
           transition: 'background 0.1s ease-out'
@@ -174,24 +237,38 @@ export function ThemeTransitionOverlay({
 
       {/* Loader Content - Gradually transitioning colors */}
       <div 
-        className="absolute inset-0 flex items-center justify-center"
-        style={{ zIndex: 10 }}
+        style={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10 
+        }}
       >
         <div 
-          className="flex flex-col items-center"
-          style={{ gap: '1.5rem' }}
+          style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.5rem' 
+          }}
         >
           {/* Circular Progress with Enhanced Backdrop */}
-          <div className="relative">
+          <div style={{ position: 'relative' }}>
             {/* Enhanced backdrop for contrast */}
             <div 
-              className="absolute rounded-full"
               style={{
+                position: 'absolute',
                 width: '140px',
                 height: '140px',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
+                borderRadius: '50%',
                 background: `radial-gradient(circle, 
                   ${currentContrastColor}CC 0%, 
                   ${currentContrastColor}66 50%, 
@@ -203,40 +280,42 @@ export function ThemeTransitionOverlay({
 
             {/* Outer Aura */}
             <div 
-              className="absolute rounded-full animate-pulse"
               style={{
+                position: 'absolute',
                 width: '120px',
                 height: '120px',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
+                borderRadius: '50%',
                 background: `radial-gradient(circle, 
                   ${currentAccentColor}66 0%, 
                   ${currentAccentColor}33 40%, 
                   transparent 70%
                 )`,
                 filter: 'blur(8px)',
-                animationDuration: '2s',
+                animation: 'pulse 2s ease-in-out infinite',
                 opacity: 0.4
               }}
             />
 
             {/* Middle Aura */}
             <div 
-              className="absolute rounded-full animate-pulse"
               style={{
+                position: 'absolute',
                 width: '90px',
                 height: '90px',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
+                borderRadius: '50%',
                 background: `radial-gradient(circle, 
                   ${currentAccentColor}99 0%, 
                   ${currentAccentColor}4D 50%, 
                   transparent 70%
                 )`,
                 filter: 'blur(4px)',
-                animationDuration: '1.5s',
+                animation: 'pulse 1.5s ease-in-out infinite',
                 animationDelay: '0.3s',
                 opacity: 0.6
               }}
@@ -244,13 +323,14 @@ export function ThemeTransitionOverlay({
 
             {/* Inner Aura */}
             <div 
-              className="absolute rounded-full"
               style={{
+                position: 'absolute',
                 width: '70px',
                 height: '70px',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
+                borderRadius: '50%',
                 background: `radial-gradient(circle, 
                   ${currentAccentColor}CC 0%, 
                   ${currentAccentColor}66 60%, 
@@ -263,10 +343,11 @@ export function ThemeTransitionOverlay({
 
             {/* Main Progress Circle */}
             <div 
-              className="relative rounded-full"
               style={{
+                position: 'relative',
                 width: '64px',
                 height: '64px',
+                borderRadius: '50%',
                 backgroundColor: `${currentContrastColor}E6`,
                 borderWidth: '1px',
                 borderStyle: 'solid',
@@ -277,11 +358,17 @@ export function ThemeTransitionOverlay({
               }}
             >
               <svg
-                className="absolute inset-0"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  transform: 'rotate(-90deg)'
+                }}
                 width="64"
                 height="64"
                 viewBox="0 0 64 64"
-                style={{ transform: 'rotate(-90deg)' }}
               >
                 {/* Background circle */}
                 <circle
@@ -313,8 +400,15 @@ export function ThemeTransitionOverlay({
               </svg>
               {/* Progress text */}
               <div 
-                className="absolute inset-0 flex items-center justify-center"
                 style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   fontSize: '14px',
                   fontWeight: 'bold',
                   color: currentAccentColor,
@@ -329,8 +423,9 @@ export function ThemeTransitionOverlay({
 
           {/* Loading text with enhanced backdrop */}
           <div 
-            className="text-center rounded-xl"
             style={{
+              textAlign: 'center',
+              borderRadius: '12px',
               padding: '1.5rem',
               backgroundColor: `${currentContrastColor}D9`,
               borderWidth: '1px',
@@ -346,16 +441,18 @@ export function ThemeTransitionOverlay({
                 fontSize: '20px',
                 fontWeight: 'bold',
                 marginBottom: '8px',
+                margin: '0 0 8px 0',
                 color: currentAccentColor,
                 filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
                 transition: 'color 0.1s ease-out'
               }}
             >
-              Switching to {originalTheme === 'light' ? 'Light' : 'Dark'} Theme
+              Switching to {finalTheme === 'light' ? 'Dark' : 'Light'} Theme
             </h3>
             <p 
               style={{
                 fontSize: '14px',
+                margin: 0,
                 color: `${currentAccentColor}CC`,
                 transition: 'color 0.1s ease-out'
               }}
@@ -365,17 +462,17 @@ export function ThemeTransitionOverlay({
           </div>
 
           {/* Animated dots */}
-          <div className="flex" style={{ gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="rounded-full animate-pulse"
                 style={{
                   width: '12px',
                   height: '12px',
+                  borderRadius: '50%',
                   backgroundColor: currentAccentColor,
+                  animation: 'pulse 1.2s ease-in-out infinite',
                   animationDelay: `${i * 300}ms`,
-                  animationDuration: '1.2s',
                   filter: `drop-shadow(0 0 6px ${currentAccentColor}CC)`,
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                   transition: 'background-color 0.1s ease-out'
@@ -385,6 +482,16 @@ export function ThemeTransitionOverlay({
           </div>
         </div>
       </div>
+
+      {/* CSS Keyframes for animations - completely isolated */}
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        `}
+      </style>
     </div>
   );
 }

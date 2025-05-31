@@ -10,7 +10,7 @@ A comprehensive project management platform built with Next.js, TypeScript, Radi
 - **Components**: Radix UI Primitives
 - **Icons**: Lucide React
 - **Animations**: Framer Motion
-- **Drag & Drop**: @dnd-kit (for Kanban board functionality)
+- **Drag & Drop**: @dnd-kit/react (experimental - latest version for modern React applications)
 
 ## Getting Started
 
@@ -236,23 +236,20 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `ContextMenu` - Right-click actions
 - `Popover` - Quick actions
 
-**Drag & Drop Components (@dnd-kit)**:
-- `DndContext` - Main drag-and-drop context provider
-- `DragOverlay` - Visual feedback during drag
-- `Droppable` - List containers that accept drops
-- `Draggable` - Individual task cards
-- `SortableContext` - Sortable lists and tasks
-- `useSortable` - Hook for sortable task items
+**Drag & Drop Components (@dnd-kit/react)**:
+- `DragDropProvider` - Main drag-and-drop context provider (replaces DndContext)
 - `useDraggable` - Hook for draggable elements
-- `useDroppable` - Hook for droppable containers
+- `useDroppable` - Hook for droppable containers  
+- `useSortable` - Hook for sortable items
+- `useDragDropMonitor` - Hook for monitoring drag state
 
 **Key Features**:
-- **Professional drag-and-drop** with @dnd-kit (accessible, touch-friendly, keyboard navigation)
-- **Multi-directional dragging** - tasks between lists and within lists for reordering
-- **Visual feedback** - drag overlays and drop indicators
-- **Accessibility** - keyboard navigation and screen reader support
-- **Touch support** - mobile-friendly drag interactions
-- **Auto-scrolling** - automatic scrolling during drag operations
+- **Modern drag-and-drop** with @dnd-kit/react experimental library (accessible, touch-friendly, keyboard navigation)
+- **Simplified API** - cleaner React hooks-based approach
+- **Better performance** - optimized for modern React applications
+- **Enhanced accessibility** - improved screen reader support and keyboard navigation
+- **Touch support** - mobile-friendly drag interactions with better touch handling
+- **Visual feedback** - enhanced drag overlays and drop indicators
 - Real-time task updates
 - Member management (manager)
 - Task search and filtering (via header search)
@@ -446,7 +443,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 #### 1.1 Core Infrastructure (3-4 hours)
 - [ ] **Project setup & dependencies**
-  - Install @dnd-kit packages: `@dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities`
+  - Install @dnd-kit/react package (experimental): `@dnd-kit/react`
   - Install state management: `zustand @tanstack/react-query axios`
   - Configure API client with session management
 - [ ] **Layout foundation**
@@ -556,15 +553,15 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   - **Components**: `Dialog`, `Textarea`, `Select`, `Badge`
 
 #### 3.3 Drag & Drop Implementation (6-8 hours)
-- [ ] **@dnd-kit integration**
-  - Set up `DndContext` for the board
-  - Make task cards draggable with `useDraggable`
-  - Make lists droppable with `useDroppable`
-  - Implement task reordering within lists
+- [ ] **@dnd-kit/react integration**
+  - Set up `DragDropProvider` for the board context
+  - Make task cards draggable with `useDraggable` hook
+  - Make lists droppable with `useDroppable` hook
+  - Implement sortable tasks within lists using `useSortable` hook
   - Implement task movement between lists
-  - Visual feedback with `DragOverlay`
+  - Visual feedback and drag monitoring with `useDragDropMonitor`
   - **API**: `PUT /api/tasks/{id}/move`
-  - **Components**: `DndContext`, `DragOverlay`, `Draggable`, `Droppable`
+  - **Components**: `DragDropProvider`, draggable task cards, droppable lists
 
 #### 3.4 Board Management (2-4 hours)
 - [ ] **Board features**
@@ -628,12 +625,25 @@ framer-motion
 
 ### Additional Dependencies Needed
 ```bash
-# Install dnd-kit for drag-and-drop functionality
-npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
+# Install @dnd-kit/react for drag-and-drop functionality (experimental)
+npm install @dnd-kit/react
 
 # Install additional utilities for state management and API calls
 npm install zustand @tanstack/react-query axios
 ```
+
+## Migration Notes
+
+**Note**: This project uses the new experimental `@dnd-kit/react` library instead of the older `@dnd-kit/core`, `@dnd-kit/sortable`, and `@dnd-kit/utilities` packages. 
+
+**Key differences from old API**:
+- `DndContext` → `DragDropProvider`
+- Component-based approach → Hooks-based approach
+- `useSortable`, `useDraggable`, `useDroppable` hooks replace higher-order components
+- Simplified event handling and configuration
+- Better TypeScript support out of the box
+
+**Reference**: For the latest API documentation and examples, see [https://next.dndkit.com/react/quickstart](https://next.dndkit.com/react/quickstart)
 
 ## API Integration Notes
 

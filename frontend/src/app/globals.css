@@ -2,6 +2,10 @@
 
 /* ===== DARK THEME (Emerald/Green Palette) ===== */
 :root {
+  /* Custom Breakpoints */
+  --breakpoint-2xl: 1536px;
+  --breakpoint-3xl: 1920px;
+
   /* Base Colors */
   --color-firefly: #0F2830;
   --color-emerald: #014751;
@@ -167,7 +171,8 @@
   --switch-checked: var(--color-green);
   --switch-thumb: var(--color-zircon);
   --checkbox-border: var(--border-secondary);
-  --checkbox-checked: var(--color-green);
+  --checkbox-checked: var(--interactive-primary);
+  --checkbox-checked-hover: var(--interactive-primary-hover);
 
   /* Navigation Components */
   --tab-border: var(--border-muted);
@@ -379,7 +384,8 @@
   --switch-checked: var(--color-salsa);
   --switch-thumb: white;
   --checkbox-border: var(--border-secondary);
-  --checkbox-checked: var(--color-salsa);
+  --checkbox-checked: var(--interactive-primary);
+  --checkbox-checked-hover: var(--interactive-primary-hover);
 
   /* Navigation Components */
   --tab-border: var(--border-muted);
@@ -423,21 +429,6 @@
   --checkbox-border: var(--border-secondary);
   --checkbox-checked: var(--interactive-primary);
   --checkbox-checked-hover: var(--interactive-primary-hover);
-}
-
-/* ===== SYSTEM PREFERENCES ===== */
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: var(--background-primary);
-    --foreground: var(--text-primary);
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: var(--background-primary);
-    --foreground: var(--text-primary);
-  }
 }
 
 /* ===== BASE STYLES ===== */
@@ -1249,6 +1240,12 @@ h6 {
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
+@media (min-width: 1920px) {
+  .grid-cols-3xl-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 @media (prefers-contrast: high) {
   :root {
     --text-primary: #ffffff;

@@ -34,7 +34,7 @@ export * from './Progress';
 export * from './ScrollArea';
 
 // Drag and Drop
-export * from '../dnd/DragAndDrop';
+// export * from '../dnd/DragAndDrop';
 
 // Radix UI Re-exports (for advanced usage)
 export {

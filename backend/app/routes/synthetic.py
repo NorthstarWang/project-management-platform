@@ -14,15 +14,19 @@ def reset_environment(seed: Optional[str] = None):
     return {"status": "ok", "seed": seed}
 
 @router.post("/new_session")
-def new_session(seed: Optional[str] = None):
-    """Initialize a new session with optional seed"""
+def new_session(seed: Optional[str] = None, reset: bool = False):
+    """Initialize a new session with optional seed and reset"""
     session_id = str(uuid.uuid4())
     
-    # Reset the environment
-    data_manager.reset(seed)
-    
-    # Clear logs
-    logger.clear_logs()
+    # Only reset the environment if explicitly requested
+    if reset:
+        data_manager.reset(seed)
+        logger.clear_logs()
+        print(f"🔄 Session {session_id}: Data reset requested with seed: {seed}")
+    else:
+        # Just clear logs for the new session, preserve data
+        logger.clear_logs()
+        print(f"📝 Session {session_id}: New session created, data preserved")
     
     return {"session_id": session_id}
 
