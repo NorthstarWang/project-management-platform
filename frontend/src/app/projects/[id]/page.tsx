@@ -8,6 +8,10 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { 
+  CustomDialog as Dialog,
+  CustomDialogContent as DialogContent,
+} from '@/components/ui/CustomDialog';
+import { 
   Plus, 
   MoreHorizontal, 
   Calendar,
@@ -20,6 +24,7 @@ import {
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
 import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
+import CreateBoardModal from '@/components/CreateBoardModal';
 
 interface User {
   id: string;
@@ -84,6 +89,7 @@ export default function ProjectPage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateBoard, setShowCreateBoard] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
@@ -208,8 +214,7 @@ export default function ProjectPage() {
       team_members_count: teamMembers.length
     });
     
-    // TODO: Open create board modal
-    toast.info('Create board functionality coming soon');
+    setShowCreateBoard(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -443,6 +448,18 @@ export default function ProjectPage() {
           </div>
         </div>
       </div>
+
+      {/* Create Board Modal */}
+      <Dialog open={showCreateBoard} onOpenChange={setShowCreateBoard}>
+        <DialogContent className="max-w-2xl">
+          <CreateBoardModal 
+            projectId={projectId}
+            projectName={project?.name || 'Project'}
+            onClose={() => setShowCreateBoard(false)}
+            onBoardCreated={loadProjectData}
+          />
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 } 

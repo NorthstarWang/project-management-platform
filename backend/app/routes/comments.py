@@ -42,6 +42,12 @@ def create_comment(comment_in: CommentIn, request: Request, current_user: dict =
             parent_comment_id=comment_in.parent_comment_id
         )
         
+        # Add author information to the response
+        comment_with_author = {
+            **comment,
+            "author": current_user
+        }
+        
         # Create notification if task is assigned to someone else
         if task["assignee_id"] and task["assignee_id"] != current_user["id"]:
             data_manager.notification_service.create_task_commented_notification(
@@ -57,7 +63,7 @@ def create_comment(comment_in: CommentIn, request: Request, current_user: dict =
             "parentCommentId": comment_in.parent_comment_id,
             "authorId": current_user["id"]
         })
-        return comment
+        return comment_with_author
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

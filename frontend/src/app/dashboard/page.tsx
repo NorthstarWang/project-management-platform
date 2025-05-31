@@ -10,6 +10,10 @@ import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
 import { 
+  CustomDialog as Dialog,
+  CustomDialogContent as DialogContent,
+} from '@/components/ui/CustomDialog';
+import { 
   FolderOpen, 
   CheckSquare, 
   Clock, 
@@ -23,6 +27,7 @@ import {
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
 import authService from '@/services/authService';
+import CreateProjectModal from '@/components/CreateProjectModal';
 
 interface User {
   id: string;
@@ -101,6 +106,7 @@ export default function DashboardPage() {
   const [recentComments, setRecentComments] = useState<Comment[]>([]);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateProject, setShowCreateProject] = useState(false);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -277,8 +283,7 @@ export default function DashboardPage() {
 
     switch (action) {
       case 'create_project':
-        // TODO: Open create project modal
-        toast.info('Create project functionality coming soon');
+        setShowCreateProject(true);
         break;
       case 'view_project':
         if (projectId) {
@@ -669,6 +674,16 @@ export default function DashboardPage() {
           )}
         </Card>
       </div>
+
+      {/* Create Project Modal */}
+      <Dialog open={showCreateProject} onOpenChange={setShowCreateProject}>
+        <DialogContent className="max-w-2xl">
+          <CreateProjectModal 
+            onClose={() => setShowCreateProject(false)}
+            onProjectCreated={loadDashboardData}
+          />
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 } 

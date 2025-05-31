@@ -16,7 +16,8 @@ class TaskService:
     
     def create_task(self, title: str, description: str, list_id: str, created_by: str,
                    assignee_id: Optional[str] = None, priority: str = "medium", 
-                   due_date: Optional[str] = None, position: Optional[int] = None) -> Dict[str, Any]:
+                   due_date: Optional[str] = None, position: Optional[int] = None,
+                   status: str = "todo", task_type: str = "task") -> Dict[str, Any]:
         """Create a new task"""
         # Verify list exists
         task_list = next((l for l in self.board_repository.lists_store if l["id"] == list_id), None)
@@ -45,7 +46,8 @@ class TaskService:
             "list_id": list_id,
             "assignee_id": assignee_id,
             "priority": priority,
-            "status": "todo",
+            "status": status,
+            "task_type": task_type,
             "due_date": due_date,
             "position": position,
             "created_by": created_by
