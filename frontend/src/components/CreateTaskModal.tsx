@@ -422,9 +422,8 @@ export default function CreateTaskModal({
             variant="outline" 
             onClick={prevStep}
             disabled={currentStep === 1}
-            className="flex items-center"
+            leftIcon={<ChevronLeft className="h-4 w-4" />}
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
           </Button>
 
@@ -444,10 +443,9 @@ export default function CreateTaskModal({
               <Button 
                 onClick={nextStep}
                 disabled={!validateStep(currentStep)}
-                className="flex items-center"
+                rightIcon={<ChevronRight className="h-4 w-4" />}
               >
                 Next
-                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             )}
           </div>

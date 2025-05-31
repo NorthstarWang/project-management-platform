@@ -1,5 +1,5 @@
 # Import all models for easy access
-from .user_models import UserIn, UserRole
+from .user_models import UserIn, UserRole, LoginRequest
 from .project_models import TeamIn, ProjectIn, ProjectAssignmentIn
 from .board_models import BoardIn, BoardMembershipIn
 from .task_models import (
@@ -13,7 +13,7 @@ from .search_models import SearchQuery
 # Export all models
 __all__ = [
     # User models
-    "UserIn", "UserRole",
+    "UserIn", "UserRole", "LoginRequest",
     # Project models  
     "TeamIn", "ProjectIn", "ProjectAssignmentIn",
     # Board models

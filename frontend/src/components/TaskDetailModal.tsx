@@ -268,7 +268,7 @@ export default function TaskDetailModal({
     <>
       <DialogHeader>
         <div className="flex items-start justify-between">
-          <div className="flex-1">
+          <div className="flex-1 pr-4">
             {isEditing ? (
               <div className="space-y-2">
                 <Input
@@ -285,47 +285,49 @@ export default function TaskDetailModal({
               Task #{task.id.slice(-6)} • Created {formatRelativeDate(task.created_at)}
             </DialogDescription>
           </div>
-          
-          <div className="flex items-center space-x-2 ml-4">
-            {!isEditing ? (
+        </div>
+        
+        {/* Action Buttons Row - Separate from header to prevent overlapping */}
+        <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-secondary">
+          {!isEditing ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              leftIcon={<Edit className="h-4 w-4" />}
+            >
+              Edit
+            </Button>
+          ) : (
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditForm({
+                    title: task.title,
+                    description: task.description,
+                    assignee_id: task.assignee_id || '',
+                    priority: task.priority,
+                    due_date: task.due_date || '',
+                    list_id: task.list_id
+                  });
+                }}
+                leftIcon={<X className="h-4 w-4" />}
               >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
+                Cancel
               </Button>
-            ) : (
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditForm({
-                      title: task.title,
-                      description: task.description,
-                      assignee_id: task.assignee_id || '',
-                      priority: task.priority,
-                      due_date: task.due_date || '',
-                      list_id: task.list_id
-                    });
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSaveChanges}
-                  disabled={isUpdating}
-                >
-                  <Save className="h-4 w-4 mr-1" />
-                  {isUpdating ? 'Saving...' : 'Save'}
-                </Button>
-              </div>
-            )}
-          </div>
+              <Button
+                size="sm"
+                onClick={handleSaveChanges}
+                disabled={isUpdating}
+                leftIcon={<Save className="h-4 w-4" />}
+              >
+                {isUpdating ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          )}
         </div>
       </DialogHeader>
 
@@ -374,8 +376,8 @@ export default function TaskDetailModal({
 
           {/* Assignee */}
           <div>
-            <Label className="text-sm font-medium text-primary mb-2 block">
-              <User className="h-4 w-4 inline mr-1" />
+            <Label className="text-sm font-medium text-primary mb-2 block flex items-center">
+              <User className="h-4 w-4 mr-2" />
               Assigned to
             </Label>
             {isEditing ? (
@@ -416,8 +418,8 @@ export default function TaskDetailModal({
 
           {/* Priority */}
           <div>
-            <Label className="text-sm font-medium text-primary mb-2 block">
-              <AlertCircle className="h-4 w-4 inline mr-1" />
+            <Label className="text-sm font-medium text-primary mb-2 block flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2" />
               Priority
             </Label>
             {isEditing ? (
@@ -465,8 +467,8 @@ export default function TaskDetailModal({
 
           {/* Due Date */}
           <div>
-            <Label className="text-sm font-medium text-primary mb-2 block">
-              <Calendar className="h-4 w-4 inline mr-1" />
+            <Label className="text-sm font-medium text-primary mb-2 block flex items-center">
+              <Calendar className="h-4 w-4 mr-2" />
               Due Date
             </Label>
             {isEditing ? (
@@ -535,8 +537,8 @@ export default function TaskDetailModal({
                   size="sm"
                   onClick={handleAddComment}
                   disabled={!newComment.trim() || isAddingComment}
+                  leftIcon={<Send className="h-3 w-3" />}
                 >
-                  <Send className="h-3 w-3 mr-1" />
                   {isAddingComment ? 'Adding...' : 'Comment'}
                 </Button>
               </div>
@@ -603,8 +605,8 @@ export default function TaskDetailModal({
             variant="outline" 
             onClick={handleDeleteTask}
             className="text-error hover:bg-error hover:text-white"
+            leftIcon={<Trash2 className="h-4 w-4" />}
           >
-            <Trash2 className="h-4 w-4 mr-1" />
             Delete
           </Button>
           
@@ -613,8 +615,11 @@ export default function TaskDetailModal({
               Close
             </Button>
             {isEditing && (
-              <Button onClick={handleSaveChanges} disabled={isUpdating}>
-                <Save className="h-4 w-4 mr-1" />
+              <Button 
+                onClick={handleSaveChanges} 
+                disabled={isUpdating}
+                leftIcon={<Save className="h-4 w-4" />}
+              >
                 {isUpdating ? 'Saving...' : 'Save Changes'}
               </Button>
             )}
