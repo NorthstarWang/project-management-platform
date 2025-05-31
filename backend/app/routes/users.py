@@ -60,4 +60,43 @@ def get_user_assigned_tasks(user_id: str, request: Request, current_user: dict =
         log_action(request, "USER_TASKS_GET", {"userId": user_id, "requestedBy": current_user["id"]})
         return tasks
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) 
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/users/me/team-members")
+def get_my_team_members(request: Request, current_user: dict = Depends(get_current_user)):
+    """Get team members for the current user (managers only)"""
+    if current_user["role"] not in ["manager", "admin"]:
+        raise HTTPException(status_code=403, detail="Only managers and admins can view team members")
+    
+    try:
+        # Get teams where the user is a manager
+        user_teams = []
+        for membership in data_manager.team_memberships:
+            if membership["user_id"] == current_user["id"] and membership["role"] in ["manager", "admin"]:
+                team = next((t for t in data_manager.teams if t["id"] == membership["team_id"]), None)
+                if team:
+                    user_teams.append(team)
+        
+        # Get all members from user's teams
+        team_members = []
+        seen_user_ids = set()
+        
+        for team in user_teams:
+            members = data_manager.user_repository.find_by_team(data_manager.team_memberships, team["id"])
+            for member in members:
+                if member["id"] not in seen_user_ids:
+                    seen_user_ids.add(member["id"])
+                    team_members.append(member)
+        
+        # If admin, return all users
+        if current_user["role"] == "admin":
+            team_members = data_manager.user_repository.find_all()
+        
+        log_action(request, "TEAM_MEMBERS_LIST", {
+            "managerId": current_user["id"],
+            "memberCount": len(team_members)
+        })
+        
+        return team_members
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 

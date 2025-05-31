@@ -37,7 +37,9 @@ def create_task(task_in: TaskIn, request: Request, current_user: dict = Depends(
             assignee_id=task_in.assignee_id,
             priority=task_in.priority.value if task_in.priority else "medium",
             due_date=task_in.due_date,
-            position=task_in.position
+            position=task_in.position,
+            status=task_in.status.value if task_in.status else "todo",
+            task_type=task_in.task_type.value if task_in.task_type else "task"
         )
         
         log_action(request, "TASK_CREATE", {

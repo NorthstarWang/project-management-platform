@@ -3,8 +3,8 @@ from .user_models import UserIn, UserRole, LoginRequest
 from .project_models import TeamIn, ProjectIn, ProjectAssignmentIn
 from .board_models import BoardIn, BoardMembershipIn
 from .task_models import (
-    ListIn, TaskIn, TaskUpdate, TaskStatus, TaskPriority, 
-    TaskMoveIn, TaskActivityIn, ActivityType
+    ListIn, TaskIn, TaskUpdate, TaskStatus, TaskPriority, TaskType,
+    TaskMoveIn, TaskActivityIn, ActivityType, CustomStatusIn, CustomTaskTypeIn
 )
 from .notification_models import NotificationIn, NotificationType
 from .comment_models import CommentIn
@@ -19,8 +19,8 @@ __all__ = [
     # Board models
     "BoardIn", "BoardMembershipIn",
     # Task models
-    "ListIn", "TaskIn", "TaskUpdate", "TaskStatus", "TaskPriority",
-    "TaskMoveIn", "TaskActivityIn", "ActivityType",
+    "ListIn", "TaskIn", "TaskUpdate", "TaskStatus", "TaskPriority", "TaskType",
+    "TaskMoveIn", "TaskActivityIn", "ActivityType", "CustomStatusIn", "CustomTaskTypeIn",
     # Notification models
     "NotificationIn", "NotificationType",
     # Comment models

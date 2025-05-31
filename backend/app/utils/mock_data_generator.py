@@ -318,6 +318,24 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
                 due_date = datetime.now() + timedelta(days=random.randint(1, 30))
                 due_date = due_date.isoformat()
             
+            # Determine task type based on title content
+            task_type = "task"  # default
+            title_lower = template["title"].lower()
+            if "bug" in title_lower or "fix" in title_lower:
+                task_type = "bug"
+            elif "design" in title_lower or "wireframe" in title_lower:
+                task_type = "feature"
+            elif "research" in title_lower or "plan" in title_lower:
+                task_type = "research"
+            elif "documentation" in title_lower or "api doc" in title_lower:
+                task_type = "task"
+            else:
+                # Random selection with weights
+                task_type = random.choices(
+                    ["feature", "bug", "task", "research", "fix"],
+                    weights=[0.3, 0.2, 0.3, 0.1, 0.1]
+                )[0]
+            
             data_manager.tasks.append({
                 "id": task_id,
                 "title": template["title"],
@@ -326,6 +344,7 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
                 "assignee_id": assignee,
                 "priority": template["priority"],
                 "status": random.choice(statuses),
+                "task_type": task_type,
                 "due_date": due_date,
                 "position": task_num,
                 "created_by": random.choice(team_users),

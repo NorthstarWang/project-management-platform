@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from ..data_manager import data_manager
-from ..models import BoardIn, BoardMembershipIn, ListIn
+from ..models import BoardIn, BoardMembershipIn, ListIn, CustomStatusIn, CustomTaskTypeIn
 from .dependencies import get_current_user, log_action
 
 router = APIRouter(prefix="/api", tags=["boards"])
@@ -206,4 +206,97 @@ def create_list(list_in: ListIn, request: Request, current_user: dict = Depends(
         })
         return board_list
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) 
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/boards/{board_id}/statuses")
+def get_board_statuses(board_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Get available statuses for a board"""
+    try:
+        # Check board access
+        if not data_manager.board_service.check_user_board_access(current_user["id"], board_id, current_user["role"]):
+            raise HTTPException(status_code=403, detail="Access denied to this board")
+        
+        # For now, return default statuses
+        # In future, this will return custom statuses per board
+        default_statuses = [
+            {"id": "backlog", "name": "Backlog", "position": 0, "color": "#6B7280"},
+            {"id": "todo", "name": "To Do", "position": 1, "color": "#3B82F6"},
+            {"id": "in_progress", "name": "In Progress", "position": 2, "color": "#F59E0B"},
+            {"id": "review", "name": "Review", "position": 3, "color": "#8B5CF6"},
+            {"id": "done", "name": "Done", "position": 4, "color": "#10B981"},
+            {"id": "archived", "name": "Archived", "position": 5, "color": "#9CA3AF"},
+            {"id": "deleted", "name": "Deleted", "position": 6, "color": "#EF4444"}
+        ]
+        
+        log_action(request, "BOARD_STATUSES_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
+        return default_statuses
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/boards/{board_id}/task-types")
+def get_board_task_types(board_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Get available task types for a board"""
+    try:
+        # Check board access
+        if not data_manager.board_service.check_user_board_access(current_user["id"], board_id, current_user["role"]):
+            raise HTTPException(status_code=403, detail="Access denied to this board")
+        
+        # For now, return default task types
+        # In future, this will return custom task types per board
+        default_task_types = [
+            {"id": "feature", "name": "Feature", "color": "#3B82F6", "icon": "feature"},
+            {"id": "bug", "name": "Bug", "color": "#EF4444", "icon": "bug"},
+            {"id": "research", "name": "Research", "color": "#8B5CF6", "icon": "research"},
+            {"id": "fix", "name": "Fix", "color": "#F97316", "icon": "fix"},
+            {"id": "story", "name": "Story", "color": "#10B981", "icon": "story"},
+            {"id": "task", "name": "Task", "color": "#6B7280", "icon": "task"}
+        ]
+        
+        log_action(request, "BOARD_TASK_TYPES_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
+        return default_task_types
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/boards/{board_id}/statuses")
+def add_board_status(board_id: str, status_in: CustomStatusIn, request: Request, 
+                    current_user: dict = Depends(get_current_user)):
+    """Add a custom status to a board (admin/manager only)"""
+    # Check permissions
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admins and managers can add statuses")
+    
+    # Check board access
+    if not data_manager.board_service.check_user_board_access(current_user["id"], board_id, current_user["role"]):
+        raise HTTPException(status_code=403, detail="Access denied to this board")
+    
+    # TODO: Implement custom status storage
+    # For now, return a success message
+    log_action(request, "BOARD_STATUS_ADD", {
+        "boardId": board_id,
+        "statusName": status_in.name,
+        "addedBy": current_user["id"]
+    })
+    
+    return {"message": "Custom status feature coming soon"}
+
+@router.post("/boards/{board_id}/task-types")
+def add_board_task_type(board_id: str, task_type_in: CustomTaskTypeIn, request: Request,
+                       current_user: dict = Depends(get_current_user)):
+    """Add a custom task type to a board (admin/manager only)"""
+    # Check permissions
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admins and managers can add task types")
+    
+    # Check board access
+    if not data_manager.board_service.check_user_board_access(current_user["id"], board_id, current_user["role"]):
+        raise HTTPException(status_code=403, detail="Access denied to this board")
+    
+    # TODO: Implement custom task type storage
+    # For now, return a success message
+    log_action(request, "BOARD_TASK_TYPE_ADD", {
+        "boardId": board_id,
+        "taskTypeName": task_type_in.name,
+        "addedBy": current_user["id"]
+    })
+    
+    return {"message": "Custom task type feature coming soon"} 

@@ -1,12 +1,23 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
 
 class TaskStatus(str, Enum):
+    BACKLOG = "backlog"
     TODO = "todo"
     IN_PROGRESS = "in_progress"
+    REVIEW = "review"
     DONE = "done"
     ARCHIVED = "archived"
+    DELETED = "deleted"
+
+class TaskType(str, Enum):
+    FEATURE = "feature"
+    BUG = "bug"
+    RESEARCH = "research"
+    FIX = "fix"
+    STORY = "story"
+    TASK = "task"
 
 class TaskPriority(str, Enum):
     LOW = "low"
@@ -25,6 +36,19 @@ class ActivityType(str, Enum):
     ARCHIVED = "archived"
     DELETED = "deleted"
 
+# Models for customizable statuses and task types
+class CustomStatusIn(BaseModel):
+    name: str
+    board_id: str
+    color: Optional[str] = "#808080"
+    position: int
+
+class CustomTaskTypeIn(BaseModel):
+    name: str
+    board_id: str
+    color: Optional[str] = "#808080"
+    icon: Optional[str] = None
+
 class ListIn(BaseModel):
     name: str
     board_id: str
@@ -33,11 +57,13 @@ class ListIn(BaseModel):
 class TaskIn(BaseModel):
     title: str
     description: Optional[str] = None
-    list_id: str
+    list_id: str  # Keep for backward compatibility, will be deprecated
     assignee_id: Optional[str] = None
     priority: TaskPriority = TaskPriority.MEDIUM
     due_date: Optional[str] = None  # ISO format string
     position: Optional[int] = None
+    status: Optional[TaskStatus] = TaskStatus.TODO
+    task_type: Optional[TaskType] = TaskType.TASK
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
@@ -46,11 +72,12 @@ class TaskUpdate(BaseModel):
     priority: Optional[TaskPriority] = None
     due_date: Optional[str] = None
     status: Optional[TaskStatus] = None
-    list_id: Optional[str] = None
+    task_type: Optional[TaskType] = None
+    list_id: Optional[str] = None  # Keep for backward compatibility
     position: Optional[int] = None
 
 class TaskMoveIn(BaseModel):
-    list_id: str
+    list_id: str  # Keep for backward compatibility
     position: Optional[int] = None
 
 class TaskActivityIn(BaseModel):
