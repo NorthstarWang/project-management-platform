@@ -11,6 +11,7 @@ import {
   CustomDialog as Dialog,
   CustomDialogContent as DialogContent,
 } from '@/components/ui/CustomDialog';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { 
   Plus, 
   MoreHorizontal, 
@@ -19,7 +20,8 @@ import {
   FolderOpen,
   ArrowRight,
   Settings,
-  Eye
+  Eye,
+  Trash2
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
@@ -40,6 +42,7 @@ interface Project {
   description: string;
   team_id: string;
   created_at: string;
+  created_by?: string;
 }
 
 interface Board {
@@ -90,6 +93,9 @@ export default function ProjectPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateBoard, setShowCreateBoard] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [projectManagers, setProjectManagers] = useState<string[]>([]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -150,6 +156,15 @@ export default function ProjectPage() {
         } catch (error) {
           console.error('Failed to load team data:', error);
         }
+      }
+
+      // Load project managers
+      try {
+        const managersResponse = await apiClient.get(`/api/projects/${projectId}/managers`);
+        const managerIds = managersResponse.data.map((m: any) => m.manager_id);
+        setProjectManagers(managerIds);
+      } catch (error) {
+        console.error('Failed to load project managers:', error);
       }
 
       // Log successful data load
@@ -225,6 +240,69 @@ export default function ProjectPage() {
     });
   };
 
+  const canDeleteProject = () => {
+    if (!user || !project) return false;
+    
+    if (user.role === 'admin') return true;
+    
+    if (user.role === 'manager') {
+      // Check if user created the project
+      if (project.created_by === user.id) return true;
+      // Check if user is assigned as a manager
+      if (projectManagers.includes(user.id)) return true;
+    }
+    
+    return false;
+  };
+
+  const handleDeleteProject = async () => {
+    if (!project) return;
+
+    try {
+      setIsDeleting(true);
+      
+      const response = await apiClient.delete(`/api/projects/${projectId}`);
+      
+      // Log successful deletion
+      trackEvent('PROJECT_DELETE', {
+        project_id: projectId,
+        project_name: project.name,
+        cascade_deleted: response.data.cascadeDeleted,
+        timestamp: new Date().toISOString()
+      });
+      
+      toast.success(`Project "${project.name}" deleted successfully`);
+      
+      // Navigate back to projects list
+      router.push('/projects');
+    } catch (error: any) {
+      console.error('Failed to delete project:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete project');
+      
+      // Log deletion error
+      trackEvent('PROJECT_DELETE_ERROR', {
+        project_id: projectId,
+        error: error.response?.data?.detail || error.message || 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    trackEvent('PROJECT_DELETE_ATTEMPT', {
+      project_id: projectId,
+      project_name: project?.name,
+      boards_count: boards.length,
+      tasks_count: boards.reduce((total, board) => total + (board.tasks_count || 0), 0),
+      timestamp: new Date().toISOString()
+    });
+    
+    setShowDeleteConfirm(true);
+  };
+
   if (!user) {
     return null;
   }
@@ -260,6 +338,17 @@ export default function ProjectPage() {
               <Button variant="outline" size="sm" leftIcon={<Settings className="h-4 w-4" />}>
                 Settings
               </Button>
+              {canDeleteProject() && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  leftIcon={<Trash2 className="h-4 w-4" />}
+                  onClick={handleDeleteClick}
+                  className="text-error hover:text-error hover:bg-error/10"
+                >
+                  Delete
+                </Button>
+              )}
               <Button size="sm" onClick={handleCreateBoard} data-testid="create-board-button" leftIcon={<Plus className="h-4 w-4" />}>
                 Create Board
               </Button>
@@ -460,6 +549,18 @@ export default function ProjectPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteProject}
+        title="Delete Project"
+        description={`Are you sure you want to delete "${project?.name}"? This will permanently delete ${boards.length} board${boards.length !== 1 ? 's' : ''}, ${boards.reduce((total, board) => total + (board.tasks_count || 0), 0)} task${boards.reduce((total, board) => total + (board.tasks_count || 0), 0) !== 1 ? 's' : ''}, and all associated comments and activities. This action cannot be undone.`}
+        confirmText="Delete Project"
+        type="danger"
+        loading={isDeleting}
+      />
     </DashboardLayout>
   );
 } 
