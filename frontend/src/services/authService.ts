@@ -4,6 +4,8 @@
  */
 
 import apiClient from './apiClient';
+import { toast } from '@/components/ui/CustomToast';
+import { track, captureStorageSnapshot } from './analyticsLogger';
 
 export interface User {
   id: string;
@@ -193,6 +195,9 @@ class AuthenticationService {
       this.isInitialized = true;
       console.log('🎉 Login flow completed successfully!');
 
+      // Capture storage snapshot after successful login
+      captureStorageSnapshot();
+
       return {
         success: true,
         user: userData
@@ -214,6 +219,9 @@ class AuthenticationService {
    */
   async logout(): Promise<void> {
     console.log('🔄 Starting logout process...');
+    
+    // Capture storage snapshot before logout
+    captureStorageSnapshot();
     
     try {
       // Log the logout event if we have a session

@@ -79,6 +79,37 @@ class AnalyticsLogger {
       });
     }, true);
 
+    // Mouseover events
+    let mouseoverTimeout: ReturnType<typeof setTimeout>;
+    document.addEventListener('mouseover', (event) => {
+      const target = event.target as Element;
+      
+      // Only log mouseover for interactive elements
+      const isInteractive = 
+        target.tagName === 'BUTTON' ||
+        target.tagName === 'A' ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.getAttribute('role') === 'button' ||
+        target.getAttribute('data-testid')?.includes('draggable') ||
+        target.getAttribute('data-testid')?.includes('droppable') ||
+        target.classList.contains('cursor-pointer') ||
+        target.classList.contains('hover:') ||
+        (target.closest('[data-testid*="draggable"]') !== null);
+      
+      if (isInteractive) {
+        clearTimeout(mouseoverTimeout);
+        mouseoverTimeout = setTimeout(() => {
+          this.logEvent('mouseover', {
+            page_url: window.location.href,
+            target_element_identifier: this.getElementIdentifier(target),
+            coordinates: { x: event.clientX, y: event.clientY },
+          });
+        }, 100); // Debounce to avoid spam
+      }
+    }, true);
+
     // Keystrokes (excluding sensitive data)
     document.addEventListener('keydown', (event) => {
       const target = event.target as HTMLElement;
@@ -140,6 +171,235 @@ class AnalyticsLogger {
         type: 'popstate',
       });
     });
+
+    // Set up storage tracking
+    this.setupStorageTracking();
+
+    // Set up DOM mutation observer
+    this.setupDOMMutationObserver();
+  }
+
+  /**
+   * Track localStorage and sessionStorage changes
+   */
+  private setupStorageTracking(): void {
+    if (!this.isClient) return;
+
+    // Send initial storage snapshot
+    this.logStorageSnapshot();
+
+    // Override localStorage methods
+    const originalSetItem = localStorage.setItem;
+    const originalRemoveItem = localStorage.removeItem;
+    const originalClear = localStorage.clear;
+
+    localStorage.setItem = (key: string, value: string) => {
+      originalSetItem.call(localStorage, key, value);
+      this.logEvent('STORAGE_SET', {
+        storageType: 'localStorage',
+        key,
+        value,
+        page_url: window.location.href,
+      });
+    };
+
+    localStorage.removeItem = (key: string) => {
+      originalRemoveItem.call(localStorage, key);
+      this.logEvent('STORAGE_REMOVE', {
+        storageType: 'localStorage',
+        key,
+        page_url: window.location.href,
+      });
+    };
+
+    localStorage.clear = () => {
+      originalClear.call(localStorage);
+      this.logEvent('STORAGE_CLEAR', {
+        storageType: 'localStorage',
+        page_url: window.location.href,
+      });
+    };
+
+    // Override sessionStorage methods
+    const originalSessionSetItem = sessionStorage.setItem;
+    const originalSessionRemoveItem = sessionStorage.removeItem;
+    const originalSessionClear = sessionStorage.clear;
+
+    sessionStorage.setItem = (key: string, value: string) => {
+      originalSessionSetItem.call(sessionStorage, key, value);
+      this.logEvent('STORAGE_SET', {
+        storageType: 'sessionStorage',
+        key,
+        value,
+        page_url: window.location.href,
+      });
+    };
+
+    sessionStorage.removeItem = (key: string) => {
+      originalSessionRemoveItem.call(sessionStorage, key);
+      this.logEvent('STORAGE_REMOVE', {
+        storageType: 'sessionStorage',
+        key,
+        page_url: window.location.href,
+      });
+    };
+
+    sessionStorage.clear = () => {
+      originalSessionClear.call(sessionStorage);
+      this.logEvent('STORAGE_CLEAR', {
+        storageType: 'sessionStorage',
+        page_url: window.location.href,
+      });
+    };
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener('storage', (event) => {
+      this.logEvent('STORAGE_EXTERNAL_CHANGE', {
+        key: event.key,
+        oldValue: event.oldValue,
+        newValue: event.newValue,
+        storageArea: event.storageArea === localStorage ? 'localStorage' : 'sessionStorage',
+        url: event.url,
+        page_url: window.location.href,
+      });
+    });
+  }
+
+  /**
+   * Log current storage snapshot
+   */
+  private logStorageSnapshot(): void {
+    if (!this.isClient) return;
+
+    const localStorageData: Record<string, string> = {};
+    const sessionStorageData: Record<string, string> = {};
+    const cookiesData: Record<string, string> = {};
+
+    // Capture localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        localStorageData[key] = localStorage.getItem(key) || '';
+      }
+    }
+
+    // Capture sessionStorage
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key) {
+        sessionStorageData[key] = sessionStorage.getItem(key) || '';
+      }
+    }
+
+    // Capture cookies
+    document.cookie.split(';').forEach(cookie => {
+      const [key, value] = cookie.trim().split('=');
+      if (key) {
+        cookiesData[key] = decodeURIComponent(value || '');
+      }
+    });
+
+    this.logEvent('STORAGE_SNAPSHOT', {
+      localStorage: localStorageData,
+      sessionStorage: sessionStorageData,
+      cookies: cookiesData,
+      page_url: window.location.href,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Set up DOM mutation observer
+   */
+  private setupDOMMutationObserver(): void {
+    if (!this.isClient || typeof MutationObserver === 'undefined') return;
+
+    let mutationTimeout: ReturnType<typeof setTimeout>;
+    const mutations: MutationRecord[] = [];
+
+    const observer = new MutationObserver((mutationsList) => {
+      mutations.push(...mutationsList);
+      
+      // Debounce mutation logging
+      clearTimeout(mutationTimeout);
+      mutationTimeout = setTimeout(() => {
+        if (mutations.length > 0) {
+          const summary = this.summarizeMutations(mutations);
+          if (summary.hasSignificantChanges) {
+            this.logEvent('DOM_MUTATION', {
+              page_url: window.location.href,
+              ...summary,
+            });
+          }
+          mutations.length = 0; // Clear mutations array
+        }
+      }, 500);
+    });
+
+    // Start observing
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeOldValue: true,
+      characterData: true,
+      characterDataOldValue: true,
+    });
+  }
+
+  /**
+   * Summarize DOM mutations to avoid spam
+   */
+  private summarizeMutations(mutations: MutationRecord[]): any {
+    const summary = {
+      hasSignificantChanges: false,
+      addedNodes: 0,
+      removedNodes: 0,
+      attributeChanges: 0,
+      textChanges: 0,
+      significantElements: [] as string[],
+    };
+
+    mutations.forEach(mutation => {
+      if (mutation.type === 'childList') {
+        summary.addedNodes += mutation.addedNodes.length;
+        summary.removedNodes += mutation.removedNodes.length;
+        
+        // Track significant added elements
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as Element;
+            const identifier = this.getElementIdentifier(element);
+            if (element.getAttribute('data-testid') || 
+                element.tagName === 'BUTTON' || 
+                element.tagName === 'FORM' ||
+                element.classList.contains('modal') ||
+                element.classList.contains('task') ||
+                element.classList.contains('board')) {
+              summary.significantElements.push(identifier);
+              summary.hasSignificantChanges = true;
+            }
+          }
+        });
+      } else if (mutation.type === 'attributes') {
+        summary.attributeChanges++;
+        // Track significant attribute changes
+        if (mutation.attributeName === 'data-testid' ||
+            mutation.attributeName === 'aria-expanded' ||
+            mutation.attributeName === 'disabled') {
+          summary.hasSignificantChanges = true;
+        }
+      } else if (mutation.type === 'characterData') {
+        summary.textChanges++;
+      }
+    });
+
+    // Consider changes significant if there are many of them or specific important changes
+    if (summary.addedNodes > 5 || summary.removedNodes > 5 || summary.attributeChanges > 10) {
+      summary.hasSignificantChanges = true;
+    }
+
+    return summary;
   }
 
   /**
@@ -282,6 +542,23 @@ class AnalyticsLogger {
   public getSessionId(): string | null {
     return this.sessionId;
   }
+
+  /**
+   * Manually trigger a storage snapshot
+   */
+  public captureStorageSnapshot(): void {
+    this.logStorageSnapshot();
+  }
+
+  /**
+   * Log drag and drop events
+   */
+  public logDragEvent(eventType: 'start' | 'over' | 'end' | 'drop', data: any): void {
+    this.logEvent(`drag_${eventType}`, {
+      page_url: window.location.href,
+      ...data,
+    });
+  }
 }
 
 // Create singleton instance
@@ -317,6 +594,18 @@ export const getSessionId = () => {
     return analyticsLogger.getSessionId();
   }
   return null;
+};
+
+export const captureStorageSnapshot = () => {
+  if (typeof window !== 'undefined') {
+    analyticsLogger.captureStorageSnapshot();
+  }
+};
+
+export const logDragEvent = (eventType: 'start' | 'over' | 'end' | 'drop', data: any) => {
+  if (typeof window !== 'undefined') {
+    analyticsLogger.logDragEvent(eventType, data);
+  }
 };
 
 export default analyticsLogger; 
