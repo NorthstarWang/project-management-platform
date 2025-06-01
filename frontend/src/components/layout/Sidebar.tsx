@@ -5,19 +5,18 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Home, 
-  FolderOpen, 
-  Calendar, 
-  Users, 
   ChevronDown,
   ChevronRight,
-  LogOut,
+  Home,
+  Users,
+  Calendar,
+  FolderOpen,
   Layers,
+  LogOut,
   Zap,
   X
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 import apiClient from '@/services/apiClient';
 import authService from '@/services/authService';
@@ -156,27 +155,29 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       {/* Logo/Brand */}
-      <div className="flex h-16 items-center justify-between px-6 border-b border-secondary">
-        <div className="flex items-center space-x-2">
-          <motion.div
-            className="flex items-center justify-center w-6 h-6 bg-accent rounded-md"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+      <div className="border-b border-secondary shadow-[0_1px_3px_0_rgb(0,0,0,0.1)]">
+        <div className="flex h-16 items-center justify-between px-6">
+          <div className="flex items-center space-x-2">
+            <motion.div
+              className="flex items-center justify-center w-8 h-8 bg-accent rounded-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Zap className="h-5 w-5 text-primary" />
+            </motion.div>
+            <h1 className="text-lg font-semibold text-primary">Hub</h1>
+          </div>
+          
+          {/* Close button for mobile */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="lg:hidden"
           >
-            <Zap className="h-4 w-4 text-on-accent" />
-          </motion.div>
-          <h1 className="text-base font-medium text-primary">Hub</h1>
+            <X className="h-4 w-4 text-muted" />
+          </Button>
         </div>
-        
-        {/* Close button for mobile */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="lg:hidden"
-        >
-          <X className="h-4 w-4 text-muted" />
-        </Button>
       </div>
 
       {/* Navigation */}
@@ -199,6 +200,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                     : 'text-secondary hover:bg-interactive-secondary-hover hover:text-primary'
                 )}
                 onClick={() => onClose && onClose()} // Close mobile menu on navigation
+                data-testid={`nav-link-${item.name.toLowerCase().replace(' ', '-')}`}
               >
                 <item.icon
                   className={cn(
@@ -219,6 +221,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             className="group flex w-full items-center px-2 py-2 text-sm font-medium text-secondary rounded-md hover:bg-interactive-secondary-hover hover:text-primary transition-all duration-200"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            data-testid="projects-toggle-button"
           >
             <FolderOpen className="mr-3 h-5 w-5 flex-shrink-0 text-muted group-hover:text-secondary transition-colors duration-200" />
             <span className="truncate">Projects</span>
@@ -286,6 +289,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                               )}
                               title={project.name}
                               onClick={() => onClose && onClose()}
+                              data-testid={`project-link-${project.id}`}
                             >
                               <span className="truncate">{truncateText(project.name, 16)}</span>
                             </Link>
@@ -326,6 +330,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                                         )}
                                         title={board.name}
                                         onClick={() => onClose && onClose()}
+                                        data-testid={`board-link-${board.id}`}
                                       >
                                         <Layers className="mr-2 h-3 w-3 flex-shrink-0 transition-colors duration-200" />
                                         <span className="truncate">{truncateText(board.name, 14)}</span>
@@ -364,6 +369,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           onClick={handleLogout}
           className="w-full justify-start text-secondary hover:text-primary"
           leftIcon={<LogOut className="h-4 w-4" />}
+          data-testid="logout-button"
         >
           Logout
         </Button>
