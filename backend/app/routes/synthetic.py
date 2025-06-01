@@ -4,6 +4,7 @@ import uuid
 from typing import Any, Dict, Optional
 from ..logger import logger
 from ..data_manager import data_manager
+import time
 
 router = APIRouter()
 
@@ -58,6 +59,65 @@ def set_state(data: Dict[str, Any]):
 def get_state():
     """Get current backend state"""
     return data_manager.get_full_state()
+
+@router.get("/state/db")
+def get_db_state(table: Optional[str] = None):
+    """Get backend database state. Optional table parameter to filter specific entities."""
+    full_state = data_manager.get_full_state()
+    
+    if table:
+        # Return specific table/entity if requested
+        return {table: full_state.get(table, [])}
+    
+    # Return full database state
+    return full_state
+
+@router.get("/state/storage")
+async def get_storage_state(session_id: str = Query(None)):
+    """
+    Get client-side storage state for a session.
+    Returns localStorage, sessionStorage, and cookies data.
+    """
+    # Get the session logs to extract storage state
+    logs = logger.get_logs(session_id)
+    
+    # Filter for storage-related events
+    storage_logs = [
+        log for log in logs 
+        if log.get("action_type", "").startswith("STORAGE_")
+    ]
+    
+    # Get the most recent storage snapshot
+    storage_state = {
+        "localStorage": {},
+        "sessionStorage": {},
+        "cookies": {}
+    }
+    
+    # Process storage logs to build current state
+    for log in storage_logs:
+        if log.get("action_type") == "STORAGE_SNAPSHOT":
+            payload = log.get("payload", {})
+            storage_state["localStorage"].update(payload.get("localStorage", {}))
+            storage_state["sessionStorage"].update(payload.get("sessionStorage", {}))
+            storage_state["cookies"].update(payload.get("cookies", {}))
+        elif log.get("action_type") == "STORAGE_SET":
+            storage_type = log.get("payload", {}).get("storageType", "localStorage")
+            key = log.get("payload", {}).get("key")
+            value = log.get("payload", {}).get("value")
+            if key and storage_type in storage_state:
+                storage_state[storage_type][key] = value
+        elif log.get("action_type") == "STORAGE_REMOVE":
+            storage_type = log.get("payload", {}).get("storageType", "localStorage")
+            key = log.get("payload", {}).get("key")
+            if key and storage_type in storage_state:
+                storage_state[storage_type].pop(key, None)
+    
+    return {
+        "session_id": session_id,
+        "timestamp": time.time(),
+        "storage": storage_state
+    }
 
 @router.get("/logs")
 def get_logs(session_id: Optional[str] = None):

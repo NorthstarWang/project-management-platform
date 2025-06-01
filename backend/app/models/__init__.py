@@ -1,7 +1,13 @@
 # Import all models for easy access
 from .user_models import UserIn, UserRole, LoginRequest
 from .project_models import TeamIn, ProjectIn, ProjectAssignmentIn
-from .board_models import BoardIn, BoardMembershipIn
+from .board_models import (
+    BoardIn,
+    BoardMembershipIn,
+    BoardStatusIn,
+    BoardStatusesUpdate,
+    TaskStatusMigration
+)
 from .task_models import (
     ListIn, TaskIn, TaskUpdate, TaskStatus, TaskPriority, TaskType,
     TaskMoveIn, TaskActivityIn, ActivityType, CustomStatusIn, CustomTaskTypeIn
@@ -17,7 +23,7 @@ __all__ = [
     # Project models  
     "TeamIn", "ProjectIn", "ProjectAssignmentIn",
     # Board models
-    "BoardIn", "BoardMembershipIn",
+    "BoardIn", "BoardMembershipIn", "BoardStatusIn", "BoardStatusesUpdate", "TaskStatusMigration",
     # Task models
     "ListIn", "TaskIn", "TaskUpdate", "TaskStatus", "TaskPriority", "TaskType",
     "TaskMoveIn", "TaskActivityIn", "ActivityType", "CustomStatusIn", "CustomTaskTypeIn",
