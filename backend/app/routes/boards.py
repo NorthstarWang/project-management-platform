@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from ..data_manager import data_manager
-from ..models import BoardIn, BoardMembershipIn, ListIn, CustomStatusIn, CustomTaskTypeIn
+from ..models import BoardIn, BoardMembershipIn, ListIn, CustomStatusIn, CustomTaskTypeIn, BoardStatusesUpdate
 from .dependencies import get_current_user, log_action
 
 router = APIRouter(prefix="/api", tags=["boards"])
@@ -216,20 +216,11 @@ def get_board_statuses(board_id: str, request: Request, current_user: dict = Dep
         if not data_manager.board_service.check_user_board_access(current_user["id"], board_id, current_user["role"]):
             raise HTTPException(status_code=403, detail="Access denied to this board")
         
-        # For now, return default statuses
-        # In future, this will return custom statuses per board
-        default_statuses = [
-            {"id": "backlog", "name": "Backlog", "position": 0, "color": "#6B7280"},
-            {"id": "todo", "name": "To Do", "position": 1, "color": "#3B82F6"},
-            {"id": "in_progress", "name": "In Progress", "position": 2, "color": "#F59E0B"},
-            {"id": "review", "name": "Review", "position": 3, "color": "#8B5CF6"},
-            {"id": "done", "name": "Done", "position": 4, "color": "#10B981"},
-            {"id": "archived", "name": "Archived", "position": 5, "color": "#9CA3AF"},
-            {"id": "deleted", "name": "Deleted", "position": 6, "color": "#EF4444"}
-        ]
+        # Get board statuses
+        statuses = data_manager.board_service.get_board_statuses(board_id)
         
         log_action(request, "BOARD_STATUSES_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
-        return default_statuses
+        return statuses
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -299,4 +290,149 @@ def add_board_task_type(board_id: str, task_type_in: CustomTaskTypeIn, request: 
         "addedBy": current_user["id"]
     })
     
-    return {"message": "Custom task type feature coming soon"} 
+    return {"message": "Custom task type feature coming soon"}
+
+@router.put("/boards/{board_id}/statuses")
+def update_board_statuses(board_id: str, statuses_update: BoardStatusesUpdate, request: Request, 
+                         current_user: dict = Depends(get_current_user)):
+    """Update all statuses for a board (admin/manager only)"""
+    # Check permissions
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admins and managers can update statuses")
+    
+    # Check board access
+    if not data_manager.board_service.check_user_board_access(current_user["id"], board_id, current_user["role"]):
+        raise HTTPException(status_code=403, detail="Access denied to this board")
+    
+    try:
+        # Convert statuses to dict format
+        statuses = [status.dict() for status in statuses_update.statuses]
+        
+        # Update statuses and handle migrations
+        updated_statuses = data_manager.board_service.update_board_statuses(
+            board_id, statuses, statuses_update.migrationMapping
+        )
+        
+        log_action(request, "BOARD_STATUSES_UPDATE", {
+            "boardId": board_id,
+            "statusCount": len(statuses),
+            "migrations": len(statuses_update.migrationMapping),
+            "updatedBy": current_user["id"]
+        })
+        
+        return updated_statuses
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/boards/{board_id}/task-counts")
+def get_board_task_counts(board_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Get task counts by status for a board"""
+    try:
+        # Check board access
+        if not data_manager.board_service.check_user_board_access(current_user["id"], board_id, current_user["role"]):
+            raise HTTPException(status_code=403, detail="Access denied to this board")
+        
+        # Get task counts
+        task_counts = data_manager.board_service.get_task_counts_by_status(board_id)
+        
+        log_action(request, "BOARD_TASK_COUNTS_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
+        return task_counts
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.delete("/boards/{board_id}")
+def delete_board(board_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Delete a board (cascade deletes all tasks)"""
+    try:
+        # Get board details
+        board = data_manager.board_repository.find_by_id(board_id)
+        if not board:
+            raise HTTPException(status_code=404, detail="Board not found")
+        
+        # Get project details
+        project = data_manager.project_repository.find_by_id(board["project_id"])
+        if not project:
+            raise HTTPException(status_code=404, detail="Associated project not found")
+        
+        # Check permissions
+        if current_user["role"] == "admin":
+            # Admins can delete any board
+            pass
+        elif current_user["role"] == "manager":
+            # Managers can only delete boards in projects they created or are assigned to
+            is_project_creator = project.get("created_by") == current_user["id"]
+            is_project_manager = data_manager.project_repository.is_manager_assigned_to_project(
+                current_user["id"], board["project_id"]
+            )
+            is_board_creator = board.get("created_by") == current_user["id"]
+            
+            if not (is_project_creator or is_project_manager or is_board_creator):
+                raise HTTPException(status_code=403, detail="You can only delete boards in projects you manage or boards you created")
+        else:
+            raise HTTPException(status_code=403, detail="Insufficient permissions to delete boards")
+        
+        # Get all lists and tasks for cascade deletion and logging
+        lists = data_manager.board_repository.find_board_lists(board_id)
+        task_count = 0
+        
+        # Delete all tasks in all lists
+        for list_item in lists:
+            tasks = data_manager.task_repository.find_tasks_by_list(list_item["id"])
+            task_count += len(tasks)
+            
+            # Delete task-related data
+            for task in tasks:
+                task_id = task["id"]
+                
+                # Delete task comments
+                data_manager.comments[:] = [c for c in data_manager.comments if c.get("task_id") != task_id]
+                
+                # Delete task activities
+                data_manager.task_activities[:] = [ta for ta in data_manager.task_activities 
+                                                  if ta.get("task_id") != task_id]
+            
+            # Delete all tasks for this list
+            data_manager.tasks[:] = [t for t in data_manager.tasks if t.get("list_id") != list_item["id"]]
+        
+        # Delete all lists in the board
+        data_manager.lists[:] = [l for l in data_manager.lists if l.get("board_id") != board_id]
+        
+        # Delete board memberships
+        data_manager.board_memberships[:] = [bm for bm in data_manager.board_memberships 
+                                           if bm.get("board_id") != board_id]
+        
+        # Delete board statuses - check if board_statuses exists and handle safely
+        if hasattr(data_manager, 'board_statuses') and data_manager.board_statuses is not None:
+            data_manager.board_statuses[:] = [bs for bs in data_manager.board_statuses 
+                                            if bs.get("board_id") != board_id]
+        
+        # Finally, delete the board
+        data_manager.boards[:] = [b for b in data_manager.boards if b.get("id") != board_id]
+        
+        log_action(request, "BOARD_DELETE", {
+            "boardId": board_id,
+            "boardName": board["name"],
+            "projectId": board["project_id"],
+            "deletedBy": current_user["id"],
+            "cascadeDeleted": {
+                "lists": len(lists),
+                "tasks": task_count
+            }
+        })
+        
+        return {
+            "status": "deleted",
+            "board": board["name"],
+            "cascadeDeleted": {
+                "lists": len(lists),
+                "tasks": task_count
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Log the actual error for debugging
+        import traceback
+        print(f"Error deleting board {board_id}: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}") 

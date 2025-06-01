@@ -173,4 +173,102 @@ def get_manager_assigned_projects(request: Request, current_user: dict = Depends
     
     projects = data_manager.project_repository.find_manager_projects(current_user["id"])
     log_action(request, "MANAGER_PROJECTS_GET", {"managerId": current_user["id"]})
-    return projects 
+    return projects
+
+@router.delete("/projects/{project_id}")
+def delete_project(project_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Delete a project (cascade deletes all boards and tasks)"""
+    try:
+        # Get project details
+        project = data_manager.project_repository.find_by_id(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        # Check permissions
+        if current_user["role"] == "admin":
+            # Admins can delete any project
+            pass
+        elif current_user["role"] == "manager":
+            # Managers can only delete projects they created or are assigned to
+            is_creator = project.get("created_by") == current_user["id"]
+            is_assigned = data_manager.project_repository.is_manager_assigned_to_project(
+                current_user["id"], project_id
+            )
+            if not (is_creator or is_assigned):
+                raise HTTPException(status_code=403, detail="You can only delete projects you created or are assigned to")
+        else:
+            raise HTTPException(status_code=403, detail="Insufficient permissions to delete projects")
+        
+        # Get all boards in this project for cascade deletion
+        boards = data_manager.board_repository.find_boards_by_project(project_id)
+        board_ids = [board["id"] for board in boards]
+        
+        # Get all tasks in these boards for logging purposes
+        task_count = 0
+        for board_id in board_ids:
+            lists = data_manager.board_repository.find_board_lists(board_id)
+            for list_item in lists:
+                tasks = data_manager.task_repository.find_tasks_by_list(list_item["id"])
+                task_count += len(tasks)
+        
+        # Perform cascade deletion
+        # 1. Delete all tasks in all boards
+        for board_id in board_ids:
+            lists = data_manager.board_repository.find_board_lists(board_id)
+            for list_item in lists:
+                tasks = data_manager.task_repository.find_tasks_by_list(list_item["id"])
+                for task in tasks:
+                    task_id = task["id"]
+                    # Delete task comments
+                    data_manager.comments[:] = [c for c in data_manager.comments if c.get("task_id") != task_id]
+                    # Delete task activities  
+                    data_manager.task_activities[:] = [ta for ta in data_manager.task_activities 
+                                                      if ta.get("task_id") != task_id]
+                
+                # Delete all tasks for this list
+                data_manager.tasks[:] = [t for t in data_manager.tasks if t.get("list_id") != list_item["id"]]
+            
+            # 2. Delete all lists in the board
+            data_manager.lists[:] = [l for l in data_manager.lists if l.get("board_id") != board_id]
+            
+            # 3. Delete board memberships
+            data_manager.board_memberships[:] = [bm for bm in data_manager.board_memberships 
+                                               if bm.get("board_id") != board_id]
+            
+            # 4. Delete board statuses - check if board_statuses exists and handle safely
+            if hasattr(data_manager, 'board_statuses') and data_manager.board_statuses is not None:
+                data_manager.board_statuses[:] = [bs for bs in data_manager.board_statuses 
+                                                if bs.get("board_id") != board_id]
+        
+        # 5. Delete all boards
+        data_manager.boards[:] = [b for b in data_manager.boards if b.get("project_id") != project_id]
+        
+        # 6. Delete project assignments
+        data_manager.project_assignments[:] = [pa for pa in data_manager.project_assignments 
+                                             if pa.get("project_id") != project_id]
+        
+        # 7. Finally, delete the project
+        data_manager.projects[:] = [p for p in data_manager.projects if p.get("id") != project_id]
+        
+        log_action(request, "PROJECT_DELETE", {
+            "projectId": project_id,
+            "projectName": project["name"],
+            "deletedBy": current_user["id"],
+            "cascadeDeleted": {
+                "boards": len(board_ids),
+                "tasks": task_count
+            }
+        })
+        
+        return {
+            "status": "deleted",
+            "project": project["name"],
+            "cascadeDeleted": {
+                "boards": len(board_ids),
+                "tasks": task_count
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 

@@ -5,10 +5,11 @@ class BoardRepository(BaseRepository):
     """Repository for board data access"""
     
     def __init__(self, boards_store: List[Dict[str, Any]], lists_store: List[Dict[str, Any]], 
-                 board_memberships_store: List[Dict[str, Any]]):
+                 board_memberships_store: List[Dict[str, Any]], board_statuses_store: List[Dict[str, Any]] = None):
         super().__init__(boards_store)
         self.lists_store = lists_store
         self.board_memberships_store = board_memberships_store
+        self.board_statuses_store = board_statuses_store or []
     
     def find_boards_by_project(self, project_id: str) -> List[Dict[str, Any]]:
         """Find boards belonging to a project"""
@@ -66,4 +67,47 @@ class BoardRepository(BaseRepository):
             **data
         }
         self.lists_store.append(list_item)
-        return list_item 
+        return list_item
+    
+    # Board status methods
+    def get_board_statuses(self, board_id: str) -> List[Dict[str, Any]]:
+        """Get statuses for a board, returns default if none exist"""
+        statuses = [s for s in self.board_statuses_store if s["board_id"] == board_id]
+        if statuses:
+            return sorted(statuses, key=lambda x: x.get("position", 0))
+        
+        # Return default statuses if none exist
+        return self._get_default_statuses(board_id)
+    
+    def _get_default_statuses(self, board_id: str) -> List[Dict[str, Any]]:
+        """Get default statuses for a board"""
+        defaults = [
+            {"id": "backlog", "name": "Backlog", "color": "#6B7280", "position": 0, "isDeletable": True, "isCustom": False},
+            {"id": "todo", "name": "To Do", "color": "#3B82F6", "position": 1, "isDeletable": True, "isCustom": False},
+            {"id": "in_progress", "name": "In Progress", "color": "#F59E0B", "position": 2, "isDeletable": True, "isCustom": False},
+            {"id": "review", "name": "Review", "color": "#8B5CF6", "position": 3, "isDeletable": True, "isCustom": False},
+            {"id": "done", "name": "Done", "color": "#10B981", "position": 4, "isDeletable": True, "isCustom": False},
+            {"id": "archived", "name": "Archived", "color": "#9CA3AF", "position": 5, "isDeletable": False, "isCustom": False},
+            {"id": "deleted", "name": "Deleted", "color": "#EF4444", "position": 6, "isDeletable": False, "isCustom": False}
+        ]
+        return [{**status, "board_id": board_id} for status in defaults]
+    
+    def update_board_statuses(self, board_id: str, statuses: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Update all statuses for a board"""
+        # Remove existing statuses for this board
+        self.board_statuses_store[:] = [s for s in self.board_statuses_store if s["board_id"] != board_id]
+        
+        # Add new statuses
+        for status in statuses:
+            self.board_statuses_store.append({
+                **status,
+                "board_id": board_id
+            })
+        
+        return self.get_board_statuses(board_id)
+    
+    def delete_list(self, list_id: str) -> bool:
+        """Delete a list"""
+        original_length = len(self.lists_store)
+        self.lists_store[:] = [l for l in self.lists_store if l["id"] != list_id]
+        return len(self.lists_store) < original_length 

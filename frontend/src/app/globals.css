@@ -677,21 +677,44 @@ h6 {
 }
 
 /* ===== DRAG & DROP STYLES ===== */
-.dnd-overlay {
-  background: var(--dnd-overlay);
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px var(--dnd-drag-shadow);
-}
+.bg-dnd-overlay { background-color: var(--dnd-overlay); }
+/* COMMENTED OUT - Related to problematic drop zone styles
+.bg-dnd-drop-zone { background-color: var(--dnd-drop-zone); }
+.bg-dnd-drop-zone-active { background-color: var(--dnd-drop-zone-active); }
+*/
+.shadow-dnd-drag { box-shadow: 0 10px 15px -3px var(--dnd-drag-shadow); }
 
+/* COMMENTED OUT - These styles were causing overlay to disappear when hovering over drop zones
 .dnd-drop-zone {
   background: var(--dnd-drop-zone);
-  border: 2px dashed var(--border-accent);
-  transition: all 0.2s ease;
+  transition: background 0.2s ease;
+  position: relative;
 }
 
 .dnd-drop-zone.active {
   background: var(--dnd-drop-zone-active);
-  border-color: var(--interactive-primary);
+  border-color: var(--border-accent);
+}
+*/
+
+/* Ensure drop zones don't interfere with drag overlay */
+[data-droppable] {
+  position: relative;
+}
+
+/* Fix for empty drop zones - ensure content doesn't block drag overlay */
+[data-testid^="droppable-status-"] {
+  position: relative;
+}
+
+[data-testid^="droppable-status-"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* During drag operations, ensure interactive elements don't interfere */
+body:has([data-dnd-drag-overlay]) [data-testid^="droppable-status-"] button {
+  pointer-events: none;
 }
 
 /* ===== SCROLLBAR STYLES ===== */
@@ -1005,8 +1028,10 @@ h6 {
 
 /* Drag & Drop Utilities */
 .bg-dnd-overlay { background-color: var(--dnd-overlay); }
+/* COMMENTED OUT - Related to problematic drop zone styles
 .bg-dnd-drop-zone { background-color: var(--dnd-drop-zone); }
 .bg-dnd-drop-zone-active { background-color: var(--dnd-drop-zone-active); }
+*/
 .shadow-dnd-drag { box-shadow: 0 10px 15px -3px var(--dnd-drag-shadow); }
 
 /* Interactive State Utilities */
@@ -1277,9 +1302,11 @@ h6 {
     transition: none;
   }
   
+  /* COMMENTED OUT - dnd-drop-zone class removed
   .dnd-drop-zone {
     transition: none;
   }
+  */
 }
 
 /* ===== TAG/BADGE COLOR UTILITIES ===== */

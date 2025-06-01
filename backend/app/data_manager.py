@@ -25,6 +25,7 @@ class DataManager:
         self.project_assignments: List[Dict[str, Any]] = []
         self.notifications: List[Dict[str, Any]] = []
         self.task_activities: List[Dict[str, Any]] = []
+        self.board_statuses: List[Dict[str, Any]] = []
         
         # Initialize repositories
         self.user_repository = UserRepository(self.users)
@@ -32,7 +33,7 @@ class DataManager:
             self.projects, self.teams, self.team_memberships, self.project_assignments
         )
         self.board_repository = BoardRepository(
-            self.boards, self.lists, self.board_memberships
+            self.boards, self.lists, self.board_memberships, self.board_statuses
         )
         self.task_repository = TaskRepository(self.tasks, self.task_activities)
         self.notification_repository = NotificationRepository(self.notifications)
@@ -42,7 +43,7 @@ class DataManager:
         self.user_service = UserService(self.user_repository)
         self.project_service = ProjectService(self.project_repository, self.user_repository)
         self.board_service = BoardService(
-            self.board_repository, self.project_repository, self.user_repository
+            self.board_repository, self.project_repository, self.user_repository, self.task_repository
         )
         self.task_service = TaskService(
             self.task_repository, self.board_repository, self.user_repository, self.project_repository
@@ -80,7 +81,8 @@ class DataManager:
             "board_memberships": self.board_memberships,
             "project_assignments": self.project_assignments,
             "notifications": self.notifications,
-            "task_activities": self.task_activities
+            "task_activities": self.task_activities,
+            "board_statuses": self.board_statuses
         }
     
     def augment_state(self, data: Dict[str, Any]):
