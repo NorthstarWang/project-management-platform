@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { CustomDropdownMenu } from '@/components/ui/CustomDropdownMenu';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { 
   DialogHeader,
   DialogDescription,
@@ -382,6 +383,36 @@ export default function TaskDetailModal({
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const formatDateOnly = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatDueDateDisplay = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''}`;
+    } else if (diffDays === 0) {
+      return 'Due today';
+    } else if (diffDays === 1) {
+      return 'Due tomorrow';
+    } else if (diffDays <= 7) {
+      return `Due in ${diffDays} days`;
+    } else {
+      return formatDateOnly(dateString);
+    }
   };
 
   const loadComments = async () => {
@@ -779,7 +810,7 @@ export default function TaskDetailModal({
               size="sm"
               className={getTaskTypeColor(formData.task_type)}
             >
-              {formData.task_type}
+              {formData.task_type.charAt(0).toUpperCase() + formData.task_type.slice(1)}
               {modifiedFields.has('task_type') && <span className="ml-1 text-accent">•</span>}
             </Badge>
           )}
@@ -793,7 +824,7 @@ export default function TaskDetailModal({
           {formData.due_date && (
             <Badge variant="warning" size="sm">
               <Calendar className="h-3 w-3 mr-1" />
-              Due {formatRelativeDate(formData.due_date)}
+              Due {formatDueDateDisplay(formData.due_date)}
             </Badge>
           )}
         </div>
@@ -941,11 +972,10 @@ export default function TaskDetailModal({
               <Calendar className="h-4 w-4 mr-2" />
               Due Date {modifiedFields.has('due_date') && <span className="text-accent ml-1">•</span>}
             </Label>
-            <Input
-              type="datetime-local"
-              value={formData.due_date}
-              onChange={(e) => handleFieldChange('due_date', e.target.value)}
-              min={new Date().toISOString().slice(0, 16)}
+            <DatePicker
+              value={formData.due_date ? new Date(formData.due_date) : null}
+              onChange={(date) => handleFieldChange('due_date', date ? date.toISOString() : '')}
+              minDate={new Date()}
               className={modifiedFields.has('due_date') ? 'border-accent' : ''}
             />
           </div>
