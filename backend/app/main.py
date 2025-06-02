@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import synthetic, auth, users, tasks, projects, boards, comments, notifications, search, debug
+from .routes import synthetic, auth, users, tasks, projects, boards, comments, notifications, search, debug, teams
 from .logger import LogMiddleware
 from .data_manager import data_manager
 import os
@@ -29,6 +29,7 @@ app.include_router(comments.router, tags=["comments"])
 app.include_router(notifications.router, tags=["notifications"])
 app.include_router(search.router, tags=["search"])
 app.include_router(debug.router, tags=["debug"])
+app.include_router(teams.router, tags=["teams"])
 
 @app.get("/")
 def read_root():

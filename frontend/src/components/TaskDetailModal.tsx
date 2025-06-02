@@ -136,20 +136,20 @@ function CommentItem({
   const isReplying = replyingTo === comment.id;
 
   return (
-    <div id={`comment-${comment.id}`} className={isNested ? 'ml-12' : ''}>
+    <div id={`comment-${comment.id}`} className={`${isNested ? 'ml-8 pl-4 border-l-2 border-secondary' : ''}`}>
       <div className="flex space-x-3">
-        <Avatar size="sm" name={comment.author.full_name} />
+        <Avatar size={isNested ? "xs" : "sm"} name={comment.author.full_name} />
         <div className="flex-1">
-          <div className="bg-card-content p-3 rounded-lg border border-card">
+          <div className={`${isNested ? 'bg-surface' : 'bg-card-content'} p-3 rounded-lg border border-card`}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-primary">
+                <span className={`${isNested ? 'text-xs' : 'text-sm'} font-medium text-primary`}>
                   {comment.author.full_name}
                 </span>
                 {comment.parent_comment_id && (
-                  <span className="text-xs text-muted flex items-center">
+                  <span className="text-xs text-muted flex items-center bg-surface px-2 py-0.5 rounded-full">
                     <Reply className="h-3 w-3 mr-1" />
-                    replied
+                    reply
                   </span>
                 )}
               </div>
@@ -157,7 +157,7 @@ function CommentItem({
                 {formatRelativeDate(comment.created_at)}
               </span>
             </div>
-            <p className="text-sm text-secondary whitespace-pre-wrap">
+            <p className={`${isNested ? 'text-xs' : 'text-sm'} text-secondary whitespace-pre-wrap`}>
               {comment.content}
             </p>
             {canNest && (
@@ -420,31 +420,17 @@ export default function TaskDetailModal({
       setLoadingComments(true);
       const response = await apiClient.get(`/api/tasks/${task.id}/comments`);
       
-      // Organize comments into a tree structure
-      const allComments = response.data;
-      const commentMap = new Map<string, Comment>();
-      const rootComments: Comment[] = [];
+      // Backend already returns comments in threaded structure with replies
+      // No need to reorganize - just use the response directly
+      const threadedComments = response.data;
       
-      // First pass: create map of all comments
-      allComments.forEach((comment: Comment) => {
-        commentMap.set(comment.id, { ...comment, replies: [] });
+      console.log('📧 Loaded comments structure:', {
+        total_comments: threadedComments.length,
+        comments_with_replies: threadedComments.filter((c: Comment) => c.replies && c.replies.length > 0).length,
+        sample_comment: threadedComments[0] || null
       });
       
-      // Second pass: organize into tree structure
-      allComments.forEach((comment: Comment) => {
-        const mappedComment = commentMap.get(comment.id)!;
-        if (comment.parent_comment_id) {
-          const parent = commentMap.get(comment.parent_comment_id);
-          if (parent) {
-            parent.replies = parent.replies || [];
-            parent.replies.push(mappedComment);
-          }
-        } else {
-          rootComments.push(mappedComment);
-        }
-      });
-      
-      setComments(rootComments);
+      setComments(threadedComments);
     } catch (error) {
       console.error('Failed to load comments:', error);
       toast.error('Failed to load comments');
@@ -588,7 +574,8 @@ export default function TaskDetailModal({
         task_id: task.id
       };
 
-      await apiClient.post('/api/comments', commentData);
+      const response = await apiClient.post('/api/comments', commentData);
+      const newCommentData = response.data;
       
       trackEvent('COMMENT_ADD', {
         task_id: task.id,
@@ -596,14 +583,18 @@ export default function TaskDetailModal({
         timestamp: new Date().toISOString()
       });
       
+      // Immediately update local state instead of reloading from server
+      setComments(prevComments => [...prevComments, newCommentData]);
+      
       setNewComment('');
       toast.success('Comment added successfully!');
       
-      // Reload comments to get the proper structure
-      await loadComments();
     } catch (error: any) {
       console.error('Failed to add comment:', error);
       toast.error(error.response?.data?.detail || 'Failed to add comment');
+      
+      // If there's an error, reload comments to ensure consistency
+      await loadComments();
     } finally {
       setIsAddingComment(false);
     }
@@ -621,7 +612,8 @@ export default function TaskDetailModal({
         parent_comment_id: parentCommentId
       };
 
-      await apiClient.post('/api/comments', commentData);
+      const response = await apiClient.post('/api/comments', commentData);
+      const newReply = response.data;
       
       trackEvent('COMMENT_REPLY', {
         task_id: task.id,
@@ -630,15 +622,40 @@ export default function TaskDetailModal({
         timestamp: new Date().toISOString()
       });
       
+      // Immediately update local state instead of reloading from server
+      setComments(prevComments => {
+        const updateCommentReplies = (comment: Comment): Comment => {
+          if (comment.id === parentCommentId) {
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), newReply]
+            };
+          }
+          
+          // Recursively check nested replies
+          if (comment.replies) {
+            return {
+              ...comment,
+              replies: comment.replies.map(updateCommentReplies)
+            };
+          }
+          
+          return comment;
+        };
+        
+        return prevComments.map(updateCommentReplies);
+      });
+      
       setReplyContent('');
       setReplyingTo(null);
       toast.success('Reply added successfully!');
       
-      // Reload comments to get the proper structure
-      await loadComments();
     } catch (error: any) {
       console.error('Failed to add reply:', error);
       toast.error(error.response?.data?.detail || 'Failed to add reply');
+      
+      // If there's an error, reload comments to ensure consistency
+      await loadComments();
     } finally {
       setIsAddingComment(false);
     }

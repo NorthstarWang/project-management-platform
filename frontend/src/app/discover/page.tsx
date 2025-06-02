@@ -1,0 +1,539 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Avatar } from '@/components/ui/Avatar';
+import { Input } from '@/components/ui/Input';
+import { 
+  Search,
+  Users,
+  Clock,
+  CheckCircle,
+  XCircle,
+  UserPlus,
+  Mail
+} from 'lucide-react';
+import apiClient from '@/services/apiClient';
+import { toast } from '@/components/ui/CustomToast';
+import { track } from '@/services/analyticsLogger';
+
+interface User {
+  id: string;
+  username: string;
+  full_name: string;
+  role: string;
+  email: string;
+}
+
+interface Team {
+  id: string;
+  name: string;
+  description: string;
+  member_count: number;
+  managers: Array<{
+    id: string;
+    full_name: string;
+    role: string;
+  }>;
+  has_pending_request: boolean;
+  has_pending_invitation: boolean;
+}
+
+interface TeamRequest {
+  id: string;
+  team_id: string;
+  message?: string;
+  status: string;
+  created_at: string;
+  team: {
+    id: string;
+    name: string;
+    description: string;
+  };
+}
+
+interface TeamInvitation {
+  id: string;
+  team_id: string;
+  message?: string;
+  status: string;
+  created_at: string;
+  team: {
+    id: string;
+    name: string;
+    description: string;
+  };
+  inviter: {
+    id: string;
+    full_name: string;
+  };
+}
+
+export default function DiscoverPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [myRequests, setMyRequests] = useState<TeamRequest[]>([]);
+  const [myInvitations, setMyInvitations] = useState<TeamInvitation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'discover' | 'requests' | 'invitations'>('discover');
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    
+    // Log page view
+    track('PAGE_VIEW', {
+      page_name: 'discover',
+      page_url: '/discover',
+      user_id: parsedUser.id,
+      user_role: parsedUser.role
+    });
+    
+    // Load data
+    loadData();
+  }, [router]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      track('DATA_LOAD_START', {
+        page: 'discover',
+        data_types: ['teams', 'requests', 'invitations']
+      });
+
+      // Load discoverable teams, user requests, and invitations in parallel
+      const [teamsResponse, requestsResponse, invitationsResponse] = await Promise.all([
+        apiClient.get('/api/teams/discover'),
+        apiClient.get('/api/users/me/team-requests'),
+        apiClient.get('/api/users/me/team-invitations')
+      ]);
+
+      setTeams(teamsResponse.data);
+      setMyRequests(requestsResponse.data);
+      setMyInvitations(invitationsResponse.data);
+
+      track('DATA_LOAD_SUCCESS', {
+        page: 'discover',
+        teams_count: teamsResponse.data.length,
+        requests_count: requestsResponse.data.length,
+        invitations_count: invitationsResponse.data.length
+      });
+
+    } catch (error: any) {
+      console.error('Failed to load discover data:', error);
+      toast.error('Failed to load teams and requests');
+      
+      track('DATA_LOAD_ERROR', {
+        page: 'discover',
+        error: error.message || 'Unknown error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinRequest = async (teamId: string, message?: string) => {
+    try {
+      await apiClient.post(`/api/teams/${teamId}/join-requests`, {
+        team_id: teamId,
+        message: message
+      });
+
+      track('TEAM_JOIN_REQUEST', {
+        team_id: teamId,
+        message_provided: !!message
+      });
+
+      toast.success('Join request sent successfully!');
+      
+      // Reload data to update the UI
+      await loadData();
+      
+    } catch (error: any) {
+      console.error('Failed to send join request:', error);
+      toast.error(error.response?.data?.detail || 'Failed to send join request');
+    }
+  };
+
+  const formatRelativeDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffDays === 0) {
+      if (diffHours === 0) return 'Just now';
+      return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  const filteredTeams = teams.filter(team => 
+    team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    team.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="bg-card rounded-lg shadow-card p-6 border border-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Search className="h-8 w-8 text-accent" />
+              <div>
+                <h1 className="text-2xl font-bold text-primary">Discover Teams</h1>
+                <p className="text-secondary mt-1">
+                  Find teams to join or manage your team requests and invitations
+                </p>
+              </div>
+            </div>
+            
+            {/* Tab Navigation */}
+            <div className="flex items-center space-x-1 bg-surface rounded-lg p-1">
+              <Button
+                variant={activeTab === 'discover' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('discover')}
+                data-testid="discover-tab"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Discover
+              </Button>
+              <Button
+                variant={activeTab === 'requests' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('requests')}
+                data-testid="requests-tab"
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                My Requests
+                {myRequests.length > 0 && (
+                  <Badge variant="secondary" size="sm" className="ml-2">
+                    {myRequests.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant={activeTab === 'invitations' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('invitations')}
+                data-testid="invitations-tab"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Invitations
+                {myInvitations.length > 0 && (
+                  <Badge variant="secondary" size="sm" className="ml-2">
+                    {myInvitations.length}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar (only for discover tab) */}
+        {activeTab === 'discover' && (
+          <Card className="p-4">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Search teams by name or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full"
+                  leftIcon={<Search className="h-4 w-4" />}
+                />
+              </div>
+              <div className="text-sm text-secondary">
+                {filteredTeams.length} team{filteredTeams.length !== 1 ? 's' : ''} found
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Content based on active tab */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-48 bg-surface rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Discover Teams Tab */}
+            {activeTab === 'discover' && (
+              <div className="space-y-6">
+                {filteredTeams.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredTeams.map((team) => (
+                      <Card
+                        key={team.id}
+                        className="p-6 hover:shadow-md transition-shadow"
+                        data-testid={`team-card-${team.id}`}
+                      >
+                        <div className="space-y-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-primary text-lg">
+                                {team.name}
+                              </h3>
+                              <p className="text-secondary text-sm mt-1 line-clamp-2">
+                                {team.description}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm text-muted">
+                            <div className="flex items-center space-x-2">
+                              <Users className="h-4 w-4" />
+                              <span>{team.member_count} member{team.member_count !== 1 ? 's' : ''}</span>
+                            </div>
+                          </div>
+
+                          {/* Managers */}
+                          {team.managers.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium text-muted uppercase tracking-wide">
+                                Managers
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {team.managers.map((manager) => (
+                                  <div key={manager.id} className="flex items-center space-x-2">
+                                    <Avatar size="xs" name={manager.full_name} />
+                                    <span className="text-xs text-secondary">
+                                      {manager.full_name}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action Button */}
+                          <div className="pt-2">
+                            {team.has_pending_request ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                disabled
+                              >
+                                <Clock className="h-4 w-4 mr-2" />
+                                Request Pending
+                              </Button>
+                            ) : team.has_pending_invitation ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-accent"
+                                disabled
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Invitation Pending
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleJoinRequest(team.id)}
+                              >
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Request to Join
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="p-12">
+                    <div className="text-center">
+                      <Search className="mx-auto h-12 w-12 text-muted" />
+                      <h3 className="mt-2 text-sm font-medium text-primary">
+                        {searchQuery ? 'No teams found' : 'No teams available'}
+                      </h3>
+                      <p className="mt-1 text-sm text-muted">
+                        {searchQuery 
+                          ? 'Try adjusting your search terms.'
+                          : 'There are no teams available for you to join at the moment.'
+                        }
+                      </p>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* My Requests Tab */}
+            {activeTab === 'requests' && (
+              <div className="space-y-4">
+                {myRequests.length > 0 ? (
+                  myRequests.map((request) => (
+                    <Card
+                      key={request.id}
+                      className="p-6"
+                      data-testid={`request-card-${request.id}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-primary">
+                            {request.team.name}
+                          </h3>
+                          <p className="text-secondary text-sm mt-1">
+                            {request.team.description}
+                          </p>
+                          {request.message && (
+                            <div className="mt-3 p-3 bg-surface rounded-md">
+                              <p className="text-xs font-medium text-muted uppercase tracking-wide mb-1">
+                                Your Message
+                              </p>
+                              <p className="text-sm text-secondary">
+                                {request.message}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4 text-right">
+                          <Badge 
+                            variant={request.status === 'pending' ? 'warning' : 
+                                   request.status === 'approved' ? 'success' : 'destructive'}
+                            size="sm"
+                          >
+                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                          </Badge>
+                          <p className="text-xs text-muted mt-1">
+                            {formatRelativeDate(request.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <Card className="p-12">
+                    <div className="text-center">
+                      <Clock className="mx-auto h-12 w-12 text-muted" />
+                      <h3 className="mt-2 text-sm font-medium text-primary">No join requests</h3>
+                      <p className="mt-1 text-sm text-muted">
+                        You haven&apos;t sent any team join requests yet.
+                      </p>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Invitations Tab */}
+            {activeTab === 'invitations' && (
+              <div className="space-y-4">
+                {myInvitations.length > 0 ? (
+                  myInvitations.map((invitation) => (
+                    <Card
+                      key={invitation.id}
+                      className="p-6 border-accent"
+                      data-testid={`invitation-card-${invitation.id}`}
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-primary">
+                              {invitation.team.name}
+                            </h3>
+                            <p className="text-secondary text-sm mt-1">
+                              {invitation.team.description}
+                            </p>
+                            <div className="flex items-center space-x-2 mt-2">
+                              <Avatar size="xs" name={invitation.inviter.full_name} />
+                              <span className="text-sm text-secondary">
+                                Invited by {invitation.inviter.full_name}
+                              </span>
+                            </div>
+                            {invitation.message && (
+                              <div className="mt-3 p-3 bg-surface rounded-md">
+                                <p className="text-xs font-medium text-muted uppercase tracking-wide mb-1">
+                                  Message
+                                </p>
+                                <p className="text-sm text-secondary">
+                                  {invitation.message}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4 text-right">
+                            <p className="text-xs text-muted">
+                              {formatRelativeDate(invitation.created_at)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="flex-1"
+                            // onClick={() => handleInvitationResponse(invitation.id, 'accept')}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Accept
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            // onClick={() => handleInvitationResponse(invitation.id, 'decline')}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Decline
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <Card className="p-12">
+                    <div className="text-center">
+                      <Mail className="mx-auto h-12 w-12 text-muted" />
+                      <h3 className="mt-2 text-sm font-medium text-primary">No invitations</h3>
+                      <p className="mt-1 text-sm text-muted">
+                        You don&apos;t have any pending team invitations.
+                      </p>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+} 
