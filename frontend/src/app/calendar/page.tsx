@@ -87,16 +87,36 @@ export default function CalendarPage() {
         show_team_tasks: showTeamTasks
       });
       
-      // Load tasks with due dates
-      let tasksResponse;
+      let allTasks: Task[] = [];
+      
       if (showTeamTasks && user && (user.role === 'manager' || user.role === 'admin')) {
-        // Load team tasks for managers
-        tasksResponse = await apiClient.get('/api/users/me/team-tasks');
+        // Load team tasks for managers by first getting team members, then their tasks
+        try {
+          // Get team members
+          const teamMembersResponse = await apiClient.get('/api/users/me/team-members');
+          const teamMembers = teamMembersResponse.data;
+          
+          // Get tasks for each team member
+          const taskPromises = teamMembers.map((member: any) => 
+            apiClient.get(`/api/users/${member.id}/assigned_tasks`).catch(() => ({ data: [] }))
+          );
+          
+          const taskResults = await Promise.all(taskPromises);
+          
+          // Combine all team tasks
+          allTasks = taskResults.flatMap(result => result.data);
+          
+        } catch (error) {
+          console.error('Failed to load team tasks:', error);
+          // Fallback to personal tasks if team tasks fail
+          const tasksResponse = await apiClient.get('/api/users/me/assigned_tasks');
+          allTasks = tasksResponse.data;
+        }
       } else {
         // Load personal tasks
-        tasksResponse = await apiClient.get('/api/users/me/assigned_tasks');
+        const tasksResponse = await apiClient.get('/api/users/me/assigned_tasks');
+        allTasks = tasksResponse.data;
       }
-      const allTasks = tasksResponse.data;
       
       // Filter tasks that have due dates
       const tasksWithDueDates = allTasks.filter((task: Task) => task.due_date);
@@ -295,7 +315,7 @@ export default function CalendarPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-lg font-semibold text-primary">
+              <h2 className="text-lg font-semibold text-primary px-4 min-w-[180px] text-center">
                 {getCurrentMonthName()}
               </h2>
               <Button
