@@ -619,6 +619,7 @@ export default function BoardPage() {
             onAddTask={handleAddTask}
             columnVisibility={columnVisibility}
             statusColors={statusColors}
+            boardStatuses={boardStatuses}
           />
         )}
 

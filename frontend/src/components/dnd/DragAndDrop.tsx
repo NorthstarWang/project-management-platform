@@ -38,8 +38,8 @@ interface List {
   created_at: string;
 }
 
-// Define board statuses for new kanban design
-const BOARD_STATUSES = [
+// Define default board statuses for new kanban design (fallback)
+const DEFAULT_BOARD_STATUSES = [
   { id: 'backlog', name: 'Backlog', color: '#6B7280', position: 0 },
   { id: 'todo', name: 'To Do', color: '#3B82F6', position: 1 },
   { id: 'in_progress', name: 'In Progress', color: '#F59E0B', position: 2 },
@@ -460,6 +460,14 @@ interface DragAndDropProps {
     archived?: string;
     deleted?: string;
   };
+  boardStatuses?: Array<{
+    id: string;
+    name: string;
+    color: string;
+    position: number;
+    isDeletable?: boolean;
+    isCustom?: boolean;
+  }>;
 }
 
 export function DragAndDrop({ 
@@ -478,25 +486,31 @@ export function DragAndDrop({
     done: '#10B981',
     archived: '#9CA3AF',
     deleted: '#EF4444'
-  }
+  },
+  boardStatuses = DEFAULT_BOARD_STATUSES
 }: DragAndDropProps) {
   // State to track if we're currently dragging
   const [isDragging, setIsDragging] = useState(false);
   
+  // Sort board statuses by position to ensure correct order
+  const sortedBoardStatuses = React.useMemo(() => {
+    return [...boardStatuses].sort((a, b) => a.position - b.position);
+  }, [boardStatuses]);
+  
   // Group tasks by status - memoized to prevent recalculation
   const tasksByStatus = React.useMemo(() => {
-    return BOARD_STATUSES.reduce((acc, status) => {
+    return sortedBoardStatuses.reduce((acc, status) => {
       acc[status.id] = tasks
         .filter(task => task.status === status.id)
         .sort((a, b) => a.position - b.position);
       return acc;
     }, {} as Record<string, Task[]>);
-  }, [tasks]);
+  }, [tasks, sortedBoardStatuses]);
 
   // State for optimistic updates
   const [items, setItems] = useState(() => {
     const result: Record<string, string[]> = {};
-    BOARD_STATUSES.forEach(status => {
+    sortedBoardStatuses.forEach(status => {
       result[status.id] = tasksByStatus[status.id]?.map(task => task.id) || [];
     });
     return result;
@@ -508,13 +522,13 @@ export function DragAndDrop({
   // Update items when tasks change
   React.useEffect(() => {
     const newItems: Record<string, string[]> = {};
-    BOARD_STATUSES.forEach(status => {
+    sortedBoardStatuses.forEach(status => {
       newItems[status.id] = tasksByStatus[status.id]?.map(task => task.id) || [];
     });
     
     setItems(newItems);
     previousItems.current = newItems;
-  }, [tasks, tasksByStatus]);
+  }, [tasks, tasksByStatus, sortedBoardStatuses]);
 
   // Handle backend API call for moving tasks
   const moveTaskOnBackend = useCallback(async (
@@ -541,8 +555,8 @@ export function DragAndDrop({
       // Update the task with new status and position
       await apiClient.put(`/api/tasks/${taskId}`, updates);
 
-      const sourceStatus = BOARD_STATUSES.find(s => s.id === oldStatus);
-      const targetStatus = BOARD_STATUSES.find(s => s.id === newStatus);
+      const sourceStatusObj = sortedBoardStatuses.find((s) => s.id === oldStatus);
+      const targetStatusObj = sortedBoardStatuses.find((s) => s.id === newStatus);
 
       // Log successful move
       trackEvent('TASK_MOVED', {
@@ -558,7 +572,7 @@ export function DragAndDrop({
 
       // Show success message
       toast.success(
-        `Moved "${task?.title}" from ${sourceStatus?.name} to ${targetStatus?.name}`
+        `Moved "${task?.title}" from ${sourceStatusObj?.name} to ${targetStatusObj?.name}`
       );
 
       // Refresh board data after successful move
@@ -677,7 +691,7 @@ export function DragAndDrop({
     >
       {/* Responsive Container Grid */}
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 grid-cols-3xl-5 auto-cols-fr w-full">
-        {BOARD_STATUSES.map((status) => {
+        {sortedBoardStatuses.map((status) => {
           // Check visibility
           if (status.id === 'archived' && !columnVisibility.archived) return null;
           if (status.id === 'deleted' && !columnVisibility.deleted) return null;
