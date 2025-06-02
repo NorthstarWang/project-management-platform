@@ -458,7 +458,7 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
                     "created_at": time.time() - random.randint(3600, 86400 * 20)
                 })
     
-    # Generate comprehensive notifications
+    # Generate comprehensive notifications based on actual user access
     notification_templates = [
         ("task_assigned", "New Task Assigned", "You have been assigned to task '{task_title}'"),
         ("task_updated", "Task Updated", "Task '{task_title}' has been updated"),
@@ -468,42 +468,79 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
         ("project_assigned", "Project Assigned", "You have been assigned to manage project '{project_name}'")
     ]
     
-    # Create notifications for various actions
+    # Create notifications for various actions - ONLY for content users actually have access to
     for user_id in user_map.values():
-        # Create 3-8 notifications per user
+        # Get user's accessible content
+        user_board_memberships = [m for m in data_manager.board_memberships if m["user_id"] == user_id]
+        user_board_ids = [m["board_id"] for m in user_board_memberships]
+        
+        # Get tasks from boards the user is enrolled in
+        user_accessible_tasks = [t for t in data_manager.tasks 
+                               if any(l["board_id"] in user_board_ids 
+                                    for l in data_manager.lists 
+                                    if l["id"] == t["list_id"])]
+        
+        # Get boards the user is enrolled in
+        user_accessible_boards = [b for b in data_manager.boards if b["id"] in user_board_ids]
+        
+        # Get projects the user is assigned to or manages
+        user_project_assignments = [p for p in data_manager.project_assignments if p["manager_id"] == user_id]
+        user_accessible_project_ids = [p["project_id"] for p in user_project_assignments]
+        
+        # Also include projects from teams the user is in
+        user_team_memberships = [tm for tm in data_manager.team_memberships if tm["user_id"] == user_id]
+        user_team_ids = [tm["team_id"] for tm in user_team_memberships]
+        team_projects = [p for p in data_manager.projects if p["team_id"] in user_team_ids]
+        for project in team_projects:
+            if project["id"] not in user_accessible_project_ids:
+                user_accessible_project_ids.append(project["id"])
+        
+        user_accessible_projects = [p for p in data_manager.projects if p["id"] in user_accessible_project_ids]
+        
+        # Skip users with no accessible content
+        if not user_accessible_tasks and not user_accessible_boards and not user_accessible_projects:
+            continue
+        
+        # Create 3-8 notifications per user based on their accessible content
         num_notifications = random.randint(3, 8)
         for _ in range(num_notifications):
             notif_type, title_template, message_template = random.choice(notification_templates)
             
-            # Customize based on notification type
-            if notif_type == "task_assigned":
-                task = random.choice(data_manager.tasks)
+            # Customize based on notification type and user's accessible content
+            if notif_type in ["task_assigned", "task_updated", "task_commented", "task_moved"]:
+                if not user_accessible_tasks:
+                    continue  # Skip if user has no accessible tasks
+                
+                task = random.choice(user_accessible_tasks)
                 title = title_template
                 message = message_template.format(task_title=task["title"])
                 related_task_id = task["id"]
                 related_board_id = None
                 related_project_id = None
+                
             elif notif_type == "board_enrolled":
-                board = random.choice(data_manager.boards)
+                if not user_accessible_boards:
+                    continue  # Skip if user has no accessible boards
+                
+                board = random.choice(user_accessible_boards)
                 title = title_template
                 message = message_template.format(board_name=board["name"])
                 related_task_id = None
                 related_board_id = board["id"]
                 related_project_id = None
+                
             elif notif_type == "project_assigned":
-                project = random.choice(data_manager.projects)
+                if not user_accessible_projects:
+                    continue  # Skip if user has no accessible projects
+                
+                project = random.choice(user_accessible_projects)
                 title = title_template
                 message = message_template.format(project_name=project["name"])
                 related_task_id = None
                 related_board_id = None
                 related_project_id = project["id"]
             else:
-                task = random.choice(data_manager.tasks)
-                title = title_template
-                message = message_template.format(task_title=task["title"])
-                related_task_id = task["id"]
-                related_board_id = None
-                related_project_id = None
+                continue  # Skip unknown notification types
             
             data_manager.notifications.append({
                 "id": str(uuid.uuid4()),

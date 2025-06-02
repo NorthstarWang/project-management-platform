@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Search, Bell, Settings, Menu } from 'lucide-react';
+import { Search, Settings, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { SearchResults } from '@/components/ui/SearchResults';
+import { NotificationDropdown } from '@/components/ui/NotificationDropdown';
 
 interface User {
   id: string;
@@ -102,13 +103,7 @@ export function Header({ currentUser, onMenuClick, showMenuButton = false }: Hea
             <ThemeToggle />
 
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative transition-all duration-300">
-              <Bell className="h-5 w-5 text-muted transition-colors duration-300" />
-              {/* Notification badge */}
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-error text-white text-xs rounded-full flex items-center justify-center transition-all duration-300">
-                3
-              </span>
-            </Button>
+            <NotificationDropdown />
 
             {/* Settings */}
             <Button variant="ghost" size="sm" className="transition-all duration-300">
