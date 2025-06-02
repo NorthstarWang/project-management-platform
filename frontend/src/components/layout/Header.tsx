@@ -31,8 +31,8 @@ export function Header({ currentUser, onMenuClick, showMenuButton = false }: Hea
     const query = e.target.value;
     setSearchQuery(query);
     
-    // Show results if query has at least 2 characters
-    if (query.length >= 2) {
+    // Show results if query has at least 1 character
+    if (query.length >= 1) {
       setShowSearchResults(true);
     } else {
       setShowSearchResults(false);
@@ -40,7 +40,7 @@ export function Header({ currentUser, onMenuClick, showMenuButton = false }: Hea
   };
 
   const handleSearchFocus = () => {
-    if (searchQuery.length >= 2) {
+    if (searchQuery.length >= 1) {
       setShowSearchResults(true);
     }
   };
