@@ -367,7 +367,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-20 flex items-center justify-center space-x-2"
               onClick={() => handleQuickAction('create_project')}
               data-testid="quick-action-create-project"
             >
@@ -377,7 +377,7 @@ export default function DashboardPage() {
             
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-20 flex items-center justify-center space-x-2"
               onClick={() => handleQuickAction('view_all_tasks')}
               data-testid="quick-action-view-tasks"
             >
@@ -387,7 +387,7 @@ export default function DashboardPage() {
             
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-20 flex items-center justify-center space-x-2"
               onClick={() => handleQuickAction('view_calendar')}
               data-testid="quick-action-view-calendar"
             >
@@ -397,7 +397,7 @@ export default function DashboardPage() {
             
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-20 flex items-center justify-center space-x-2"
               onClick={() => router.push('/members')}
               data-testid="quick-action-view-members"
             >
