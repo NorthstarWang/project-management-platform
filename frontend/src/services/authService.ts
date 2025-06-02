@@ -4,8 +4,7 @@
  */
 
 import apiClient from './apiClient';
-import { toast } from '@/components/ui/CustomToast';
-import { track, captureStorageSnapshot } from './analyticsLogger';
+import { captureStorageSnapshot } from './analyticsLogger';
 
 export interface User {
   id: string;

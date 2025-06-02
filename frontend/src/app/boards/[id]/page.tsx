@@ -75,7 +75,6 @@ export default function BoardPage() {
   const [board, setBoard] = useState<any>(null);
   const [lists, setLists] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [showTaskDetail, setShowTaskDetail] = useState(false);
@@ -216,10 +215,6 @@ export default function BoardPage() {
       });
       setTasks(allTasks);
 
-      // Fetch board members
-      const membersResponse = await apiClient.get(`/api/boards/${boardId}/members`);
-      setMembers(membersResponse.data);
-
       // Fetch board statuses
       const statusesResponse = await apiClient.get(`/api/boards/${boardId}/statuses`);
       setBoardStatuses(statusesResponse.data);
@@ -243,7 +238,7 @@ export default function BoardPage() {
         board_name: boardData.name,
         list_count: boardData.lists.length,
         task_count: allTasks.length,
-        member_count: membersResponse.data.length,
+        member_count: users.length,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
