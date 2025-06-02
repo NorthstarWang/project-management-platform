@@ -11,6 +11,9 @@ export interface Notification {
   related_task_id?: string;
   related_board_id?: string;
   related_project_id?: string;
+  related_team_id?: string;
+  related_join_request_id?: string;
+  related_invitation_id?: string;
 }
 
 export interface NotificationResponse {

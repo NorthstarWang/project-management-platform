@@ -48,6 +48,15 @@ class NotificationRedirectionService {
           console.log('🏗️ Redirecting to project:', notification.related_project_id);
           return await this.redirectToProject(notification, router);
           
+        case 'team_join_request':
+        case 'team_invitation':
+        case 'team_join_request_approved':
+        case 'team_join_request_denied':
+        case 'team_invitation_accepted':
+        case 'team_invitation_declined':
+          console.log('👥 Redirecting to team page:', notification.related_team_id);
+          return await this.redirectToTeamPage(notification, router);
+          
         default:
           console.warn('❌ Unknown notification type:', notification.type);
           // Fallback to dashboard
@@ -396,6 +405,32 @@ class NotificationRedirectionService {
   }
 
   /**
+   * Redirect to team page or discover page for team-related notifications
+   */
+  private async redirectToTeamPage(notification: Notification, router: any) {
+    try {
+      // For team join requests and invitations, redirect to discover page
+      // where users can see their pending requests and invitations
+      const url = '/discover';
+      console.log('🚀 Navigating to discover page for team notification:', url);
+
+      // Track redirection
+      this.trackRedirection(notification, 'team_discover', {
+        team_id: notification.related_team_id,
+        join_request_id: notification.related_join_request_id,
+        invitation_id: notification.related_invitation_id
+      });
+
+      return router.push(url);
+    } catch (error) {
+      console.error('🚨 Failed to redirect to team page:', error);
+      
+      // Re-throw to be handled by the main error handler
+      throw error;
+    }
+  }
+
+  /**
    * Track notification redirection for analytics
    */
   private async trackRedirection(notification: Notification, redirectType: string, additionalData: Record<string, any> = {}) {
@@ -433,6 +468,14 @@ class NotificationRedirectionService {
         case 'project_assigned':
           return !!notification.related_project_id;
           
+        case 'team_join_request':
+        case 'team_invitation':
+        case 'team_join_request_approved':
+        case 'team_join_request_denied':
+        case 'team_invitation_accepted':
+        case 'team_invitation_declined':
+          return !!notification.related_team_id;
+          
         default:
           return false;
       }
@@ -443,6 +486,7 @@ class NotificationRedirectionService {
       related_task_id: notification.related_task_id,
       related_board_id: notification.related_board_id,
       related_project_id: notification.related_project_id,
+      related_team_id: notification.related_team_id,
       can_redirect: canRedirect
     });
 

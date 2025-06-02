@@ -1,11 +1,11 @@
 from typing import Dict, Any, List, Optional
 from .repositories import (
     UserRepository, ProjectRepository, BoardRepository, 
-    TaskRepository, NotificationRepository, CommentRepository
+    TaskRepository, NotificationRepository, CommentRepository, TeamRepository
 )
 from .services import (
     UserService, ProjectService, BoardService,
-    TaskService, NotificationService, CommentService
+    TaskService, NotificationService, CommentService, TeamService
 )
 
 class DataManager:
@@ -26,6 +26,8 @@ class DataManager:
         self.notifications: List[Dict[str, Any]] = []
         self.task_activities: List[Dict[str, Any]] = []
         self.board_statuses: List[Dict[str, Any]] = []
+        self.team_join_requests: List[Dict[str, Any]] = []
+        self.team_invitations: List[Dict[str, Any]] = []
         
         # Initialize repositories
         self.user_repository = UserRepository(self.users)
@@ -38,6 +40,9 @@ class DataManager:
         self.task_repository = TaskRepository(self.tasks, self.task_activities)
         self.notification_repository = NotificationRepository(self.notifications)
         self.comment_repository = CommentRepository(self.comments)
+        self.team_repository = TeamRepository(
+            self.teams, self.team_memberships, self.team_join_requests, self.team_invitations
+        )
         
         # Initialize services
         self.user_service = UserService(self.user_repository)
@@ -53,6 +58,9 @@ class DataManager:
         )
         self.comment_service = CommentService(
             self.comment_repository, self.task_repository, self.user_repository
+        )
+        self.team_service = TeamService(
+            self.team_repository, self.user_repository, self.notification_repository
         )
     
     def reset(self, seed: Optional[str] = None):
@@ -82,7 +90,9 @@ class DataManager:
             "project_assignments": self.project_assignments,
             "notifications": self.notifications,
             "task_activities": self.task_activities,
-            "board_statuses": self.board_statuses
+            "board_statuses": self.board_statuses,
+            "team_join_requests": self.team_join_requests,
+            "team_invitations": self.team_invitations
         }
     
     def augment_state(self, data: Dict[str, Any]):
