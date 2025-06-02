@@ -10,6 +10,7 @@ import {
   Home,
   Users,
   Calendar,
+  Bell,
   FolderOpen,
   LogOut,
   Zap,
@@ -54,6 +55,7 @@ interface SidebarProps {
 const navigation = [
   { name: 'Home', href: '/dashboard', icon: Home },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Members', href: '/members', icon: Users },
 ];
 

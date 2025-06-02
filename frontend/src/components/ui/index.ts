@@ -8,6 +8,10 @@ export * from './TaskCard';
 export * from './ThemeToggle';
 export * from './Skeleton';
 
+// Notification Components
+export * from './NotificationCard';
+export * from './NotificationDropdown';
+
 // Layout & Navigation
 export * from './Breadcrumb';
 export * from './Separator';
