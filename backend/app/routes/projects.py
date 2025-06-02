@@ -71,7 +71,8 @@ def create_project(project_in: ProjectIn, request: Request, current_user: dict =
             name=project_in.name,
             description=project_in.description,
             team_id=project_in.team_id,
-            created_by=current_user["id"]
+            created_by=current_user["id"],
+            icon=project_in.icon
         )
         log_action(request, "PROJECT_CREATE", {
             "projectId": project["id"],

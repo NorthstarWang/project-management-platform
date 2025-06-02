@@ -7,6 +7,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { getIconComponent } from '@/components/ui/IconSelector';
 import { 
   CustomDialog as Dialog,
   CustomDialogContent as DialogContent,
@@ -43,6 +44,7 @@ interface Project {
   team_id: string;
   created_at: string;
   created_by?: string;
+  icon?: string;
 }
 
 interface Board {
@@ -53,6 +55,7 @@ interface Board {
   created_at: string;
   tasks_count?: number;
   lists_count?: number;
+  icon?: string;
 }
 
 interface Team {
@@ -140,7 +143,51 @@ export default function ProjectPage() {
 
       // Load project boards
       const boardsResponse = await apiClient.get(`/api/projects/${projectId}/boards`);
-      setBoards(boardsResponse.data);
+      const boardsData = boardsResponse.data;
+      
+      // Enhance boards with correct counts
+      const enhancedBoards = await Promise.all(
+        boardsData.map(async (board: any) => {
+          try {
+            // Get board statuses and count active ones (excluding archived/deleted)
+            const statusesResponse = await apiClient.get(`/api/boards/${board.id}/statuses`);
+            const statuses = statusesResponse.data;
+            const activeStatusesCount = statuses.filter((status: any) => 
+              status.id !== 'archived' && status.id !== 'deleted'
+            ).length;
+            
+            // Get board tasks and count non-archived, non-deleted ones
+            const boardResponse = await apiClient.get(`/api/boards/${board.id}`);
+            const boardDetails = boardResponse.data;
+            
+            let activeTasksCount = 0;
+            if (boardDetails.lists) {
+              boardDetails.lists.forEach((list: any) => {
+                if (list.tasks) {
+                  activeTasksCount += list.tasks.filter((task: any) => 
+                    task.status !== 'archived' && task.status !== 'deleted' && !task.archived
+                  ).length;
+                }
+              });
+            }
+            
+            return {
+              ...board,
+              lists_count: activeStatusesCount,
+              tasks_count: activeTasksCount
+            };
+          } catch (error) {
+            console.error(`Failed to enhance board ${board.id}:`, error);
+            return {
+              ...board,
+              lists_count: 0,
+              tasks_count: 0
+            };
+          }
+        })
+      );
+      
+      setBoards(enhancedBoards);
 
       // Load team information if project has a team
       if (projectData.team_id) {
@@ -161,7 +208,8 @@ export default function ProjectPage() {
       // Load project managers
       try {
         const managersResponse = await apiClient.get(`/api/projects/${projectId}/managers`);
-        const managerIds = managersResponse.data.map((m: any) => m.manager_id);
+        // The API returns full user objects, so we need to extract the user IDs
+        const managerIds = managersResponse.data.map((manager: any) => manager.id);
         setProjectManagers(managerIds);
       } catch (error) {
         console.error('Failed to load project managers:', error);
@@ -171,7 +219,7 @@ export default function ProjectPage() {
       trackEvent('DATA_LOAD_SUCCESS', {
         page: 'project',
         project_id: projectId,
-        boards_count: boardsResponse.data.length,
+        boards_count: enhancedBoards.length,
         team_members_count: teamMembers.length
       });
 
@@ -232,8 +280,12 @@ export default function ProjectPage() {
     setShowCreateBoard(true);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string | number) => {
+    // Handle Unix timestamp (convert from seconds to milliseconds)
+    const timestamp = typeof dateString === 'string' ? parseFloat(dateString) : dateString;
+    const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -312,12 +364,16 @@ export default function ProjectPage() {
       <div className="space-y-6">
         {/* Project Header */}
         <div className="bg-card rounded-lg shadow-card p-6 border border-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          {/* Top Row - Main Info */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center space-x-4 flex-1 min-w-0">
               <div className="flex-shrink-0">
-                <FolderOpen className="h-12 w-12 text-accent" />
+                {(() => {
+                  const IconComponent = getIconComponent(project?.icon || 'folder');
+                  return <IconComponent className="h-12 w-12 text-accent" />;
+                })()}
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-bold text-primary">
                   {loading ? 'Loading...' : project?.name || 'Project'}
                 </h1>
@@ -325,19 +381,26 @@ export default function ProjectPage() {
                   {loading ? 'Loading project details...' : project?.description || 'Project description'}
                 </p>
                 {project && (
-                  <p className="text-sm text-muted mt-1">
+                  <p className="text-sm text-muted mt-2">
                     Created {formatDate(project.created_at)}
                   </p>
                 )}
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+          </div>
+          
+          {/* Bottom Row - Action Buttons */}
+          <div className="flex items-center justify-between pt-4 border-t border-secondary">
+            <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" leftIcon={<Eye className="h-4 w-4" />}>
                 View
               </Button>
               <Button variant="outline" size="sm" leftIcon={<Settings className="h-4 w-4" />}>
                 Settings
               </Button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
               {canDeleteProject() && (
                 <Button 
                   variant="outline" 
@@ -420,12 +483,22 @@ export default function ProjectPage() {
                     <button
                       key={board.id}
                       onClick={() => handleBoardClick(board.id)}
-                      className="text-left p-4 rounded-lg border border-secondary hover:border-accent hover:bg-interactive-secondary-hover transition-colors"
+                      className="text-left p-4 rounded-lg border border-secondary hover:border-accent hover:bg-interactive-secondary-hover transition-colors group"
                       data-testid={`board-card-${board.id}`}
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-medium text-primary">{board.name}</h3>
-                        <MoreHorizontal className="h-4 w-4 text-muted" />
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0 p-2 rounded-lg bg-accent-10 border border-accent-20">
+                            {(() => {
+                              const IconComponent = getIconComponent(board.icon || 'kanban');
+                              return <IconComponent className="h-4 w-4 text-accent" />;
+                            })()}
+                          </div>
+                          <h3 className="font-medium text-primary group-hover:text-accent transition-colors truncate">
+                            {board.name}
+                          </h3>
+                        </div>
+                        <MoreHorizontal className="h-4 w-4 text-muted flex-shrink-0" />
                       </div>
                       <p className="text-sm text-secondary mb-3 line-clamp-2">
                         {board.description}

@@ -149,9 +149,10 @@ interface DroppableStatusColumnProps {
   isVisible?: boolean;
   isDragging?: boolean;
   hasOptimisticItems?: boolean;
+  listId?: string;
 }
 
-function DroppableStatusColumn({ status, children, tasks, onAddTask, isVisible = true, isDragging = false, hasOptimisticItems = false }: DroppableStatusColumnProps) {
+function DroppableStatusColumn({ status, children, tasks, onAddTask, isVisible = true, isDragging = false, hasOptimisticItems = false, listId }: DroppableStatusColumnProps) {
   const { ref } = useDroppable({
     id: status.id,
     type: 'column',
@@ -206,6 +207,7 @@ function DroppableStatusColumn({ status, children, tasks, onAddTask, isVisible =
 
   return (
     <div
+      id={listId ? `list-${listId}` : undefined}
       className={`flex flex-col min-w-72 bg-secondary rounded-xl border border-card shadow-lg ${
         isSpecial ? 'opacity-90' : ''
       }`}
@@ -377,7 +379,7 @@ function DroppableStatusColumn({ status, children, tasks, onAddTask, isVisible =
               {/* Add Task Button - Always at bottom */}
               {onAddTask && status.id !== 'deleted' && status.id !== 'archived' && (
                 <motion.div 
-                  className="p-3 border-t border-muted"
+                  className="p-3 border-t border-secondary"
                   layout
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -386,16 +388,18 @@ function DroppableStatusColumn({ status, children, tasks, onAddTask, isVisible =
                 >
                   <motion.button
                     onClick={onAddTask}
-                    className="w-full p-3 text-sm text-secondary rounded-lg hover:text-primary hover:bg-surface transition-colors duration-200 border-2 border-dashed border-muted hover:border-primary/50 flex items-center justify-center gap-2 bg-background/50 hover:bg-background/80"
+                    className="group w-full p-3 text-sm text-secondary rounded-lg hover:text-primary hover:bg-interactive-secondary-hover transition-all duration-200 border-2 border-dashed border-secondary hover:border-accent/60 flex items-center justify-center gap-2 bg-background/30 hover:bg-background/60"
                     disabled={isDragging}
                     style={{ opacity: isDragging ? 0.5 : 1 }}
                     layout
                     layoutId={`add-button-${status.id}`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <AnimatePresence mode="wait">
                       <motion.svg
                         key={isEmpty ? "add-first-icon" : "add-icon"}
-                        className="w-4 h-4" 
+                        className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" 
                         fill="none" 
                         stroke="currentColor" 
                         viewBox="0 0 24 24"
@@ -415,6 +419,7 @@ function DroppableStatusColumn({ status, children, tasks, onAddTask, isVisible =
                     <AnimatePresence mode="wait">
                       <motion.span
                         key={isEmpty ? "add-first-task" : "add-task"}
+                        className="group-hover:scale-105 transition-transform duration-200"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
@@ -699,6 +704,7 @@ export function DragAndDrop({
               isVisible={true}
               isDragging={isDragging}
               hasOptimisticItems={(items[status.id] || []).length > 0}
+              listId={status.id}
             >
               {(items[status.id] || []).map((taskId, index) => {
                 const task = tasks.find(t => t.id === taskId);

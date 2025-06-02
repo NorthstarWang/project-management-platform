@@ -131,22 +131,28 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
     # Generate projects
     projects_data = [
         {
-            "name": "E-Commerce Platform Redesign",
-            "description": "Complete overhaul of the company's e-commerce platform with modern UI/UX",
+            "name": "Nexus",
+            "description": "Next-gen e-commerce platform with AI-powered recommendations",
             "team_id": team_ids[0],  # Frontend team
-            "manager_id": user_map["manager_david"]
+            "manager_id": user_map["manager_david"],
+            "icon": "shopping-cart",
+            "days_ago": 45  # Created 45 days ago
         },
         {
-            "name": "API Modernization Initiative", 
-            "description": "Upgrade legacy APIs to modern REST/GraphQL architecture",
+            "name": "Forge", 
+            "description": "Modern API gateway with GraphQL and microservices architecture",
             "team_id": team_ids[1],  # Backend team
-            "manager_id": user_map["manager_sarah"]
+            "manager_id": user_map["manager_sarah"],
+            "icon": "server",
+            "days_ago": 30  # Created 30 days ago
         },
         {
-            "name": "Mobile App Development",
-            "description": "Native iOS and Android applications for customer engagement",
+            "name": "Pulse",
+            "description": "Cross-platform mobile app for real-time user engagement",
             "team_id": team_ids[2],  # Mobile team
-            "manager_id": user_map["manager_james"]
+            "manager_id": user_map["manager_james"],
+            "icon": "smartphone",
+            "days_ago": 60  # Created 60 days ago
         }
     ]
     
@@ -155,13 +161,17 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
         project_id = str(uuid.uuid4())
         project_ids.append(project_id)
         
+        # Calculate creation time based on days_ago
+        created_at = time.time() - (project_data["days_ago"] * 86400)
+        
         data_manager.projects.append({
             "id": project_id,
             "name": project_data["name"],
             "description": project_data["description"],
             "team_id": project_data["team_id"],
             "created_by": user_map["admin_alice"],
-            "created_at": time.time() - random.randint(86400 * 45, 86400 * 90)
+            "created_at": created_at,
+            "icon": project_data["icon"]
         })
         
         # Assign manager to project
@@ -175,25 +185,25 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
     
     # Generate boards for each project
     boards_data = [
-        # E-Commerce Platform Redesign boards
-        {"name": "UI/UX Design Sprint", "description": "User interface and experience design", "project_idx": 0},
-        {"name": "Frontend Development", "description": "React components and styling", "project_idx": 0},
-        {"name": "User Testing & Feedback", "description": "Testing with real users", "project_idx": 0},
-        {"name": "Performance Optimization", "description": "Speed and performance improvements", "project_idx": 0},
+        # Nexus project boards
+        {"name": "UI", "description": "User interface and experience design", "project_idx": 0, "icon": "palette", "days_after_project": 3},
+        {"name": "Core", "description": "React components and core functionality", "project_idx": 0, "icon": "code", "days_after_project": 7},
+        {"name": "QA", "description": "Quality assurance and user testing", "project_idx": 0, "icon": "users", "days_after_project": 14},
+        {"name": "Perf", "description": "Performance optimization and monitoring", "project_idx": 0, "icon": "zap", "days_after_project": 21},
         
-        # API Modernization Initiative boards
-        {"name": "Architecture Planning", "description": "System design and architecture", "project_idx": 1},
-        {"name": "Core API Development", "description": "REST and GraphQL endpoints", "project_idx": 1},
-        {"name": "Database Migration", "description": "Data migration and optimization", "project_idx": 1},
-        {"name": "Security & Testing", "description": "Security audits and testing", "project_idx": 1},
-        {"name": "Documentation", "description": "API documentation and guides", "project_idx": 1},
+        # Forge project boards
+        {"name": "Arch", "description": "System architecture and planning", "project_idx": 1, "icon": "layout", "days_after_project": 2},
+        {"name": "API", "description": "REST and GraphQL endpoint development", "project_idx": 1, "icon": "api", "days_after_project": 5},
+        {"name": "Data", "description": "Database design and data migration", "project_idx": 1, "icon": "database", "days_after_project": 10},
+        {"name": "Shield", "description": "Security implementation and auditing", "project_idx": 1, "icon": "shield", "days_after_project": 15},
+        {"name": "Docs", "description": "API documentation and developer guides", "project_idx": 1, "icon": "book", "days_after_project": 20},
         
-        # Mobile App Development boards
-        {"name": "iOS Development", "description": "Native iOS application", "project_idx": 2},
-        {"name": "Android Development", "description": "Native Android application", "project_idx": 2},
-        {"name": "Cross-Platform Features", "description": "Shared functionality", "project_idx": 2},
-        {"name": "App Store Preparation", "description": "Store submission and marketing", "project_idx": 2},
-        {"name": "Beta Testing", "description": "User testing and feedback", "project_idx": 2},
+        # Pulse project boards
+        {"name": "iOS", "description": "Native iOS application development", "project_idx": 2, "icon": "apple", "days_after_project": 5},
+        {"name": "Android", "description": "Native Android application development", "project_idx": 2, "icon": "android", "days_after_project": 8},
+        {"name": "Shared", "description": "Cross-platform shared components", "project_idx": 2, "icon": "layers", "days_after_project": 12},
+        {"name": "Deploy", "description": "App store deployment and distribution", "project_idx": 2, "icon": "store", "days_after_project": 25},
+        {"name": "Beta", "description": "Beta testing and user feedback", "project_idx": 2, "icon": "test-tube", "days_after_project": 30},
     ]
     
     board_ids = []
@@ -201,13 +211,18 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
         board_id = str(uuid.uuid4())
         board_ids.append(board_id)
         
+        # Calculate board creation time relative to project creation
+        project_created_at = time.time() - (projects_data[board_data["project_idx"]]["days_ago"] * 86400)
+        board_created_at = project_created_at + (board_data["days_after_project"] * 86400)
+        
         data_manager.boards.append({
             "id": board_id,
             "name": board_data["name"],
             "description": board_data["description"],
             "project_id": project_ids[board_data["project_idx"]],
             "created_by": user_map["admin_alice"],
-            "created_at": time.time() - random.randint(86400 * 30, 86400 * 60)
+            "created_at": board_created_at,
+            "icon": board_data["icon"]
         })
     
     # Generate lists for each board

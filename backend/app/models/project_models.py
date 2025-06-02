@@ -9,6 +9,7 @@ class ProjectIn(BaseModel):
     name: str
     description: Optional[str] = None
     team_id: str
+    icon: Optional[str] = "folder"  # Default icon
 
 class ProjectAssignmentIn(BaseModel):
     manager_id: str 

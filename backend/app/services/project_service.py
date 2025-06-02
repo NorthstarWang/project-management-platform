@@ -9,7 +9,7 @@ class ProjectService:
         self.project_repository = project_repository
         self.user_repository = user_repository
     
-    def create_project(self, name: str, description: str, team_id: str, created_by: str) -> Dict[str, Any]:
+    def create_project(self, name: str, description: str, team_id: str, created_by: str, icon: str = "folder") -> Dict[str, Any]:
         """Create a new project"""
         # Verify team exists
         team = next((t for t in self.project_repository.teams_store if t["id"] == team_id), None)
@@ -20,7 +20,8 @@ class ProjectService:
             "name": name,
             "description": description,
             "team_id": team_id,
-            "created_by": created_by
+            "created_by": created_by,
+            "icon": icon
         }
         return self.project_repository.create(project_data)
     
