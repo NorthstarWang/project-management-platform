@@ -203,6 +203,7 @@ export function IconSelector({ selectedIcon, onIconSelect, className, size = 'md
               }}
               onClick={(e) => e.stopPropagation()} // Prevent modal dismissal
               data-testid="icon-selector-dropdown"
+              data-dropdown-portal
             >
               <div className="p-4">
                 <h4 className="text-sm font-medium text-primary mb-3">Choose an icon</h4>
