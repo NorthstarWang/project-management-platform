@@ -320,8 +320,12 @@ export default function DashboardPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string | number) => {
+    // Handle Unix timestamp (convert from seconds to milliseconds)
+    const timestamp = typeof dateString === 'string' ? parseFloat(dateString) : dateString;
+    const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds
+    
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -679,6 +683,7 @@ export default function DashboardPage() {
       <Dialog open={showCreateProject} onOpenChange={setShowCreateProject}>
         <DialogContent className="max-w-2xl">
           <CreateProjectModal 
+            isOpen={showCreateProject}
             onClose={() => setShowCreateProject(false)}
             onProjectCreated={loadDashboardData}
           />
