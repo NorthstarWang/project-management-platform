@@ -815,10 +815,10 @@ export default function TaskDetailModal({
             </Badge>
           )}
           <Badge variant={getPriorityColor(formData.priority)} size="sm">
-            {formData.priority} priority
+            {formData.priority.charAt(0).toUpperCase() + formData.priority.slice(1)} Priority
           </Badge>
           <Badge variant={getStatusVariant(formData.status)} size="sm">
-            {formData.status.replace('_', ' ')}
+            {formData.status.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
             {modifiedFields.has('status') && <span className="ml-1 text-accent">•</span>}
           </Badge>
           {formData.due_date && (
