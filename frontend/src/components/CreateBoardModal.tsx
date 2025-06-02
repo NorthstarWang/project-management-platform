@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
+import { IconSelector, getIconComponent } from '@/components/ui/IconSelector';
 import { 
   DialogHeader,
   DialogTitle,
@@ -28,6 +29,7 @@ interface CreateBoardModalProps {
 interface BoardFormData {
   name: string;
   description: string;
+  icon: string;
 }
 
 // Helper function for analytics tracking
@@ -51,7 +53,8 @@ export default function CreateBoardModal({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<BoardFormData>({
     name: '',
-    description: ''
+    description: '',
+    icon: 'kanban'
   });
 
   const handleInputChange = (field: keyof BoardFormData, value: string) => {
@@ -78,17 +81,37 @@ export default function CreateBoardModal({
     try {
       setLoading(true);
       
+      // Debug: Check authentication state
+      console.log('API Client Debug Info:', apiClient.getDebugInfo());
+      console.log('LocalStorage user:', localStorage.getItem('user'));
+      console.log('LocalStorage session_id:', localStorage.getItem('session_id'));
+      
+      // Ensure user is authenticated
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        toast.error('You must be logged in to create a board');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      if (!apiClient.getDebugInfo().hasUserIdHeader) {
+        console.log('Setting user ID header:', user.id);
+        apiClient.setUserIdHeader(user.id);
+      }
+      
       // Track board creation attempt
       trackEvent('BOARD_CREATE_ATTEMPT', {
         board_name: formData.name,
         project_id: projectId,
-        has_description: !!formData.description.trim()
+        has_description: !!formData.description.trim(),
+        icon: formData.icon
       });
 
       const boardData = {
         name: formData.name.trim(),
         description: formData.description.trim() || `A board for organizing tasks in ${projectName}`,
-        project_id: projectId
+        project_id: projectId,
+        icon: formData.icon
       };
 
       const response = await apiClient.post('/api/boards', boardData);
@@ -135,7 +158,7 @@ export default function CreateBoardModal({
       <DialogHeader>
         <div className="flex items-center gap-3">
           <motion.div
-            className="flex items-center justify-center w-12 h-12 bg-accent/10 rounded-lg"
+            className="flex items-center justify-center w-12 h-12 bg-accent-10 rounded-lg"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
@@ -172,6 +195,22 @@ export default function CreateBoardModal({
           </p>
         </div>
 
+        {/* Board Icon */}
+        <div className="space-y-2">
+          <Label htmlFor="icon" className="flex items-center gap-2">
+            <Layout className="h-4 w-4 text-muted" />
+            Board Icon
+          </Label>
+          <div className="flex items-center space-x-3">
+            <IconSelector
+              selectedIcon={formData.icon}
+              onIconSelect={(icon) => handleInputChange('icon', icon)}
+              data-testid="board-icon-selector"
+            />
+            <span className="text-xs text-muted">Choose an icon to represent your board</span>
+          </div>
+        </div>
+
         {/* Description */}
         <div className="space-y-2">
           <Label htmlFor="description" className="flex items-center gap-2">
@@ -202,7 +241,13 @@ export default function CreateBoardModal({
           >
             <h4 className="text-sm font-medium text-primary mb-2">Board Preview</h4>
             <div className="space-y-1 text-sm">
-              <p className="text-primary font-medium">{formData.name}</p>
+              <div className="flex items-center space-x-2">
+                {(() => {
+                  const IconComponent = getIconComponent(formData.icon);
+                  return <IconComponent className="h-4 w-4 text-accent" />;
+                })()}
+                <p className="text-primary font-medium">{formData.name}</p>
+              </div>
               {formData.description && (
                 <p className="text-secondary text-xs">{formData.description}</p>
               )}

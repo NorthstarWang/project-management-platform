@@ -5,6 +5,7 @@ class BoardIn(BaseModel):
     name: str
     description: Optional[str] = None
     project_id: str
+    icon: Optional[str] = "kanban"  # Default icon
 
 class BoardMembershipIn(BaseModel):
     user_id: str

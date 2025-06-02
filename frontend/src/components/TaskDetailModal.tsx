@@ -25,7 +25,8 @@ import {
   Trash2,
   RefreshCw,
   Check,
-  CheckCircle
+  CheckCircle,
+  Reply
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
@@ -102,6 +103,135 @@ const trackEvent = async (actionType: string, payload: any) => {
   }
 };
 
+// Comment Item Component for nested comments with replies
+interface CommentItemProps {
+  comment: Comment;
+  currentUser: User;
+  onReply: (commentId: string) => void;
+  replyingTo: string | null;
+  replyContent: string;
+  onReplyContentChange: (content: string) => void;
+  onSubmitReply: (commentId: string) => void;
+  onCancelReply: () => void;
+  formatRelativeDate: (date: string | number) => string;
+  depth: number;
+}
+
+function CommentItem({
+  comment,
+  currentUser,
+  onReply,
+  replyingTo,
+  replyContent,
+  onReplyContentChange,
+  onSubmitReply,
+  onCancelReply,
+  formatRelativeDate,
+  depth
+}: CommentItemProps) {
+  const maxDepth = 3; // Maximum nesting depth
+  const isNested = depth > 0;
+  const canNest = depth < maxDepth;
+  const isReplying = replyingTo === comment.id;
+
+  return (
+    <div id={`comment-${comment.id}`} className={isNested ? 'ml-12' : ''}>
+      <div className="flex space-x-3">
+        <Avatar size="sm" name={comment.author.full_name} />
+        <div className="flex-1">
+          <div className="bg-card-content p-3 rounded-lg border border-card">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-primary">
+                  {comment.author.full_name}
+                </span>
+                {comment.parent_comment_id && (
+                  <span className="text-xs text-muted flex items-center">
+                    <Reply className="h-3 w-3 mr-1" />
+                    replied
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-muted">
+                {formatRelativeDate(comment.created_at)}
+              </span>
+            </div>
+            <p className="text-sm text-secondary whitespace-pre-wrap">
+              {comment.content}
+            </p>
+            {canNest && (
+              <div className="mt-2">
+                <button
+                  onClick={() => onReply(comment.id)}
+                  className="text-xs text-muted hover:text-accent transition-colors flex items-center"
+                >
+                  <Reply className="h-3 w-3 mr-1" />
+                  Reply
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Reply input */}
+          {isReplying && (
+            <div className="mt-3 flex space-x-3">
+              <Avatar size="sm" name={currentUser.full_name} />
+              <div className="flex-1 space-y-2">
+                <textarea
+                  value={replyContent}
+                  onChange={(e) => onReplyContentChange(e.target.value)}
+                  placeholder={`Reply to ${comment.author.full_name}...`}
+                  className="w-full min-h-[60px] px-3 py-2 bg-input border border-input-border rounded-md text-input placeholder:text-input-placeholder focus:border-input-border-focus focus:outline-none resize-none"
+                  rows={2}
+                  autoFocus
+                />
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onCancelReply}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => onSubmitReply(comment.id)}
+                    disabled={!replyContent.trim()}
+                    leftIcon={<Send className="h-3 w-3" />}
+                  >
+                    Reply
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Nested replies */}
+          {comment.replies && comment.replies.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {comment.replies.map((reply) => (
+                <CommentItem
+                  key={reply.id}
+                  comment={reply}
+                  currentUser={currentUser}
+                  onReply={onReply}
+                  replyingTo={replyingTo}
+                  replyContent={replyContent}
+                  onReplyContentChange={onReplyContentChange}
+                  onSubmitReply={onSubmitReply}
+                  onCancelReply={onCancelReply}
+                  formatRelativeDate={formatRelativeDate}
+                  depth={depth + 1}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TaskDetailModal({
   task,
   lists,
@@ -141,6 +271,10 @@ export default function TaskDetailModal({
   const [loadingComments, setLoadingComments] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
 
   // Load auto-saved changes from localStorage
   useEffect(() => {
@@ -203,23 +337,83 @@ export default function TaskDetailModal({
     });
   };
 
-  const formatRelativeDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatRelativeDate = (dateString: string | number) => {
+    // Handle Unix timestamp (convert from seconds to milliseconds)
+    const timestamp = typeof dateString === 'string' ? parseFloat(dateString) : dateString;
+    const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMs = now.getTime() - date.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
     
-    if (diffDays === 1) return 'Today';
-    if (diffDays === 2) return 'Yesterday';
-    if (diffDays <= 7) return `${diffDays - 1} days ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    // Less than a minute ago
+    if (diffSeconds < 60) {
+      return diffSeconds <= 5 ? 'just now' : `${diffSeconds} seconds ago`;
+    }
+    
+    // Less than an hour ago
+    if (diffMinutes < 60) {
+      return diffMinutes === 1 ? '1 minute ago' : `${diffMinutes} minutes ago`;
+    }
+    
+    // Less than a day ago
+    if (diffHours < 24) {
+      return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+    }
+    
+    // Less than a week ago
+    if (diffDays < 7) {
+      return diffDays === 1 ? 'Yesterday' : `${diffDays} days ago`;
+    }
+    
+    // Less than a month ago
+    if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    }
+    
+    // For older dates, show the exact date and time
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric',
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const loadComments = async () => {
     try {
       setLoadingComments(true);
       const response = await apiClient.get(`/api/tasks/${task.id}/comments`);
-      setComments(response.data);
+      
+      // Organize comments into a tree structure
+      const allComments = response.data;
+      const commentMap = new Map<string, Comment>();
+      const rootComments: Comment[] = [];
+      
+      // First pass: create map of all comments
+      allComments.forEach((comment: Comment) => {
+        commentMap.set(comment.id, { ...comment, replies: [] });
+      });
+      
+      // Second pass: organize into tree structure
+      allComments.forEach((comment: Comment) => {
+        const mappedComment = commentMap.get(comment.id)!;
+        if (comment.parent_comment_id) {
+          const parent = commentMap.get(comment.parent_comment_id);
+          if (parent) {
+            parent.replies = parent.replies || [];
+            parent.replies.push(mappedComment);
+          }
+        } else {
+          rootComments.push(mappedComment);
+        }
+      });
+      
+      setComments(rootComments);
     } catch (error) {
       console.error('Failed to load comments:', error);
       toast.error('Failed to load comments');
@@ -363,7 +557,7 @@ export default function TaskDetailModal({
         task_id: task.id
       };
 
-      const response = await apiClient.post('/api/comments', commentData);
+      await apiClient.post('/api/comments', commentData);
       
       trackEvent('COMMENT_ADD', {
         task_id: task.id,
@@ -371,18 +565,49 @@ export default function TaskDetailModal({
         timestamp: new Date().toISOString()
       });
       
-      // If the response doesn't include author data, add it manually
-      const newCommentWithAuthor = response.data.author ? response.data : {
-        ...response.data,
-        author: currentUser
-      };
-      
-      setComments(prev => [...prev, newCommentWithAuthor]);
       setNewComment('');
       toast.success('Comment added successfully!');
+      
+      // Reload comments to get the proper structure
+      await loadComments();
     } catch (error: any) {
       console.error('Failed to add comment:', error);
       toast.error(error.response?.data?.detail || 'Failed to add comment');
+    } finally {
+      setIsAddingComment(false);
+    }
+  };
+
+  const handleAddReply = async (parentCommentId: string) => {
+    if (!replyContent.trim()) return;
+    
+    try {
+      setIsAddingComment(true);
+      
+      const commentData = {
+        content: replyContent.trim(),
+        task_id: task.id,
+        parent_comment_id: parentCommentId
+      };
+
+      await apiClient.post('/api/comments', commentData);
+      
+      trackEvent('COMMENT_REPLY', {
+        task_id: task.id,
+        parent_comment_id: parentCommentId,
+        reply_length: replyContent.length,
+        timestamp: new Date().toISOString()
+      });
+      
+      setReplyContent('');
+      setReplyingTo(null);
+      toast.success('Reply added successfully!');
+      
+      // Reload comments to get the proper structure
+      await loadComments();
+    } catch (error: any) {
+      console.error('Failed to add reply:', error);
+      toast.error(error.response?.data?.detail || 'Failed to add reply');
     } finally {
       setIsAddingComment(false);
     }
@@ -789,24 +1014,22 @@ export default function TaskDetailModal({
               </div>
             ) : comments.length > 0 ? (
               comments.map((comment) => (
-                <div key={comment.id} className="flex space-x-3">
-                  <Avatar size="sm" name={comment.author.full_name} />
-                  <div className="flex-1">
-                    <div className="bg-card-content p-3 rounded-lg">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-primary">
-                          {comment.author.full_name}
-                        </span>
-                        <span className="text-xs text-muted">
-                          {formatRelativeDate(comment.created_at)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-secondary whitespace-pre-wrap">
-                        {comment.content}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <CommentItem 
+                  key={comment.id} 
+                  comment={comment} 
+                  currentUser={currentUser}
+                  onReply={(commentId) => setReplyingTo(commentId)}
+                  replyingTo={replyingTo}
+                  replyContent={replyContent}
+                  onReplyContentChange={setReplyContent}
+                  onSubmitReply={handleAddReply}
+                  onCancelReply={() => {
+                    setReplyingTo(null);
+                    setReplyContent('');
+                  }}
+                  formatRelativeDate={formatRelativeDate}
+                  depth={0}
+                />
               ))
             ) : (
               <div className="text-center py-6">

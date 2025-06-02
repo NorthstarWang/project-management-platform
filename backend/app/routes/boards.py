@@ -16,7 +16,8 @@ def create_board(board_in: BoardIn, request: Request, current_user: dict = Depen
             name=board_in.name,
             description=board_in.description,
             project_id=board_in.project_id,
-            created_by=current_user["id"]
+            created_by=current_user["id"],
+            icon=board_in.icon
         )
         log_action(request, "BOARD_CREATE", {
             "boardId": board["id"],
@@ -40,8 +41,26 @@ def list_project_boards(project_id: str, request: Request, current_user: dict = 
             raise HTTPException(status_code=403, detail="Access denied to this project")
         
         boards = data_manager.board_service.get_project_boards(project_id)
+        
+        # Enhance each board with task count
+        enhanced_boards = []
+        for board in boards:
+            # Get all lists for this board
+            lists = data_manager.board_repository.find_board_lists(board["id"])
+            
+            # Count tasks across all lists
+            task_count = 0
+            for board_list in lists:
+                tasks = data_manager.task_repository.find_tasks_by_list(board_list["id"])
+                task_count += len(tasks)
+            
+            # Add task count to board data
+            enhanced_board = board.copy()
+            enhanced_board["tasks_count"] = task_count
+            enhanced_boards.append(enhanced_board)
+        
         log_action(request, "PROJECT_BOARDS_LIST", {"projectId": project_id, "requestedBy": current_user["id"]})
-        return boards
+        return enhanced_boards
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -337,6 +356,46 @@ def get_board_task_counts(board_id: str, request: Request, current_user: dict = 
         
         log_action(request, "BOARD_TASK_COUNTS_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
         return task_counts
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/boards/{board_id}/tasks")
+def get_board_tasks(board_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Get all tasks for a board"""
+    try:
+        # Check board access
+        if not data_manager.board_service.check_user_board_access(current_user["id"], board_id, current_user["role"]):
+            raise HTTPException(status_code=403, detail="Access denied to this board")
+        
+        # Get all lists for this board
+        lists = data_manager.board_repository.find_board_lists(board_id)
+        
+        # Get all tasks across all lists
+        all_tasks = []
+        for board_list in lists:
+            tasks = data_manager.task_repository.find_tasks_by_list(board_list["id"])
+            
+            # Enhance tasks with assignee names and comment counts
+            for task in tasks:
+                enhanced_task = task.copy()
+                
+                # Add assignee name if assignee exists
+                if task.get("assignee_id"):
+                    assignee = data_manager.user_repository.find_by_id(task["assignee_id"])
+                    if assignee:
+                        enhanced_task["assignee_name"] = assignee["full_name"]
+                
+                # Add comment count
+                comments = data_manager.comment_repository.find_task_comments(task["id"])
+                enhanced_task["comments_count"] = len(comments)
+                
+                # Add attachments count (placeholder for now)
+                enhanced_task["attachments_count"] = 0
+                
+                all_tasks.append(enhanced_task)
+        
+        log_action(request, "BOARD_TASKS_GET", {"boardId": board_id, "taskCount": len(all_tasks), "requestedBy": current_user["id"]})
+        return all_tasks
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

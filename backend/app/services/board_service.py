@@ -14,7 +14,7 @@ class BoardService:
         self.user_repository = user_repository
         self.task_repository = task_repository
     
-    def create_board(self, name: str, description: str, project_id: str, created_by: str) -> Dict[str, Any]:
+    def create_board(self, name: str, description: str, project_id: str, created_by: str, icon: str = "kanban") -> Dict[str, Any]:
         """Create a new board"""
         # Verify project exists
         project = self.project_repository.find_by_id(project_id)
@@ -25,7 +25,8 @@ class BoardService:
             "name": name,
             "description": description,
             "project_id": project_id,
-            "created_by": created_by
+            "created_by": created_by,
+            "icon": icon
         }
         return self.board_repository.create(board_data)
     

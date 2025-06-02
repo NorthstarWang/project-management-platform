@@ -11,13 +11,14 @@ import {
   Users,
   Calendar,
   FolderOpen,
-  Layers,
   LogOut,
   Zap,
-  X
+  X,
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { getIconComponent } from '@/components/ui/IconSelector';
 import apiClient from '@/services/apiClient';
 import authService from '@/services/authService';
 import { toast } from '@/components/ui/CustomToast';
@@ -34,6 +35,7 @@ interface Project {
   id: string;
   name: string;
   description: string;
+  icon?: string;
 }
 
 interface Board {
@@ -41,6 +43,7 @@ interface Board {
   name: string;
   description: string;
   project_id: string;
+  icon?: string;
 }
 
 interface SidebarProps {
@@ -216,23 +219,62 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
         {/* Projects Section */}
         <div className="mt-6">
-          <motion.button
-            onClick={() => setProjectsExpanded(!projectsExpanded)}
-            className="group flex w-full items-center px-2 py-2 text-sm font-medium text-secondary rounded-md hover:bg-interactive-secondary-hover hover:text-primary transition-all duration-200"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            data-testid="projects-toggle-button"
-          >
-            <FolderOpen className="mr-3 h-5 w-5 flex-shrink-0 text-muted group-hover:text-secondary transition-colors duration-200" />
-            <span className="truncate">Projects</span>
-            <motion.div
-              animate={{ rotate: projectsExpanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-              className="ml-auto flex-shrink-0"
+          <div className={cn(
+            "group flex w-full items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200",
+            pathname === '/projects' ? 'bg-accent-2' : 'hover:bg-interactive-secondary-hover'
+          )}>
+            <FolderOpen className={cn(
+              "mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-200",
+              pathname === '/projects' ? 'text-accent' : 'text-muted group-hover:text-secondary'
+            )} />
+            
+            {/* Clickable Projects text - navigates to projects list */}
+            <Link
+              href="/projects"
+              className={cn(
+                "flex-1 text-left truncate transition-colors duration-200",
+                pathname === '/projects' ? 'text-accent' : 'text-secondary group-hover:text-primary'
+              )}
+              onClick={() => {
+                if (onClose) onClose();
+              }}
+              data-testid="projects-link"
             >
-              <ChevronDown className="h-4 w-4 transition-colors duration-200" />
-            </motion.div>
-          </motion.button>
+              Projects
+            </Link>
+            
+            {/* Redirect to projects list button */}
+            <motion.button
+              onClick={() => {
+                router.push('/projects');
+                if (onClose) onClose();
+              }}
+              className="p-1 rounded hover:bg-interactive-primary/10 transition-colors duration-200 mr-1"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              title="Go to Projects List"
+              data-testid="projects-redirect-button"
+            >
+              <ArrowRight className="h-4 w-4 text-muted hover:text-primary transition-colors duration-200" />
+            </motion.button>
+            
+            {/* Dropdown toggle button */}
+            <motion.button
+              onClick={() => setProjectsExpanded(!projectsExpanded)}
+              className="p-1 rounded hover:bg-interactive-primary/10 transition-colors duration-200"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              title={projectsExpanded ? "Collapse Projects" : "Expand Projects"}
+              data-testid="projects-toggle-button"
+            >
+              <motion.div
+                animate={{ rotate: projectsExpanded ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown className="h-4 w-4 text-muted hover:text-primary transition-colors duration-200" />
+              </motion.div>
+            </motion.button>
+          </div>
 
           <AnimatePresence>
             {projectsExpanded && (
@@ -291,7 +333,11 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                               onClick={() => onClose && onClose()}
                               data-testid={`project-link-${project.id}`}
                             >
-                              <span className="truncate">{truncateText(project.name, 16)}</span>
+                              {(() => {
+                                const IconComponent = getIconComponent(project.icon || 'folder');
+                                return <IconComponent className="mr-2 h-4 w-4 flex-shrink-0 transition-colors duration-200" />;
+                              })()}
+                              <span className="truncate">{truncateText(project.name, 14)}</span>
                             </Link>
                           </motion.div>
                         </div>
@@ -332,8 +378,11 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                                         onClick={() => onClose && onClose()}
                                         data-testid={`board-link-${board.id}`}
                                       >
-                                        <Layers className="mr-2 h-3 w-3 flex-shrink-0 transition-colors duration-200" />
-                                        <span className="truncate">{truncateText(board.name, 14)}</span>
+                                        {(() => {
+                                          const IconComponent = getIconComponent(board.icon || 'kanban');
+                                          return <IconComponent className="mr-2 h-3 w-3 flex-shrink-0 transition-colors duration-200" />;
+                                        })()}
+                                        <span className="truncate">{truncateText(board.name, 12)}</span>
                                       </Link>
                                     </motion.div>
                                   );
