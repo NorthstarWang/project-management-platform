@@ -213,6 +213,7 @@ export function DatePicker({
             'bg-dropdown border border-dropdown rounded-lg shadow-xl',
             'p-4 space-y-4'
           )}
+          data-dropdown-portal
         >
           {/* Header */}
           <div className="flex items-center justify-between">

@@ -12,11 +12,13 @@ import {
   ChevronLeft, 
   ChevronRight,
   Clock,
-  Filter
+  Filter,
+  Users
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
 import { track } from '@/services/analyticsLogger';
+import { Switch } from '@/components/ui/Switch';
 
 interface User {
   id: string;
@@ -46,6 +48,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const [showTeamTasks, setShowTeamTasks] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
@@ -70,7 +73,7 @@ export default function CalendarPage() {
     
     // Load calendar data
     loadCalendarData();
-  }, [router, viewMode]);
+  }, [router, viewMode, showTeamTasks]);
 
   const loadCalendarData = async () => {
     try {
@@ -80,12 +83,40 @@ export default function CalendarPage() {
       track('DATA_LOAD_START', {
         page: 'calendar',
         data_types: ['tasks_with_due_dates'],
-        view_mode: viewMode
+        view_mode: viewMode,
+        show_team_tasks: showTeamTasks
       });
       
-      // Load tasks with due dates
-      const tasksResponse = await apiClient.get('/api/users/me/assigned_tasks');
-      const allTasks = tasksResponse.data;
+      let allTasks: Task[] = [];
+      
+      if (showTeamTasks && user && (user.role === 'manager' || user.role === 'admin')) {
+        // Load team tasks for managers by first getting team members, then their tasks
+        try {
+          // Get team members
+          const teamMembersResponse = await apiClient.get('/api/users/me/team-members');
+          const teamMembers = teamMembersResponse.data;
+          
+          // Get tasks for each team member
+          const taskPromises = teamMembers.map((member: any) => 
+            apiClient.get(`/api/users/${member.id}/assigned_tasks`).catch(() => ({ data: [] }))
+          );
+          
+          const taskResults = await Promise.all(taskPromises);
+          
+          // Combine all team tasks
+          allTasks = taskResults.flatMap(result => result.data);
+          
+        } catch (error) {
+          console.error('Failed to load team tasks:', error);
+          // Fallback to personal tasks if team tasks fail
+          const tasksResponse = await apiClient.get('/api/users/me/assigned_tasks');
+          allTasks = tasksResponse.data;
+        }
+      } else {
+        // Load personal tasks
+        const tasksResponse = await apiClient.get('/api/users/me/assigned_tasks');
+        allTasks = tasksResponse.data;
+      }
       
       // Filter tasks that have due dates
       const tasksWithDueDates = allTasks.filter((task: Task) => task.due_date);
@@ -95,7 +126,8 @@ export default function CalendarPage() {
       track('DATA_LOAD_SUCCESS', {
         page: 'calendar',
         tasks_count: tasksWithDueDates.length,
-        view_mode: viewMode
+        view_mode: viewMode,
+        show_team_tasks: showTeamTasks
       });
 
     } catch (error: any) {
@@ -236,7 +268,20 @@ export default function CalendarPage() {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-1 bg-gray-2 rounded-lg p-1">
+              {/* Team Tasks Toggle for Managers */}
+              {user && (user.role === 'manager' || user.role === 'admin') && (
+                <div className="flex items-center space-x-2 mr-4">
+                  <Users className="h-4 w-4 text-muted" />
+                  <span className="text-sm text-secondary">Team Tasks</span>
+                  <Switch
+                    checked={showTeamTasks}
+                    onCheckedChange={setShowTeamTasks}
+                    aria-label="Toggle team tasks"
+                  />
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-1 bg-surface rounded-lg p-1">
                 <Button
                   variant={viewMode === 'month' ? 'primary' : 'ghost'}
                   size="sm"
@@ -261,7 +306,7 @@ export default function CalendarPage() {
         {/* Calendar Navigation */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center">
               <Button
                 variant="outline"
                 size="sm"
@@ -270,7 +315,7 @@ export default function CalendarPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-lg font-semibold text-primary">
+              <h2 className="text-lg font-semibold text-primary px-4 min-w-[180px] text-center" style={{ margin: 0 }}>
                 {getCurrentMonthName()}
               </h2>
               <Button
@@ -295,7 +340,7 @@ export default function CalendarPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="h-24 bg-gray-200 rounded-lg"></div>
+                  <div className="h-24 bg-surface rounded-lg"></div>
                 </div>
               ))}
             </div>
@@ -312,8 +357,8 @@ export default function CalendarPage() {
                       <Card
                         key={task.id}
                         className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                          isOverdue(task.due_date) ? 'border-error bg-error' :
-                          isToday(task.due_date) ? 'border-warning bg-warning' :
+                          isOverdue(task.due_date) ? 'border-error bg-error/10' :
+                          isToday(task.due_date) ? 'border-warning bg-warning/10' :
                           'border-card'
                         }`}
                         data-testid={`calendar-task-${task.id}`}
@@ -399,17 +444,17 @@ export default function CalendarPage() {
                         <Card
                           key={task.id}
                           className={`p-4 hover:shadow-sm transition-shadow cursor-pointer ${
-                            isOverdue(task.due_date) ? 'border-red-200 bg-red-50' :
-                            isToday(task.due_date) ? 'border-yellow-200 bg-yellow-50' :
-                            'border-gray-200'
+                            isOverdue(task.due_date) ? 'border-error bg-error/10' :
+                            isToday(task.due_date) ? 'border-warning bg-warning/10' :
+                            'border-card'
                           }`}
                           data-testid={`all-tasks-${task.id}`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                               <div>
-                                <h4 className="font-medium text-gray-900">{task.title}</h4>
-                                <p className="text-sm text-gray-600 line-clamp-1">{task.description}</p>
+                                <h4 className="font-medium text-primary">{task.title}</h4>
+                                <p className="text-sm text-secondary line-clamp-1">{task.description}</p>
                               </div>
                             </div>
                             <div className="flex items-center space-x-3">
@@ -419,7 +464,7 @@ export default function CalendarPage() {
                               <Badge variant={getStatusColor(task.status)} size="sm">
                                 {task.status.replace('_', ' ')}
                               </Badge>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-muted">
                                 {formatDate(task.due_date)}
                               </div>
                               {task.assignee_name && (
@@ -433,9 +478,9 @@ export default function CalendarPage() {
                 ) : (
                   <Card className="p-12">
                     <div className="text-center">
-                      <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No tasks with due dates</h3>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <CalendarIcon className="mx-auto h-12 w-12 text-muted" />
+                      <h3 className="mt-2 text-sm font-medium text-primary">No tasks with due dates</h3>
+                      <p className="mt-1 text-sm text-muted">
                         Tasks with due dates will appear here.
                       </p>
                     </div>

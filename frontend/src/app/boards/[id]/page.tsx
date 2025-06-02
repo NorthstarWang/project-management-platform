@@ -103,6 +103,10 @@ export default function BoardPage() {
     archived: '#9CA3AF',
     deleted: '#EF4444'
   });
+  
+  // Temporary settings for board settings modal
+  const [tempColumnVisibility, setTempColumnVisibility] = useState(columnVisibility);
+  const [tempStatusColors, setTempStatusColors] = useState(statusColors);
 
   useEffect(() => {
     // Check if user is logged in
@@ -615,6 +619,7 @@ export default function BoardPage() {
             onAddTask={handleAddTask}
             columnVisibility={columnVisibility}
             statusColors={statusColors}
+            boardStatuses={boardStatuses}
           />
         )}
 
@@ -662,7 +667,14 @@ export default function BoardPage() {
 
         {/* Board Settings Modal */}
         {user && (user.role === 'admin' || user.role === 'manager') && (
-          <Dialog open={showSettings} onOpenChange={setShowSettings}>
+          <Dialog open={showSettings} onOpenChange={(open) => {
+            if (open) {
+              // Initialize temp states when opening modal
+              setTempColumnVisibility(columnVisibility);
+              setTempStatusColors(statusColors);
+            }
+            setShowSettings(open);
+          }}>
             <DialogContent className="max-w-md">
               <div className="space-y-6">
                 <div>
@@ -684,8 +696,8 @@ export default function BoardPage() {
                       </div>
                       <Switch
                         id="archived-visibility"
-                        checked={columnVisibility.archived}
-                        onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, archived: checked }))}
+                        checked={tempColumnVisibility.archived}
+                        onCheckedChange={(checked) => setTempColumnVisibility(prev => ({ ...prev, archived: checked }))}
                       />
                     </div>
                     
@@ -699,8 +711,8 @@ export default function BoardPage() {
                       </div>
                       <Switch
                         id="deleted-visibility"
-                        checked={columnVisibility.deleted}
-                        onCheckedChange={(checked) => setColumnVisibility(prev => ({ ...prev, deleted: checked }))}
+                        checked={tempColumnVisibility.deleted}
+                        onCheckedChange={(checked) => setTempColumnVisibility(prev => ({ ...prev, deleted: checked }))}
                       />
                     </div>
                   </div>
@@ -710,7 +722,7 @@ export default function BoardPage() {
                     <p className="text-xs text-muted-foreground">Customize header colors for each status column</p>
                     
                     <div className="grid grid-cols-2 gap-3">
-                      {Object.entries(statusColors).map(([status, color]) => (
+                      {Object.entries(tempStatusColors).map(([status, color]) => (
                         <div key={status} className="flex items-center justify-between p-2 border border-muted rounded-md">
                           <div className="flex items-center space-x-2">
                             <div 
@@ -727,7 +739,7 @@ export default function BoardPage() {
                           <input
                             type="color"
                             value={color}
-                            onChange={(e) => setStatusColors(prev => ({ ...prev, [status]: e.target.value }))}
+                            onChange={(e) => setTempStatusColors(prev => ({ ...prev, [status]: e.target.value }))}
                             className="w-6 h-6 rounded border border-muted cursor-pointer"
                             title={`Change ${status} color`}
                           />
@@ -749,6 +761,9 @@ export default function BoardPage() {
                     Close
                   </Button>
                   <Button onClick={() => {
+                    // Apply the temporary settings to actual settings
+                    setColumnVisibility(tempColumnVisibility);
+                    setStatusColors(tempStatusColors);
                     setShowSettings(false);
                     toast.success('Settings saved!');
                   }}>

@@ -131,7 +131,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
   // Perform search
   useEffect(() => {
     const searchTimeout = setTimeout(async () => {
-      if (query.length >= 2) {
+      if (query.length >= 1) {
         setLoading(true);
         const startTime = Date.now();
         
@@ -301,14 +301,19 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
         <div className="p-4 border-b border-secondary flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin text-muted" />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <Loader2 className="h-4 w-4 text-muted" />
+              </motion.div>
             ) : (
               <Search className="h-4 w-4 text-muted" />
             )}
             <span className="text-sm text-secondary">
               {loading ? 'Searching...' : 
                results ? `${results.total_count} result${results.total_count !== 1 ? 's' : ''} found` : 
-               query.length < 2 ? 'Type at least 2 characters' : 'No results'}
+               query.length < 1 ? 'Type to search' : 'No results'}
             </span>
           </div>
           <button
@@ -320,8 +325,22 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
           </button>
         </div>
 
+        {/* Results or Loading State */}
+        {loading && query.length >= 1 && (
+          <div className="p-8 text-center">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="inline-block"
+            >
+              <Loader2 className="h-8 w-8 text-accent" />
+            </motion.div>
+            <p className="text-sm text-muted mt-3">Searching for &ldquo;{query}&rdquo;...</p>
+          </div>
+        )}
+
         {/* Results */}
-        {results && results.total_count > 0 && (
+        {!loading && results && results.total_count > 0 && (
           <div className="overflow-y-auto max-h-[calc(70vh-60px)]">
             {/* Projects */}
             {results.projects.length > 0 && (
@@ -494,7 +513,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
         )}
 
         {/* Empty state */}
-        {results && results.total_count === 0 && query.length >= 2 && (
+        {!loading && results && results.total_count === 0 && query.length >= 1 && (
           <div className="p-8 text-center">
             <Search className="h-12 w-12 text-muted mx-auto mb-3" />
             <p className="text-secondary">No results found for &ldquo;{query}&rdquo;</p>
