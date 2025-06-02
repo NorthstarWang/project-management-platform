@@ -161,16 +161,24 @@ export default function CalendarPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string | number) => {
+    // Handle Unix timestamp (convert from seconds to milliseconds)
+    const timestamp = typeof dateString === 'string' ? parseFloat(dateString) : dateString;
+    const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds
+    
+    return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
     });
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
+  const formatTime = (dateString: string | number) => {
+    // Handle Unix timestamp (convert from seconds to milliseconds)
+    const timestamp = typeof dateString === 'string' ? parseFloat(dateString) : dateString;
+    const date = new Date(timestamp * 1000); // Convert from seconds to milliseconds
+    
+    return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
     });

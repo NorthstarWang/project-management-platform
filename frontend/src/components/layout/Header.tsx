@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Search, Bell, Settings, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { SearchResults } from '@/components/ui/SearchResults';
 
 interface User {
   id: string;
@@ -23,11 +24,34 @@ interface HeaderProps {
 
 export function Header({ currentUser, onMenuClick, showMenuButton = false }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchInputRef = useRef<HTMLDivElement>(null);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    // Show results if query has at least 2 characters
+    if (query.length >= 2) {
+      setShowSearchResults(true);
+    } else {
+      setShowSearchResults(false);
+    }
+  };
+
+  const handleSearchFocus = () => {
+    if (searchQuery.length >= 2) {
+      setShowSearchResults(true);
+    }
+  };
+
+  const handleCloseSearch = () => {
+    setShowSearchResults(false);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement search functionality
-    console.log('Search query:', searchQuery);
+    // Prevent form submission - search is handled by SearchResults component
   };
 
   return (
@@ -47,19 +71,29 @@ export function Header({ currentUser, onMenuClick, showMenuButton = false }: Hea
           )}
 
           {/* Search Bar */}
-          <div className="flex-1 max-w-2xl mr-8">
+          <div className="flex-1 max-w-2xl mr-8" ref={searchInputRef}>
             <form onSubmit={handleSearch} className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-5 w-5 text-muted transition-colors duration-300" />
               </div>
               <Input
                 type="text"
-                placeholder="Search by name, label, task or team member..."
+                placeholder="Search projects, boards, tasks, comments..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
+                onFocus={handleSearchFocus}
                 className="block w-full pl-10 pr-3 py-2 border border-input bg-input text-input placeholder-input focus:border-input-focus transition-all duration-300"
+                data-testid="global-search-input"
               />
             </form>
+            
+            {/* Search Results Dropdown */}
+            <SearchResults
+              query={searchQuery}
+              isOpen={showSearchResults}
+              onClose={handleCloseSearch}
+              anchorRef={searchInputRef as React.RefObject<HTMLElement>}
+            />
           </div>
 
           {/* Right side actions */}

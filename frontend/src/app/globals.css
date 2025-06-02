@@ -217,6 +217,14 @@
   --checkbox-border: var(--border-secondary);
   --checkbox-checked: var(--interactive-primary);
   --checkbox-checked-hover: var(--interactive-primary-hover);
+
+  /* Accent Color Opacity Utilities */
+  --accent-bg-5: rgb(0 211 127 / 0.05);
+  --accent-bg-10: rgb(0 211 127 / 0.1);
+  --accent-bg-15: rgb(0 211 127 / 0.15);
+  --accent-border-10: rgb(0 211 127 / 0.1);
+  --accent-border-20: rgb(0 211 127 / 0.2);
+  --accent-border-30: rgb(0 211 127 / 0.3);
 }
 
 /* ===== LIGHT THEME (Orange/Coral Palette) ===== */
@@ -431,6 +439,14 @@
   --checkbox-border: var(--border-secondary);
   --checkbox-checked: var(--interactive-primary);
   --checkbox-checked-hover: var(--interactive-primary-hover);
+
+  /* Accent Color Opacity Utilities */
+  --accent-bg-5: rgb(250 115 40 / 0.05);
+  --accent-bg-10: rgb(250 115 40 / 0.1);
+  --accent-bg-15: rgb(250 115 40 / 0.15);
+  --accent-border-10: rgb(250 115 40 / 0.1);
+  --accent-border-20: rgb(250 115 40 / 0.2);
+  --accent-border-30: rgb(250 115 40 / 0.3);
 }
 
 /* ===== BASE STYLES ===== */
@@ -1482,3 +1498,13 @@ body:has([data-dnd-drag-overlay]) [data-testid^="droppable-status-"] button {
 .bg-priority-medium-solid { background-color: var(--priority-medium); }
 .bg-priority-high-solid { background-color: var(--priority-high); }
 .bg-priority-urgent-solid { background-color: var(--priority-urgent); }
+
+/* Accent Border Utilities with Opacity */
+.border-accent-10 { border-color: var(--accent-border-10); }
+.border-accent-20 { border-color: var(--accent-border-20); }
+.border-accent-30 { border-color: var(--accent-border-30); }
+
+/* Accent Background Utilities with Opacity */
+.bg-accent-5 { background-color: var(--accent-bg-5); }
+.bg-accent-10 { background-color: var(--accent-bg-10); }
+.bg-accent-15 { background-color: var(--accent-bg-15); }
