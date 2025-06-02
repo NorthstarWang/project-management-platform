@@ -122,6 +122,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </motion.span>
         )}
         <motion.span
+          className="flex items-center gap-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: disabled || loading ? 0.5 : 1 }}
           transition={{ delay: 0.1 }}

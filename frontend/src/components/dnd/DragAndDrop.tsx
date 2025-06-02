@@ -222,15 +222,15 @@ function DroppableStatusColumn({ status, children, tasks, onAddTask, isVisible =
         className="flex items-center justify-between p-4 border-b border-muted rounded-t-xl min-h-[72px]"
         style={{ backgroundColor: status.color }}
       >
-        <h3 
-          className="font-medium text-white flex-1 min-w-0"
+        <div 
+          className="font-medium text-xl text-white flex-1 min-w-0 items-center"
           style={{ color: contrastColors.headerText }}
           title={status.name}
         >
           <span className="truncate block">
             {status.name}
           </span>
-        </h3>
+        </div>
         <div className="flex items-center gap-3 ml-3 shrink-0">
           {priorityBadges.length > 0 && (
             <div className="flex items-center gap-1">
