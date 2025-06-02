@@ -306,7 +306,7 @@ export default function CalendarPage() {
         {/* Calendar Navigation */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center">
               <Button
                 variant="outline"
                 size="sm"
@@ -315,7 +315,7 @@ export default function CalendarPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-lg font-semibold text-primary px-4 min-w-[180px] text-center">
+              <h2 className="text-lg font-semibold text-primary px-4 min-w-[180px] text-center" style={{ margin: 0 }}>
                 {getCurrentMonthName()}
               </h2>
               <Button
