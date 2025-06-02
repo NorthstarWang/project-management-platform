@@ -28,13 +28,14 @@ export function Toaster({
       richColors={richColors}
       duration={duration}
       closeButton={closeButton}
-      className="toaster group"
+      className="toaster group z-[100]"
       toastOptions={{
         classNames: {
           toast: cn(
             'group toast group-[.toaster]:bg-toast group-[.toaster]:text-primary',
             'group-[.toaster]:border group-[.toaster]:border-toast',
-            'group-[.toaster]:shadow-toast group-[.toaster]:pointer-events-auto'
+            'group-[.toaster]:shadow-toast group-[.toaster]:pointer-events-auto',
+            'group-[.toaster]:z-[100]'
           ),
           title: 'group-[.toast]:text-primary group-[.toast]:font-semibold',
           description: 'group-[.toast]:text-secondary',
