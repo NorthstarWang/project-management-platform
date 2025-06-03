@@ -9,19 +9,19 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
     if seed:
         random.seed(seed)
     
-    # Generate users
+    # Generate users - Only admin and member roles now, managers are team-specific
     users_data = [
         # Admin
         {"username": "admin_alice", "password": "admin123", "email": "alice@techcorp.com", 
          "full_name": "Alice Chen", "role": "admin"},
         
-        # Managers
-        {"username": "manager_david", "password": "manager123", "email": "david@techcorp.com", 
-         "full_name": "David Rodriguez", "role": "manager"},
-        {"username": "manager_sarah", "password": "manager123", "email": "sarah@techcorp.com", 
-         "full_name": "Sarah Johnson", "role": "manager"},
-        {"username": "manager_james", "password": "manager123", "email": "james@techcorp.com", 
-         "full_name": "James Wilson", "role": "manager"},
+        # Regular members who will become managers of specific teams
+        {"username": "david_rodriguez", "password": "member123", "email": "david@techcorp.com", 
+         "full_name": "David Rodriguez", "role": "member"},
+        {"username": "sarah_johnson", "password": "member123", "email": "sarah@techcorp.com", 
+         "full_name": "Sarah Johnson", "role": "member"},
+        {"username": "james_wilson", "password": "member123", "email": "james@techcorp.com", 
+         "full_name": "James Wilson", "role": "member"},
         
         # Frontend Team Members
         {"username": "frontend_emma", "password": "dev123", "email": "emma@techcorp.com", 
@@ -91,28 +91,28 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
             "created_at": time.time() - random.randint(86400 * 60, 86400 * 120)
         })
     
-    # Generate team memberships
+    # Generate team memberships with dynamic manager roles
     team_assignments = [
-        # Frontend Team
+        # Frontend Team - David Rodriguez as manager
         (user_map["admin_alice"], team_ids[0], "admin"),
-        (user_map["manager_david"], team_ids[0], "manager"),
+        (user_map["david_rodriguez"], team_ids[0], "manager"),  # Now team-specific manager
         (user_map["frontend_emma"], team_ids[0], "member"),
         (user_map["frontend_alex"], team_ids[0], "member"),
         (user_map["frontend_maya"], team_ids[0], "member"),
         (user_map["frontend_lucas"], team_ids[0], "member"),
         
-        # Backend Team
+        # Backend Team - Sarah Johnson as manager
         (user_map["admin_alice"], team_ids[1], "admin"),
-        (user_map["manager_sarah"], team_ids[1], "manager"),
+        (user_map["sarah_johnson"], team_ids[1], "manager"),  # Now team-specific manager
         (user_map["backend_mike"], team_ids[1], "member"),
         (user_map["backend_lisa"], team_ids[1], "member"),
         (user_map["backend_tom"], team_ids[1], "member"),
         (user_map["backend_nina"], team_ids[1], "member"),
         (user_map["backend_raj"], team_ids[1], "member"),
         
-        # Mobile Team
+        # Mobile Team - James Wilson as manager
         (user_map["admin_alice"], team_ids[2], "admin"),
-        (user_map["manager_james"], team_ids[2], "manager"),
+        (user_map["james_wilson"], team_ids[2], "manager"),  # Now team-specific manager
         (user_map["mobile_carlos"], team_ids[2], "member"),
         (user_map["mobile_zoe"], team_ids[2], "member"),
         (user_map["mobile_kevin"], team_ids[2], "member"),
@@ -134,7 +134,7 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
             "name": "Nexus",
             "description": "Next-gen e-commerce platform with AI-powered recommendations",
             "team_id": team_ids[0],  # Frontend team
-            "manager_id": user_map["manager_david"],
+            "manager_id": user_map["david_rodriguez"],  # Team manager
             "icon": "shopping-cart",
             "days_ago": 45  # Created 45 days ago
         },
@@ -142,7 +142,7 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
             "name": "Forge", 
             "description": "Modern API gateway with GraphQL and microservices architecture",
             "team_id": team_ids[1],  # Backend team
-            "manager_id": user_map["manager_sarah"],
+            "manager_id": user_map["sarah_johnson"],  # Team manager
             "icon": "server",
             "days_ago": 30  # Created 30 days ago
         },
@@ -150,7 +150,7 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
             "name": "Pulse",
             "description": "Cross-platform mobile app for real-time user engagement",
             "team_id": team_ids[2],  # Mobile team
-            "manager_id": user_map["manager_james"],
+            "manager_id": user_map["james_wilson"],  # Team manager
             "icon": "smartphone",
             "days_ago": 60  # Created 60 days ago
         }
@@ -182,6 +182,31 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
             "assigned_by": user_map["admin_alice"],
             "assigned_at": time.time() - random.randint(86400 * 40, 86400 * 80)
         })
+
+    # Generate some sample team creation requests
+    sample_creation_requests = [
+        {
+            "id": str(uuid.uuid4()),
+            "requester_id": user_map["frontend_emma"],
+            "team_name": "DevOps Team",
+            "team_description": "Infrastructure and deployment automation",
+            "message": "We need a dedicated team for DevOps and CI/CD processes",
+            "status": "pending",
+            "created_at": time.time() - random.randint(86400 * 1, 86400 * 7)
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "requester_id": user_map["backend_mike"],
+            "team_name": "QA Team",
+            "team_description": "Quality assurance and testing",
+            "message": "Separate QA team would improve our testing processes",
+            "status": "pending",
+            "created_at": time.time() - random.randint(86400 * 2, 86400 * 5)
+        }
+    ]
+    
+    for request_data in sample_creation_requests:
+        data_manager.team_creation_requests.append(request_data)
     
     # Generate boards for each project
     boards_data = [
@@ -250,11 +275,11 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
     # Enroll users in boards (first 4 boards = frontend, next 5 = backend, last 5 = mobile)
     for i, board_id in enumerate(board_ids):
         if i < 4:  # Frontend boards
-            users_to_enroll = frontend_users + [user_map["manager_david"]]
+            users_to_enroll = frontend_users + [user_map["david_rodriguez"]]
         elif i < 9:  # Backend boards
-            users_to_enroll = backend_users + [user_map["manager_sarah"]]
+            users_to_enroll = backend_users + [user_map["sarah_johnson"]]
         else:  # Mobile boards
-            users_to_enroll = mobile_users + [user_map["manager_james"]]
+            users_to_enroll = mobile_users + [user_map["james_wilson"]]
         
         for user_id in users_to_enroll:
             data_manager.board_memberships.append({

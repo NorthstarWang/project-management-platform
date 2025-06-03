@@ -28,6 +28,7 @@ class DataManager:
         self.board_statuses: List[Dict[str, Any]] = []
         self.team_join_requests: List[Dict[str, Any]] = []
         self.team_invitations: List[Dict[str, Any]] = []
+        self.team_creation_requests: List[Dict[str, Any]] = []
         
         # Initialize repositories
         self.user_repository = UserRepository(self.users)
@@ -92,7 +93,8 @@ class DataManager:
             "task_activities": self.task_activities,
             "board_statuses": self.board_statuses,
             "team_join_requests": self.team_join_requests,
-            "team_invitations": self.team_invitations
+            "team_invitations": self.team_invitations,
+            "team_creation_requests": self.team_creation_requests
         }
     
     def augment_state(self, data: Dict[str, Any]):

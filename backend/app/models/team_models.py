@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+from enum import Enum
 
 class TeamCreateRequest(BaseModel):
     name: str
@@ -31,4 +32,31 @@ class TeamInvitation(BaseModel):
 
 class TeamInvitationResponse(BaseModel):
     action: str  # "accept" or "decline"
-    message: Optional[str] = None 
+    message: Optional[str] = None
+
+# New models for dynamic role system
+class TeamCreationRequestStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    DENIED = "denied"
+
+class TeamCreationRequest(BaseModel):
+    """Request from a member to create a new team"""
+    name: str
+    description: str
+    message: Optional[str] = None
+
+class TeamCreationRequestResponse(BaseModel):
+    """Admin response to team creation request"""
+    action: str  # "approve" or "deny"
+    assigned_manager_id: Optional[str] = None  # If approved, who should be the manager
+    message: Optional[str] = None
+
+class ManagerReassignmentRequest(BaseModel):
+    """Request to reassign manager when current manager quits"""
+    new_manager_id: Optional[str] = None  # If None, team will be disbanded
+    message: Optional[str] = None
+
+class TeamQuitRequest(BaseModel):
+    """Request from manager to quit team with reassignment options"""
+    reassignment: ManagerReassignmentRequest 
