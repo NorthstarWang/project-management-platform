@@ -73,6 +73,7 @@ interface TaskFormData {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   due_date: string;
   task_type: 'feature' | 'bug' | 'research' | 'fix' | 'story' | 'task';
+  status: string;
 }
 
 interface ListTaskCounts {
@@ -94,6 +95,25 @@ export default function CreateTaskModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [listTaskCounts, setListTaskCounts] = useState<ListTaskCounts>({});
+
+  // Helper function to determine task status based on list name (same as TaskDetailModal)
+  const getStatusFromListName = (listName: string): string => {
+    const name = listName.toLowerCase();
+    if (name.includes('done') || name.includes('completed')) return 'done';
+    if (name.includes('progress') || name.includes('in progress')) return 'in_progress';
+    if (name.includes('review')) return 'review';
+    if (name.includes('archive')) return 'archived';
+    if (name.includes('backlog')) return 'backlog';
+    if (name.includes('todo') || name.includes('to do')) return 'todo';
+    return 'todo'; // default
+  };
+
+  // Get initial status from the list name
+  const getInitialStatus = () => {
+    const targetList = lists.find(l => l.id === listId);
+    return targetList ? getStatusFromListName(targetList.name) : 'todo';
+  };
+
   const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
@@ -101,14 +121,17 @@ export default function CreateTaskModal({
     assignee_id: '',
     priority: 'medium',
     due_date: '',
-    task_type: 'task'
+    task_type: 'task',
+    status: getInitialStatus()
   });
 
   const totalSteps = 5;
 
   useEffect(() => {
-    setFormData(prev => ({ ...prev, list_id: listId }));
-  }, [listId]);
+    const targetList = lists.find(l => l.id === listId);
+    const status = targetList ? getStatusFromListName(targetList.name) : 'todo';
+    setFormData(prev => ({ ...prev, list_id: listId, status }));
+  }, [listId, lists]);
 
   useEffect(() => {
     if (users.length === 0 && !loadingUsers) {
@@ -154,7 +177,23 @@ export default function CreateTaskModal({
   const handleInputChange = (field: keyof TaskFormData, value: string) => {
     // Convert "unassigned" back to empty string for assignee_id
     const actualValue = field === 'assignee_id' && value === 'unassigned' ? '' : value;
-    setFormData(prev => ({ ...prev, [field]: actualValue }));
+    
+    // If changing list, also update status to match list semantics
+    if (field === 'list_id') {
+      const targetList = lists.find(l => l.id === value);
+      if (targetList) {
+        const newStatus = getStatusFromListName(targetList.name);
+        setFormData(prev => ({ 
+          ...prev, 
+          [field]: actualValue,
+          status: newStatus 
+        }));
+      } else {
+        setFormData(prev => ({ ...prev, [field]: actualValue }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [field]: actualValue }));
+    }
   };
 
   const validateStep = (step: number): boolean => {
@@ -200,7 +239,7 @@ export default function CreateTaskModal({
         priority: formData.priority,
         due_date: formData.due_date || undefined,
         task_type: formData.task_type,
-        // Status will be determined from list name on backend
+        status: formData.status
       };
 
       const response = await apiClient.post('/api/tasks', taskData);

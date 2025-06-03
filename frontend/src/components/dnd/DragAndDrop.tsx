@@ -497,6 +497,42 @@ export function DragAndDrop({
     return [...boardStatuses].sort((a, b) => a.position - b.position);
   }, [boardStatuses]);
   
+  // Helper function to map status to list
+  const getListForStatus = useCallback((statusId: string): string | null => {
+    if (!lists || lists.length === 0) {
+      console.warn('No lists available for status mapping');
+      return null;
+    }
+
+    // Try to find a list that matches the status semantically
+    const statusName = statusId.toLowerCase();
+    
+    // First, try to find an exact or semantic match
+    const matchingList = lists.find(list => {
+      const listName = list.name.toLowerCase();
+      
+      // Direct matches
+      if (listName === statusName) return true;
+      if (statusName === 'todo' && (listName.includes('todo') || listName.includes('to do'))) return true;
+      if (statusName === 'in_progress' && (listName.includes('progress') || listName.includes('in progress') || listName.includes('doing'))) return true;
+      if (statusName === 'review' && listName.includes('review')) return true;
+      if (statusName === 'done' && (listName.includes('done') || listName.includes('completed'))) return true;
+      if (statusName === 'backlog' && listName.includes('backlog')) return true;
+      if (statusName === 'archived' && listName.includes('archive')) return true;
+      
+      return false;
+    });
+
+    if (matchingList) {
+      return matchingList.id;
+    }
+
+    // If no semantic match found, use the first available list
+    // This ensures newly created boards with default lists still work
+    console.log(`No semantic match found for status '${statusId}', using first available list`);
+    return lists[0]?.id || null;
+  }, [lists]);
+  
   // Group tasks by status - memoized to prevent recalculation
   const tasksByStatus = React.useMemo(() => {
     return sortedBoardStatuses.reduce((acc, status) => {
@@ -708,11 +744,13 @@ export function DragAndDrop({
               status={customStatus}
               tasks={tasksByStatus[status.id] || []}
               onAddTask={onAddTask ? () => {
-                // For backward compatibility, use the first list
-                // In the future, we'll create tasks directly with status
-                const defaultList = lists[0];
-                if (defaultList) {
-                  onAddTask(defaultList.id);
+                const listId = getListForStatus(status.id);
+                if (listId) {
+                  console.log(`Adding task to status '${status.id}' using list '${listId}'`);
+                  onAddTask(listId);
+                } else {
+                  console.error(`No list found for status '${status.id}'`);
+                  toast.error('Cannot add task: No list available for this status');
                 }
               } : undefined}
               isVisible={true}
