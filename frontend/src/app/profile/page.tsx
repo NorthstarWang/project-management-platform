@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/Separator';
 import { toast } from '@/components/ui/CustomToast';
 import { Save, Edit, Camera, User, Mail, Shield, Activity } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import apiClient from '@/services/apiClient';
 
 interface UserProfile {
   id: string;
@@ -32,8 +33,6 @@ interface UserStatistics {
   tasks_completed: number;
   comments_made: number;
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -91,16 +90,10 @@ export default function ProfilePage() {
   const loadUserProfile = async () => {
     try {
       setIsLoadingProfile(true);
-      const sessionId = localStorage.getItem('session_id');
-      const response = await fetch(`${API_BASE_URL}/api/users/me/profile?session_id=${sessionId}`);
+      const response = await apiClient.get('/api/users/me/profile');
       
-      if (!response.ok) {
-        throw new Error('Failed to load profile');
-      }
-      
-      const profile = await response.json();
-      setProfileData(profile);
-      setOriginalData(profile);
+      setProfileData(response.data);
+      setOriginalData(response.data);
     } catch (error) {
       console.error('Failed to load profile:', error);
       toast.error('Failed to load profile information');
@@ -128,15 +121,9 @@ export default function ProfilePage() {
   const loadUserStatistics = async () => {
     try {
       setIsLoadingStats(true);
-      const sessionId = localStorage.getItem('session_id');
-      const response = await fetch(`${API_BASE_URL}/api/users/me/statistics?session_id=${sessionId}`);
+      const response = await apiClient.get('/api/users/me/statistics');
       
-      if (!response.ok) {
-        throw new Error('Failed to load statistics');
-      }
-      
-      const stats = await response.json();
-      setUserStats(stats);
+      setUserStats(response.data);
     } catch (error) {
       console.error('Failed to load statistics:', error);
       // Keep default stats on error
@@ -164,8 +151,6 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const sessionId = localStorage.getItem('session_id');
-      
       // Prepare update data (only changed fields)
       const updateData: Partial<UserProfile> = {};
       
@@ -188,28 +173,16 @@ export default function ProfilePage() {
         updateData.phone = profileData.phone;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/users/me/profile?session_id=${sessionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData),
-      });
+      const response = await apiClient.put('/api/users/me/profile', updateData);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to update profile');
-      }
-
-      const updatedProfile = await response.json();
-      
-      setProfileData(updatedProfile);
-      setOriginalData(updatedProfile);
+      setProfileData(response.data);
+      setOriginalData(response.data);
       setIsEditing(false);
       toast.success('Profile updated successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update profile:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile. Please try again.');
+      const errorMessage = error.response?.data?.detail || 'Failed to update profile. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
