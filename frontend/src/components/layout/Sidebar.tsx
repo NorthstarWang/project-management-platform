@@ -15,7 +15,8 @@ import {
   LogOut,
   Zap,
   X,
-  ArrowRight
+  ArrowRight,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -56,6 +57,7 @@ const navigation = [
   { name: 'Home', href: '/dashboard', icon: Home },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Discover', href: '/discover', icon: Search },
   { name: 'Members', href: '/members', icon: Users },
 ];
 

@@ -20,14 +20,7 @@ import {
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
 import { track } from '@/services/analyticsLogger';
-
-interface User {
-  id: string;
-  username: string;
-  full_name: string;
-  role: string;
-  email: string;
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Team {
   id: string;
@@ -75,7 +68,7 @@ interface TeamInvitation {
 
 export default function DiscoverPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [myRequests, setMyRequests] = useState<TeamRequest[]>([]);
   const [myInvitations, setMyInvitations] = useState<TeamInvitation[]>([]);
@@ -83,38 +76,48 @@ export default function DiscoverPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'discover' | 'requests' | 'invitations'>('discover');
 
+  // Redirect to login if not authenticated
   useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    
-    if (!userData) {
+    if (!isLoading && !isAuthenticated) {
       router.push('/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Load data when user is authenticated
+  useEffect(() => {
+    if (user && isAuthenticated) {
+      // Log page view
+      track('PAGE_VIEW', {
+        page_name: 'discover',
+        page_url: '/discover',
+        user_id: user.id,
+        user_role: user.role
+      });
+      
+      // Load data
+      loadData();
+    }
+  }, [user, isAuthenticated]);
+
+  const loadData = async () => {
+    if (!user || !isAuthenticated) {
+      console.log('❌ Cannot load data - user not authenticated');
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    
-    // Log page view
-    track('PAGE_VIEW', {
-      page_name: 'discover',
-      page_url: '/discover',
-      user_id: parsedUser.id,
-      user_role: parsedUser.role
-    });
-    
-    // Load data
-    loadData();
-  }, [router]);
-
-  const loadData = async () => {
     try {
       setLoading(true);
+      
+      // Debug API client state
+      console.log('🔍 API Client Debug Info:', apiClient.getDebugInfo());
+      console.log('🔍 Current User:', user);
       
       track('DATA_LOAD_START', {
         page: 'discover',
         data_types: ['teams', 'requests', 'invitations']
       });
+
+      console.log('🔄 Loading discover data...');
 
       // Load discoverable teams, user requests, and invitations in parallel
       const [teamsResponse, requestsResponse, invitationsResponse] = await Promise.all([
@@ -127,6 +130,8 @@ export default function DiscoverPage() {
       setMyRequests(requestsResponse.data);
       setMyInvitations(invitationsResponse.data);
 
+      console.log('✅ Discover data loaded successfully');
+
       track('DATA_LOAD_SUCCESS', {
         page: 'discover',
         teams_count: teamsResponse.data.length,
@@ -136,6 +141,42 @@ export default function DiscoverPage() {
 
     } catch (error: any) {
       console.error('Failed to load discover data:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        data: error.data
+      });
+      
+      // Let's try to test individual endpoints to see which one is failing
+      try {
+        console.log('🧪 Testing individual endpoints...');
+        
+        // Test each endpoint individually
+        try {
+          const teamsTest = await apiClient.get('/api/teams/discover');
+          console.log('✅ Teams discover endpoint works:', teamsTest.data);
+        } catch (teamError) {
+          console.error('❌ Teams discover endpoint failed:', teamError);
+        }
+
+        try {
+          const requestsTest = await apiClient.get('/api/users/me/team-requests');
+          console.log('✅ Team requests endpoint works:', requestsTest.data);
+        } catch (requestError) {
+          console.error('❌ Team requests endpoint failed:', requestError);
+        }
+
+        try {
+          const invitationsTest = await apiClient.get('/api/users/me/team-invitations');
+          console.log('✅ Team invitations endpoint works:', invitationsTest.data);
+        } catch (invitationError) {
+          console.error('❌ Team invitations endpoint failed:', invitationError);
+        }
+
+      } catch (testError) {
+        console.error('Individual endpoint testing failed:', testError);
+      }
+      
       toast.error('Failed to load teams and requests');
       
       track('DATA_LOAD_ERROR', {
