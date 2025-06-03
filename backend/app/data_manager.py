@@ -45,7 +45,7 @@ class DataManager:
         )
         
         # Initialize services
-        self.user_service = UserService(self.user_repository)
+        self.user_service = UserService(self.user_repository, self.team_repository)
         self.project_service = ProjectService(self.project_repository, self.user_repository)
         self.board_service = BoardService(
             self.board_repository, self.project_repository, self.user_repository, self.task_repository

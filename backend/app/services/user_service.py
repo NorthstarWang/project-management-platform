@@ -4,8 +4,9 @@ from ..repositories.user_repository import UserRepository
 class UserService:
     """Service for user-related business logic"""
     
-    def __init__(self, user_repository: UserRepository):
+    def __init__(self, user_repository: UserRepository, team_repository=None):
         self.user_repository = user_repository
+        self.team_repository = team_repository
     
     def authenticate_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """Authenticate a user with username and password"""
@@ -41,7 +42,7 @@ class UserService:
         return self.user_repository.find_by_role(role)
     
     def get_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Get detailed user profile information"""
+        """Get detailed user profile information including teams"""
         user = self.user_repository.find_by_id(user_id)
         if not user:
             return None
@@ -54,6 +55,35 @@ class UserService:
         profile.setdefault('phone', '')
         profile.setdefault('created_at', None)
         profile.setdefault('last_login', None)
+        
+        # Add team information if team_repository is available
+        if self.team_repository:
+            try:  
+                user_teams = self.team_repository.get_user_teams(user_id)
+                # Get team memberships to include roles
+                team_memberships = [
+                    membership for membership in self.team_repository.team_memberships
+                    if membership["user_id"] == user_id
+                ]
+                
+                # Enhance teams with user's role in each team
+                enhanced_teams = []
+                for team in user_teams:
+                    team_membership = next(
+                        (m for m in team_memberships if m["team_id"] == team["id"]), 
+                        None
+                    )
+                    enhanced_team = team.copy()
+                    enhanced_team["user_role"] = team_membership["role"] if team_membership else "member"
+                    enhanced_team["joined_at"] = team_membership.get("joined_at") if team_membership else None
+                    enhanced_teams.append(enhanced_team)
+                
+                profile["teams"] = enhanced_teams
+            except Exception as e:
+                # If there's an error getting teams, just set empty list
+                profile["teams"] = []
+        else:
+            profile["teams"] = []
         
         return profile
     

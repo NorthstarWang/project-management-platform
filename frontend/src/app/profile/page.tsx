@@ -10,9 +10,18 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Separator } from '@/components/ui/Separator';
 import { toast } from '@/components/ui/CustomToast';
-import { Save, Edit, Camera, User, Mail, Shield, Activity } from 'lucide-react';
+import { Save, Edit, Camera, User, Mail, Shield, Activity, Users, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/services/apiClient';
+
+interface TeamInfo {
+  id: string;
+  name: string;
+  description: string;
+  user_role: 'member' | 'manager' | 'admin';
+  joined_at?: number;
+  created_at?: string;
+}
 
 interface UserProfile {
   id: string;
@@ -26,6 +35,7 @@ interface UserProfile {
   department?: string;
   location?: string;
   phone?: string;
+  teams?: TeamInfo[];
 }
 
 interface UserStatistics {
@@ -191,14 +201,31 @@ export default function ProfilePage() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-red-500/10 text-red-600 border-red-500/20';
+        return 'bg-priority-urgent text-priority-urgent border-priority-urgent';
       case 'manager':
-        return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+        return 'bg-priority-high text-priority-high border-priority-high';
       case 'member':
-        return 'bg-green-500/10 text-green-600 border-green-500/20';
+        return 'bg-priority-low text-priority-low border-priority-low';
       default:
-        return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+        return 'bg-priority-medium text-priority-medium border-priority-medium';
     }
+  };
+
+  const getTeamRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-priority-urgent text-priority-urgent border-priority-urgent';
+      case 'manager':
+        return 'bg-priority-high text-priority-high border-priority-high';
+      case 'member':
+        return 'bg-priority-low text-priority-low border-priority-low';
+      default:
+        return 'bg-priority-medium text-priority-medium border-priority-medium';
+    }
+  };
+
+  const handleManageTeams = () => {
+    router.push('/discover');
   };
 
   if (isLoading || isLoadingProfile) {
@@ -412,6 +439,59 @@ export default function ProfilePage() {
                 <p className="text-2xl font-bold text-primary">{userStats.comments_made}</p>
                 <p className="text-muted">Comments Made</p>
               </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Teams Section */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-primary flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              <span>My Teams</span>
+            </h2>
+            <Button 
+              onClick={handleManageTeams}
+              variant="outline"
+              className="flex items-center space-x-2"
+            >
+              <span>Manage Teams</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {profileData.teams && profileData.teams.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {profileData.teams.map((team) => (
+                <div 
+                  key={team.id} 
+                  className="p-4 border border-input rounded-lg bg-card hover:bg-card-hover transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-primary truncate">{team.name}</h3>
+                    <Badge className={getTeamRoleColor(team.user_role)}>
+                      {team.user_role.charAt(0).toUpperCase() + team.user_role.slice(1)}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted line-clamp-2 mb-3">
+                    {team.description || 'No description available'}
+                  </p>
+                  {team.joined_at && (
+                    <p className="text-xs text-muted">
+                      Joined {new Date(team.joined_at * 1000).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-muted mx-auto mb-3" />
+              <p className="text-muted mb-4">You&apos;re not part of any teams yet</p>
+              <Button onClick={handleManageTeams} className="flex items-center space-x-2">
+                <span>Discover Teams</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </div>
           )}
         </Card>
