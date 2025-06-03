@@ -859,6 +859,7 @@ body:has([data-dnd-drag-overlay]) [data-testid^="droppable-status-"] button {
 .border-accent { border-color: var(--border-accent); }
 .border-focus { border-color: var(--border-focus); }
 .border-card { border-color: var(--card-border); }
+.border-border { border-color: var(--border-secondary); }
 
 /* Button Utilities */
 .bg-btn-primary { background-color: var(--button-primary-bg); }

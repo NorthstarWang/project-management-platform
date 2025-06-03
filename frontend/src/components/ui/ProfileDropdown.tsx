@@ -93,18 +93,18 @@ export function ProfileDropdown({ currentUser }: ProfileDropdownProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-64 rounded-lg bg-card border border-border shadow-lg z-50"
+            className="absolute right-0 mt-2 w-64 rounded-lg bg-dropdown border-dropdown shadow-dropdown z-50"
             data-testid="profile-dropdown-menu"
           >
             {/* User Info Section */}
-            <div className="px-4 py-3 border-b border-border">
+            <div className="px-4 py-3 border-b border-dropdown">
               <div className="flex items-center space-x-3">
                 <Avatar 
                   size="default" 
                   name={currentUser?.full_name || "User"} 
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-primary truncate">
+                  <p className="text-sm font-medium text-dropdown-item truncate">
                     {currentUser?.full_name || "User Name"}
                   </p>
                   <p className="text-xs text-muted truncate">
@@ -121,7 +121,7 @@ export function ProfileDropdown({ currentUser }: ProfileDropdownProps) {
             <div className="py-2">
               <button
                 onClick={handleViewProfile}
-                className="w-full px-4 py-2 text-left text-sm text-primary hover:bg-surface transition-colors duration-200 flex items-center space-x-3"
+                className="w-full px-4 py-2 text-left text-sm text-dropdown-item hover:bg-dropdown-item-hover transition-colors duration-200 flex items-center space-x-3"
                 data-testid="view-profile-button"
               >
                 <UserCircle className="h-4 w-4 text-muted" />
@@ -130,7 +130,7 @@ export function ProfileDropdown({ currentUser }: ProfileDropdownProps) {
 
               <button
                 onClick={handleViewProfile}
-                className="w-full px-4 py-2 text-left text-sm text-primary hover:bg-surface transition-colors duration-200 flex items-center space-x-3"
+                className="w-full px-4 py-2 text-left text-sm text-dropdown-item hover:bg-dropdown-item-hover transition-colors duration-200 flex items-center space-x-3"
                 data-testid="edit-profile-button"
               >
                 <Settings className="h-4 w-4 text-muted" />
@@ -139,7 +139,7 @@ export function ProfileDropdown({ currentUser }: ProfileDropdownProps) {
             </div>
 
             {/* Logout Section */}
-            <div className="border-t border-border">
+            <div className="border-t border-dropdown">
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
