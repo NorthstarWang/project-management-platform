@@ -1,7 +1,23 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, AuthState, LoginCredentials, RegisterData, auth } from '@/lib/auth';
+import authService from '@/services/authService';
+import type { User, LoginCredentials } from '@/services/authService';
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  sessionId: string | null;
+}
+
+export interface RegisterData {
+  username: string;
+  password: string;
+  email: string;
+  full_name: string;
+  role: 'admin' | 'manager' | 'member';
+}
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<User>;
@@ -27,17 +43,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize auth state on mount
   useEffect(() => {
-    const initializeAuth = () => {
-      const user = auth.getCurrentUser();
-      const sessionId = auth.getSessionId();
-      const isAuthenticated = auth.isAuthenticated();
+    const initializeAuth = async () => {
+      try {
+        // Wait for auth service to initialize
+        await authService.waitForInitialization();
+        
+        const user = authService.getCurrentUser();
+        const sessionId = authService.getSessionId();
+        const isAuthenticated = authService.isAuthenticated();
 
-      setAuthState({
-        user,
-        isAuthenticated,
-        isLoading: false,
-        sessionId,
-      });
+        setAuthState({
+          user,
+          isAuthenticated,
+          isLoading: false,
+          sessionId,
+        });
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          sessionId: null,
+        });
+      }
     };
 
     initializeAuth();
@@ -47,38 +76,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const user = await auth.login(credentials);
-      const sessionId = auth.getSessionId();
+      const result = await authService.login(credentials);
       
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        sessionId,
-      });
-      
-      return user;
+      if (result.success && result.user) {
+        const sessionId = authService.getSessionId();
+        
+        setAuthState({
+          user: result.user,
+          isAuthenticated: true,
+          isLoading: false,
+          sessionId,
+        });
+        
+        return result.user;
+      } else {
+        throw new Error(result.error || 'Login failed');
+      }
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }
   };
 
-  const handleRegister = async (data: RegisterData): Promise<User> => {
+  const handleRegister = async (data: RegisterData): Promise<User> {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const user = await auth.register(data);
-      const sessionId = auth.getSessionId();
-      
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        sessionId,
-      });
-      
-      return user;
+      // For registration, we'll need to implement this in authService
+      // For now, throw an error since the current authService doesn't have register
+      throw new Error('Registration not implemented in authService yet');
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       throw error;
@@ -89,7 +115,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      await auth.logout();
+      await authService.logout();
       
       setAuthState({
         user: null,
@@ -110,28 +136,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const handleInitializeSession = async (seed?: string): Promise<string> => {
-    const sessionId = await auth.initializeSession(seed);
-    
-    setAuthState(prev => ({
-      ...prev,
-      sessionId,
-    }));
-    
-    return sessionId;
+    // This would need to be implemented in authService if needed
+    throw new Error('Session initialization not implemented in authService yet');
   };
 
   const handleResetEnvironment = async (seed?: string): Promise<void> => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      await auth.resetEnvironment(seed);
-      
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        sessionId: null,
-      });
+      // This would need to be implemented in authService if needed
+      throw new Error('Environment reset not implemented in authService yet');
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       throw error;
