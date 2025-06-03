@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from ..data_manager import data_manager
 from .dependencies import get_current_user, get_current_user_id, log_action
+from ..models.user_models import UserProfileUpdate, UserProfile
 
 router = APIRouter(prefix="/api", tags=["users"])
 
@@ -19,6 +20,83 @@ def get_current_user_info(request: Request, current_user: dict = Depends(get_cur
     """Get current user information"""
     log_action(request, "USER_ME_GET", {"userId": current_user["id"]})
     return current_user
+
+@router.get("/users/me/profile", response_model=UserProfile)
+def get_current_user_profile(request: Request, current_user: dict = Depends(get_current_user)):
+    """Get current user's detailed profile"""
+    try:
+        profile = data_manager.user_service.get_user_profile(current_user["id"])
+        if not profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        log_action(request, "USER_PROFILE_GET", {"userId": current_user["id"]})
+        return profile
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.put("/users/me/profile", response_model=UserProfile)
+def update_current_user_profile(
+    profile_update: UserProfileUpdate,
+    request: Request, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Update current user's profile"""
+    try:
+        # Convert pydantic model to dict, excluding None values
+        update_data = profile_update.dict(exclude_none=True)
+        
+        # Update the profile
+        updated_profile = data_manager.user_service.update_user_profile(
+            current_user["id"], 
+            update_data
+        )
+        
+        log_action(request, "USER_PROFILE_UPDATE", {
+            "userId": current_user["id"],
+            "updatedFields": list(update_data.keys())
+        })
+        
+        return updated_profile
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+
+@router.get("/users/me/statistics")
+def get_current_user_statistics(request: Request, current_user: dict = Depends(get_current_user)):
+    """Get current user's activity statistics"""
+    try:
+        stats = data_manager.user_service.get_user_statistics(current_user["id"])
+        
+        log_action(request, "USER_STATISTICS_GET", {"userId": current_user["id"]})
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get user statistics: {str(e)}")
+
+@router.get("/users/{user_id}/profile", response_model=UserProfile)
+def get_user_profile(
+    user_id: str,
+    request: Request, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific user's profile (admin/manager only or own profile)"""
+    # Users can view their own profile, admins/managers can view any profile
+    if current_user["id"] != user_id and current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    try:
+        profile = data_manager.user_service.get_user_profile(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        log_action(request, "USER_PROFILE_GET", {
+            "userId": user_id,
+            "requestedBy": current_user["id"]
+        })
+        
+        return profile
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.get("/users/me/assigned_tasks")
 def get_current_user_assigned_tasks(request: Request, current_user: dict = Depends(get_current_user)):
