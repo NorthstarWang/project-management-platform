@@ -28,7 +28,12 @@ class BoardService:
             "created_by": created_by,
             "icon": icon
         }
-        return self.board_repository.create(board_data)
+        board = self.board_repository.create(board_data)
+        
+        # Auto-enroll the board creator in the board
+        self.board_repository.enroll_user_in_board(created_by, board["id"], created_by)
+        
+        return board
     
     def get_project_boards(self, project_id: str) -> List[Dict[str, Any]]:
         """Get all boards for a project"""
