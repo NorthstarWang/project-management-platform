@@ -7,6 +7,7 @@ export * from './Avatar';
 export * from './TaskCard';
 export * from './ThemeToggle';
 export * from './Skeleton';
+export * from './ProfileDropdown';
 
 // Notification Components
 export * from './NotificationCard';

@@ -4,10 +4,10 @@ import { useState, useRef } from 'react';
 import { Search, Settings, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Avatar } from '@/components/ui/Avatar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { SearchResults } from '@/components/ui/SearchResults';
 import { NotificationDropdown } from '@/components/ui/NotificationDropdown';
+import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 
 interface User {
   id: string;
@@ -110,14 +110,8 @@ export function Header({ currentUser, onMenuClick, showMenuButton = false }: Hea
               <Settings className="h-5 w-5 text-muted transition-colors duration-300" />
             </Button>
 
-            {/* User Avatar */}
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 transition-all duration-300">
-              <Avatar 
-                size="sm" 
-                name={currentUser?.full_name || "User"} 
-                className="transition-all duration-300" 
-              />
-            </Button>
+            {/* User Profile Dropdown */}
+            <ProfileDropdown currentUser={currentUser} />
           </div>
         </div>
       </div>

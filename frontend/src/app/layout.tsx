@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Alike, Mulish } from "next/font/google";
 import { Theme } from "@radix-ui/themes";
 import { ToastProvider } from "@/components/ui/CustomToast";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { GlobalOverlayProvider } from "@/components/providers/GlobalOverlayProvider";
@@ -38,17 +39,19 @@ export default function RootLayout({
       >
         <GlobalOverlayProvider>
           <ThemeProvider>
-            <Theme
-              radius="medium"
-              scaling="100%"
-              panelBackground="solid"
-              hasBackground={false}
-            >
-              <ProtectedRoute>
-                {children}
-              </ProtectedRoute>
-              <ToastProvider />
-            </Theme>
+            <AuthProvider>
+              <Theme
+                radius="medium"
+                scaling="100%"
+                panelBackground="solid"
+                hasBackground={false}
+              >
+                <ProtectedRoute>
+                  {children}
+                </ProtectedRoute>
+                <ToastProvider />
+              </Theme>
+            </AuthProvider>
           </ThemeProvider>
         </GlobalOverlayProvider>
       </body>
