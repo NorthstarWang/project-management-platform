@@ -72,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
   }, []);
 
-  const handleLogin = async (credentials: LoginCredentials): Promise<User> => {
+  const handleLogin = async (credentials: LoginCredentials) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
@@ -98,7 +98,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const handleRegister = async (data: RegisterData): Promise<User> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleRegister = async (_data: RegisterData) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
@@ -111,7 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const handleLogout = async (): Promise<void> => {
+  const handleLogout = async () => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
@@ -135,12 +136,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const handleInitializeSession = async (seed?: string): Promise<string> => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleInitializeSession = async (_seed?: string) => {
     // This would need to be implemented in authService if needed
     throw new Error('Session initialization not implemented in authService yet');
   };
 
-  const handleResetEnvironment = async (seed?: string): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleResetEnvironment = async (_seed?: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
