@@ -1,6 +1,7 @@
 from typing import Dict, Any, List, Optional
 from .base_repository import BaseRepository
 import time
+import uuid
 
 class TeamRepository(BaseRepository):
     """Repository for team-related data operations"""
@@ -11,6 +12,10 @@ class TeamRepository(BaseRepository):
         self.team_memberships = team_memberships
         self.team_join_requests = team_join_requests
         self.team_invitations = team_invitations
+    
+    def find_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Find team by name"""
+        return next((team for team in self.data_store if team["name"] == name), None)
     
     def get_discoverable_teams(self, exclude_user_id: str) -> List[Dict[str, Any]]:
         """Get teams that a user can discover (teams they're not already in)"""
@@ -42,6 +47,23 @@ class TeamRepository(BaseRepository):
         """Check if user is a member of the team"""
         return any(m for m in self.team_memberships 
                   if m["user_id"] == user_id and m["team_id"] == team_id)
+    
+    def update_member_role(self, user_id: str, team_id: str, new_role: str) -> bool:
+        """Update a team member's role"""
+        membership = next((m for m in self.team_memberships 
+                          if m["user_id"] == user_id and m["team_id"] == team_id), None)
+        if membership:
+            membership["role"] = new_role
+            membership["role_updated_at"] = time.time()
+            return True
+        return False
+    
+    def remove_team_member(self, user_id: str, team_id: str) -> bool:
+        """Remove a member from a team"""
+        initial_length = len(self.team_memberships)
+        self.team_memberships[:] = [m for m in self.team_memberships 
+                                   if not (m["user_id"] == user_id and m["team_id"] == team_id)]
+        return len(self.team_memberships) < initial_length
     
     # Join Request methods
     def create_join_request(self, user_id: str, team_id: str, message: Optional[str] = None) -> Dict[str, Any]:
