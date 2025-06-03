@@ -23,7 +23,14 @@ class ProjectService:
             "created_by": created_by,
             "icon": icon
         }
-        return self.project_repository.create(project_data)
+        project = self.project_repository.create(project_data)
+        
+        # Auto-assign the project creator as manager if they have manager role
+        creator = self.user_repository.find_by_id(created_by)
+        if creator and creator["role"] == "manager":
+            self.project_repository.assign_project_to_manager(project["id"], created_by, created_by)
+        
+        return project
     
     def get_user_projects(self, user_id: str, user_role: str) -> List[Dict[str, Any]]:
         """Get projects accessible to a user based on their role"""
