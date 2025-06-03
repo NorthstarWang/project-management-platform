@@ -1,12 +1,26 @@
 from pydantic import BaseModel, Field, EmailStr
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class UserRole(str, Enum):
     ADMIN = "admin"
     MANAGER = "manager"
     MEMBER = "member"
+
+class TeamRole(str, Enum):
+    ADMIN = "admin"
+    MANAGER = "manager"
+    MEMBER = "member"
+
+class TeamInfo(BaseModel):
+    """Team information with user's role"""
+    id: str
+    name: str
+    description: str
+    user_role: TeamRole
+    joined_at: Optional[float] = None
+    created_at: Optional[float] = None
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, description="Username must not be empty")
@@ -40,4 +54,5 @@ class UserProfile(BaseModel):
     location: Optional[str] = None
     phone: Optional[str] = None
     created_at: Optional[datetime] = None
-    last_login: Optional[datetime] = None 
+    last_login: Optional[datetime] = None
+    teams: Optional[List[TeamInfo]] = [] 

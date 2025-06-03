@@ -52,12 +52,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const sessionId = authService.getSessionId();
         const isAuthenticated = authService.isAuthenticated();
 
-        setAuthState({
-          user,
-          isAuthenticated,
-          isLoading: false,
-          sessionId,
-        });
+      setAuthState({
+        user,
+        isAuthenticated,
+        isLoading: false,
+        sessionId,
+      });
       } catch (error) {
         console.error('Failed to initialize auth:', error);
         setAuthState({
@@ -80,14 +80,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       if (result.success && result.user) {
         const sessionId = authService.getSessionId();
-        
-        setAuthState({
+      
+      setAuthState({
           user: result.user,
-          isAuthenticated: true,
-          isLoading: false,
-          sessionId,
-        });
-        
+        isAuthenticated: true,
+        isLoading: false,
+        sessionId,
+      });
+      
         return result.user;
       } else {
         throw new Error(result.error || 'Login failed');
