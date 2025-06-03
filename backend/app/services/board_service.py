@@ -33,6 +33,22 @@ class BoardService:
         # Auto-enroll the board creator in the board
         self.board_repository.enroll_user_in_board(created_by, board["id"], created_by)
         
+        # Create default lists that match the frontend status columns
+        default_lists = [
+            {"name": "Backlog", "position": 0},
+            {"name": "To Do", "position": 1},
+            {"name": "In Progress", "position": 2},
+            {"name": "Review", "position": 3},
+            {"name": "Done", "position": 4},
+        ]
+        
+        for list_data in default_lists:
+            self.board_repository.create_list({
+                "name": list_data["name"],
+                "board_id": board["id"],
+                "position": list_data["position"]
+            })
+        
         return board
     
     def get_project_boards(self, project_id: str) -> List[Dict[str, Any]]:
