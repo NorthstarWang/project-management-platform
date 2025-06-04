@@ -832,7 +832,7 @@ export default function DiscoverPage() {
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewTeamDescription(e.target.value)}
                   placeholder="Describe the purpose and goals of this team"
                   rows={3}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                 />
               </div>
               
@@ -844,7 +844,7 @@ export default function DiscoverPage() {
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewTeamMessage(e.target.value)}
                   placeholder="Explain why this team should be created..."
                   rows={3}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                 />
               </div>
             </div>

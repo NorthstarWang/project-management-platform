@@ -147,7 +147,8 @@ export default function LoginPage() {
 
             <div className="mt-4 space-y-2 text-sm text-secondary">
               <div><strong className="text-primary">Admin:</strong> admin_alice / admin123</div>
-              <div><strong className="text-primary">Manager:</strong> manager_david / manager123</div>
+              <div><strong className="text-primary">Team Manager:</strong> david_rodriguez / member123</div>
+              <div><strong className="text-primary">Team Manager:</strong> sarah_johnson / member123</div>
               <div><strong className="text-primary">Member:</strong> frontend_emma / dev123</div>
             </div>
           </div>
