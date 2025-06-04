@@ -6,6 +6,7 @@ from .task_service import TaskService
 from .notification_service import NotificationService
 from .comment_service import CommentService
 from .team_service import TeamService
+from .message_service import MessageService
 
 __all__ = [
     "UserService",
@@ -14,5 +15,6 @@ __all__ = [
     "TaskService",
     "NotificationService",
     "CommentService",
-    "TeamService"
+    "TeamService",
+    "MessageService"
 ] 

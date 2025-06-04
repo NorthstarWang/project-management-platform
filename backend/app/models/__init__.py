@@ -15,6 +15,7 @@ from .task_models import (
 from .notification_models import NotificationIn, NotificationType
 from .comment_models import CommentIn
 from .search_models import SearchQuery
+from .message_models import MessageIn, ConversationIn, MessageUpdate, ConversationType
 
 # Export all models
 __all__ = [
@@ -32,5 +33,7 @@ __all__ = [
     # Comment models
     "CommentIn",
     # Search models
-    "SearchQuery"
+    "SearchQuery",
+    # Message models
+    "MessageIn", "ConversationIn", "MessageUpdate", "ConversationType"
 ] 

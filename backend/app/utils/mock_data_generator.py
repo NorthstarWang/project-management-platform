@@ -578,4 +578,125 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
                 "related_project_id": related_project_id,
                 "read": random.choice([True, False]),
                 "created_at": time.time() - random.randint(3600, 86400 * 7)
-            }) 
+            })
+    
+    # Generate messaging data
+    print("Generating messaging data...")
+    
+    # Create team conversations for each team
+    for team in data_manager.teams:
+        conversation = data_manager.message_repository.create_conversation(
+            conversation_type="team",
+            name=f"{team['name']} Team Chat",
+            team_id=team["id"]
+        )
+        
+        # Add all team members as participants
+        team_members = [m for m in data_manager.team_memberships if m["team_id"] == team["id"]]
+        for membership in team_members:
+            data_manager.message_repository.add_participant(conversation["id"], membership["user_id"])
+        
+        # Generate some team messages
+        team_messages = [
+            "Hey team, let's discuss our sprint goals for this week.",
+            "Great work on the latest release everyone!",
+            "Don't forget about our standup meeting at 10 AM.",
+            "I've updated the documentation for the new features.",
+            "Can someone review my latest PR?",
+            "The deployment went smoothly. All systems are operational.",
+            "Let's schedule a retrospective for Friday.",
+            "I'm working on the bug fixes for the reported issues.",
+            "Has anyone experienced issues with the test environment?",
+            "Remember to update your task statuses before EOD."
+        ]
+        
+        # Generate messages for the past week
+        for i in range(random.randint(15, 30)):
+            sender = random.choice([m["user_id"] for m in team_members])
+            message_content = random.choice(team_messages)
+            timestamp = datetime.utcnow() - timedelta(hours=random.randint(1, 168))
+            
+            message = data_manager.message_repository.create_message(
+                conversation_id=conversation["id"],
+                sender_id=sender,
+                content=message_content
+            )
+            # Adjust timestamp
+            message["created_at"] = timestamp.isoformat()
+            
+            # Mark as read for some users
+            for membership in team_members:
+                if random.random() < 0.7:  # 70% chance of being read
+                    data_manager.message_repository.mark_message_read(message["id"], membership["user_id"])
+    
+    # Create some private conversations
+    private_conversation_pairs = [
+        # David (Frontend Manager) chatting with team members
+        ("david_rodriguez", "frontend_emma"),
+        ("david_rodriguez", "frontend_alex"),
+        
+        # Sarah (Backend Manager) chatting with team members
+        ("sarah_johnson", "backend_mike"),
+        ("sarah_johnson", "backend_lisa"),
+        
+        # Cross-team conversations
+        ("david_rodriguez", "sarah_johnson"),
+        ("frontend_emma", "backend_mike"),
+        ("mobile_carlos", "backend_raj"),
+        
+        # Admin conversations
+        ("admin_alice", "david_rodriguez"),
+        ("admin_alice", "sarah_johnson"),
+    ]
+    
+    private_messages = [
+        "Hey, do you have a moment to discuss the new feature?",
+        "Sure, what's on your mind?",
+        "I think we need to refactor this component.",
+        "Good catch! Let's pair program on it tomorrow.",
+        "Can you help me understand this code?",
+        "Of course! Let me walk you through it.",
+        "The client loved the demo!",
+        "That's fantastic news!",
+        "I'm stuck on this bug, any ideas?",
+        "Let me take a look and get back to you.",
+        "Thanks for your help earlier!",
+        "No problem, happy to help anytime!",
+        "Are you free for a quick call?",
+        "Give me 5 minutes and I'll be ready.",
+        "Great work on the presentation!",
+        "Thanks! Your feedback really helped.",
+    ]
+    
+    for user1_username, user2_username in private_conversation_pairs:
+        user1 = next((u for u in data_manager.users if u["username"] == user1_username), None)
+        user2 = next((u for u in data_manager.users if u["username"] == user2_username), None)
+        
+        if user1 and user2:
+            # Create private conversation
+            conversation = data_manager.message_repository.create_conversation(
+                conversation_type="private",
+                participant_ids=[user1["id"], user2["id"]]
+            )
+            
+            # Generate conversation history
+            for i in range(random.randint(4, 12)):
+                sender = random.choice([user1["id"], user2["id"]])
+                message_content = private_messages[i % len(private_messages)]
+                timestamp = datetime.utcnow() - timedelta(hours=random.randint(1, 72))
+                
+                message = data_manager.message_repository.create_message(
+                    conversation_id=conversation["id"],
+                    sender_id=sender,
+                    content=message_content
+                )
+                # Adjust timestamp
+                message["created_at"] = timestamp.isoformat()
+                
+                # Mark as read for both participants (most private messages are read)
+                if random.random() < 0.9:  # 90% chance of being read
+                    data_manager.message_repository.mark_message_read(message["id"], user1["id"])
+                    data_manager.message_repository.mark_message_read(message["id"], user2["id"])
+    
+    print(f"Generated {len(data_manager.message_repository.conversations)} conversations")
+    print(f"Generated {len(data_manager.message_repository.messages)} messages") 
