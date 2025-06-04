@@ -5,8 +5,7 @@ from datetime import datetime
 
 class UserRole(str, Enum):
     ADMIN = "admin"
-    MANAGER = "manager"
-    MEMBER = "member"
+    MEMBER = "member"  # Removed MANAGER as it's now team-specific
 
 class TeamRole(str, Enum):
     ADMIN = "admin"
@@ -31,7 +30,7 @@ class UserIn(BaseModel):
     password: str
     email: str
     full_name: str
-    role: UserRole = UserRole.MEMBER
+    role: UserRole = UserRole.MEMBER  # Only admin or member, no global manager
 
 class UserProfileUpdate(BaseModel):
     """Model for updating user profile information"""

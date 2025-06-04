@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from ..data_manager import data_manager
-from ..models.team_models import TeamJoinRequest, TeamJoinRequestResponse, TeamInvitation, TeamInvitationResponse
+from ..models.team_models import (
+    TeamJoinRequest, TeamJoinRequestResponse, TeamInvitation, TeamInvitationResponse,
+    TeamCreationRequest, TeamCreationRequestResponse, TeamQuitRequest
+)
 from ..models import TeamIn
 from .dependencies import get_current_user, log_action
 
@@ -8,9 +11,9 @@ router = APIRouter(prefix="/api", tags=["teams"])
 
 @router.post("/teams")
 def create_team(team_in: TeamIn, request: Request, current_user: dict = Depends(get_current_user)):
-    """Create a new team (admin/manager only)"""
-    if current_user["role"] not in ["admin", "manager"]:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    """Create a new team (admin only)"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can create teams directly")
     
     try:
         team = data_manager.project_service.create_team(team_in.name, team_in.description)
@@ -20,6 +23,93 @@ def create_team(team_in: TeamIn, request: Request, current_user: dict = Depends(
             "createdBy": current_user["id"]
         })
         return team
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/teams/request-creation")
+def request_team_creation(creation_request: TeamCreationRequest, request: Request, 
+                         current_user: dict = Depends(get_current_user)):
+    """Request team creation (members only)"""
+    try:
+        result = data_manager.team_service.create_team_creation_request(
+            current_user["id"],
+            creation_request.name,
+            creation_request.description,
+            creation_request.message
+        )
+        
+        log_action(request, "TEAM_CREATION_REQUEST", {
+            "userId": current_user["id"],
+            "teamName": creation_request.name,
+            "requestId": result["id"]
+        })
+        
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/teams/creation-requests")
+def get_team_creation_requests(status: str = None, request: Request = None, 
+                              current_user: dict = Depends(get_current_user)):
+    """Get team creation requests (admin only)"""
+    try:
+        requests = data_manager.team_service.get_team_creation_requests(current_user["id"], status)
+        
+        if request:
+            log_action(request, "TEAM_CREATION_REQUESTS_GET", {
+                "adminId": current_user["id"],
+                "status": status,
+                "requestsCount": len(requests)
+            })
+        
+        return requests
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+@router.put("/teams/creation-requests/{request_id}")
+def handle_team_creation_request(request_id: str, response: TeamCreationRequestResponse, 
+                                request: Request, current_user: dict = Depends(get_current_user)):
+    """Handle team creation request (admin only)"""
+    try:
+        result = data_manager.team_service.handle_team_creation_request(
+            request_id,
+            current_user["id"],
+            response.action,
+            response.assigned_manager_id,
+            response.message
+        )
+        
+        log_action(request, "TEAM_CREATION_REQUEST_RESPONSE", {
+            "adminId": current_user["id"],
+            "requestId": request_id,
+            "action": response.action,
+            "assignedManagerId": response.assigned_manager_id
+        })
+        
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/teams/{team_id}/quit")
+def quit_team(team_id: str, quit_request: TeamQuitRequest, request: Request,
+              current_user: dict = Depends(get_current_user)):
+    """Quit team as manager with optional reassignment"""
+    try:
+        result = data_manager.team_service.quit_team_as_manager(
+            current_user["id"],
+            team_id,
+            quit_request.reassignment.new_manager_id,
+            quit_request.reassignment.message
+        )
+        
+        log_action(request, "TEAM_QUIT", {
+            "managerId": current_user["id"],
+            "teamId": team_id,
+            "action": result["action"],
+            "newManagerId": quit_request.reassignment.new_manager_id
+        })
+        
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

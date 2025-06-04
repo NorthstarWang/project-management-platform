@@ -2,6 +2,8 @@ from typing import Dict, Any, List, Optional
 from ..repositories.team_repository import TeamRepository
 from ..repositories.user_repository import UserRepository
 from ..repositories.notification_repository import NotificationRepository
+import uuid
+import time
 
 class TeamService:
     """Service for team-related business logic"""
@@ -286,4 +288,290 @@ class TeamService:
                     }
                 })
         
-        return enhanced_requests 
+        return enhanced_requests
+    
+    def create_team_creation_request(self, user_id: str, team_name: str, team_description: str, 
+                                   message: Optional[str] = None) -> Dict[str, Any]:
+        """Create a team creation request"""
+        # Validate user exists
+        user = self.user_repository.find_by_id(user_id)
+        if not user:
+            raise ValueError(f"User with ID '{user_id}' not found")
+        
+        # Check if user is admin (admins don't need to request)
+        if user.get("role") == "admin":
+            raise ValueError("Admins can create teams directly without requests")
+        
+        # Check if team name already exists
+        existing_team = self.team_repository.find_by_name(team_name)
+        if existing_team:
+            raise ValueError(f"Team with name '{team_name}' already exists")
+        
+        # Check if user already has a pending request for this team name
+        from ..data_manager import data_manager
+        existing_request = next((req for req in data_manager.team_creation_requests 
+                               if req["requester_id"] == user_id and 
+                                  req["team_name"] == team_name and 
+                                  req["status"] == "pending"), None)
+        if existing_request:
+            raise ValueError(f"User already has a pending request for team '{team_name}'")
+        
+        # Create the request
+        request_id = str(uuid.uuid4())
+        creation_request = {
+            "id": request_id,
+            "requester_id": user_id,
+            "team_name": team_name,
+            "team_description": team_description,
+            "message": message,
+            "status": "pending",
+            "created_at": time.time(),
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "response_message": None
+        }
+        
+        data_manager.team_creation_requests.append(creation_request)
+        
+        # Notify all admins
+        admins = [u for u in self.user_repository.find_all() if u.get("role") == "admin"]
+        for admin in admins:
+            self.notification_repository.create({
+                "recipient_id": admin["id"],
+                "type": "team_creation_request",
+                "title": "New Team Creation Request",
+                "message": f"{user['full_name']} has requested to create team '{team_name}'",
+                "related_team_creation_request_id": request_id,
+                "read": False
+            })
+        
+        return creation_request
+    
+    def get_team_creation_requests(self, admin_id: str, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get team creation requests for admin review"""
+        # Validate admin permission
+        admin = self.user_repository.find_by_id(admin_id)
+        if not admin or admin.get("role") != "admin":
+            raise ValueError("Only admins can view team creation requests")
+        
+        from ..data_manager import data_manager
+        requests = data_manager.team_creation_requests.copy()
+        
+        # Filter by status if provided
+        if status:
+            requests = [req for req in requests if req["status"] == status]
+        
+        # Sort by creation time (newest first)
+        requests.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        # Enhance with requester information
+        enhanced_requests = []
+        for request in requests:
+            requester = self.user_repository.find_by_id(request["requester_id"])
+            if requester:
+                enhanced_request = {
+                    **request,
+                    "requester": {
+                        "id": requester["id"],
+                        "full_name": requester["full_name"],
+                        "email": requester["email"],
+                        "username": requester["username"]
+                    }
+                }
+                
+                # Add reviewer info if reviewed
+                if request.get("reviewed_by"):
+                    reviewer = self.user_repository.find_by_id(request["reviewed_by"])
+                    if reviewer:
+                        enhanced_request["reviewer"] = {
+                            "id": reviewer["id"],
+                            "full_name": reviewer["full_name"]
+                        }
+                
+                enhanced_requests.append(enhanced_request)
+        
+        return enhanced_requests
+    
+    def handle_team_creation_request(self, request_id: str, admin_id: str, action: str, 
+                                   assigned_manager_id: Optional[str] = None, 
+                                   response_message: Optional[str] = None) -> Dict[str, Any]:
+        """Handle a team creation request (approve/deny)"""
+        # Validate admin permission
+        admin = self.user_repository.find_by_id(admin_id)
+        if not admin or admin.get("role") != "admin":
+            raise ValueError("Only admins can handle team creation requests")
+        
+        # Validate action
+        if action not in ["approve", "deny"]:
+            raise ValueError("Action must be 'approve' or 'deny'")
+        
+        # Find the request
+        from ..data_manager import data_manager
+        request = next((req for req in data_manager.team_creation_requests 
+                       if req["id"] == request_id), None)
+        if not request:
+            raise ValueError(f"Team creation request with ID '{request_id}' not found")
+        
+        if request["status"] != "pending":
+            raise ValueError("Request has already been reviewed")
+        
+        # If approving, validate assigned manager
+        if action == "approve":
+            if not assigned_manager_id:
+                # Default to the requester as manager
+                assigned_manager_id = request["requester_id"]
+            
+            manager = self.user_repository.find_by_id(assigned_manager_id)
+            if not manager:
+                raise ValueError(f"Assigned manager with ID '{assigned_manager_id}' not found")
+            
+            # Check if team name is still available
+            existing_team = self.team_repository.find_by_name(request["team_name"])
+            if existing_team:
+                raise ValueError(f"Team with name '{request['team_name']}' already exists")
+        
+        # Update request status
+        request["status"] = "approved" if action == "approve" else "denied"
+        request["reviewed_at"] = time.time()
+        request["reviewed_by"] = admin_id
+        request["response_message"] = response_message
+        
+        # If approved, create the team and assign manager
+        created_team = None
+        if action == "approve":
+            # Create the team
+            team_id = str(uuid.uuid4())
+            created_team = {
+                "id": team_id,
+                "name": request["team_name"],
+                "description": request["team_description"],
+                "created_at": time.time(),
+                "created_by": admin_id
+            }
+            data_manager.teams.append(created_team)
+            
+            # Add manager membership
+            self.team_repository.add_team_member(assigned_manager_id, team_id, "manager")
+            
+            # Add admin membership
+            self.team_repository.add_team_member(admin_id, team_id, "admin")
+        
+        # Notify the requester
+        requester = self.user_repository.find_by_id(request["requester_id"])
+        if requester:
+            if action == "approve":
+                message = f"Your request to create team '{request['team_name']}' has been approved!"
+                if assigned_manager_id != request["requester_id"]:
+                    assigned_manager = self.user_repository.find_by_id(assigned_manager_id)
+                    if assigned_manager:
+                        message += f" {assigned_manager['full_name']} has been assigned as the manager."
+                else:
+                    message += " You have been assigned as the manager."
+            else:
+                message = f"Your request to create team '{request['team_name']}' has been denied."
+            
+            if response_message:
+                message += f" Admin message: {response_message}"
+            
+            self.notification_repository.create({
+                "recipient_id": request["requester_id"],
+                "type": f"team_creation_request_{request['status']}",
+                "title": f"Team Creation Request {request['status'].title()}",
+                "message": message,
+                "related_team_id": created_team["id"] if created_team else None,
+                "read": False
+            })
+        
+        return {
+            "request": request,
+            "team": created_team
+        }
+    
+    def quit_team_as_manager(self, manager_id: str, team_id: str, 
+                           new_manager_id: Optional[str] = None, 
+                           message: Optional[str] = None) -> Dict[str, Any]:
+        """Handle manager quitting a team with optional reassignment"""
+        # Validate manager permission
+        if not self.team_repository.is_team_manager(manager_id, team_id):
+            raise ValueError("Only team managers can quit teams")
+        
+        team = self.team_repository.find_by_id(team_id)
+        if not team:
+            raise ValueError(f"Team with ID '{team_id}' not found")
+        
+        # Get team members
+        members = self.team_repository.get_team_members(team_id)
+        non_admin_members = [m for m in members if m.get("role") == "member"]
+        
+        if new_manager_id:
+            # Reassign manager
+            new_manager = self.user_repository.find_by_id(new_manager_id)
+            if not new_manager:
+                raise ValueError(f"New manager with ID '{new_manager_id}' not found")
+            
+            # Check if new manager is a team member
+            if not any(m["user_id"] == new_manager_id for m in members):
+                raise ValueError("New manager must be a team member")
+            
+            # Update roles
+            self.team_repository.update_member_role(new_manager_id, team_id, "manager")
+            self.team_repository.remove_team_member(manager_id, team_id)
+            
+            # Notify new manager
+            self.notification_repository.create({
+                "recipient_id": new_manager_id,
+                "type": "manager_assigned",
+                "title": "You've been promoted to Team Manager",
+                "message": f"You are now the manager of team '{team['name']}'",
+                "related_team_id": team_id,
+                "read": False
+            })
+            
+            # Notify other team members
+            for member in members:
+                if member["user_id"] not in [manager_id, new_manager_id]:
+                    self.notification_repository.create({
+                        "recipient_id": member["user_id"],
+                        "type": "manager_changed",
+                        "title": "Team Manager Changed",
+                        "message": f"{new_manager['full_name']} is now the manager of team '{team['name']}'",
+                        "related_team_id": team_id,
+                        "read": False
+                    })
+            
+            return {
+                "action": "reassigned",
+                "new_manager": new_manager,
+                "team": team
+            }
+        else:
+            # Disband team - remove all members and projects
+            # First, notify all members
+            for member in members:
+                if member["user_id"] != manager_id:
+                    self.notification_repository.create({
+                        "recipient_id": member["user_id"],
+                        "type": "team_disbanded",
+                        "title": "Team Disbanded",
+                        "message": f"Team '{team['name']}' has been disbanded by the manager",
+                        "read": False
+                    })
+            
+            # Remove all team memberships
+            from ..data_manager import data_manager
+            data_manager.team_memberships = [
+                m for m in data_manager.team_memberships 
+                if m["team_id"] != team_id
+            ]
+            
+            # Archive team projects (don't delete, just mark as archived)
+            for project in data_manager.projects:
+                if project.get("team_id") == team_id:
+                    project["archived"] = True
+                    project["archived_at"] = time.time()
+                    project["archived_by"] = manager_id
+            
+            return {
+                "action": "disbanded",
+                "team": team
+            } 
