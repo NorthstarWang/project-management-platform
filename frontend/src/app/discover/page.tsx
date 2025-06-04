@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { 
   Search,
   Users,
@@ -15,7 +18,11 @@ import {
   CheckCircle,
   XCircle,
   UserPlus,
-  Mail
+  Mail,
+  Plus,
+  LogOut,
+  Crown,
+  Settings
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
@@ -66,15 +73,45 @@ interface TeamInvitation {
   };
 }
 
+interface UserTeam {
+  id: string;
+  name: string;
+  description: string;
+  user_role: string;
+  member_count: number;
+  created_at: number;
+}
+
+interface User {
+  id: string;
+  username: string;
+  full_name: string;
+  email: string;
+}
+
 export default function DiscoverPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
+  const [myTeams, setMyTeams] = useState<UserTeam[]>([]);
   const [myRequests, setMyRequests] = useState<TeamRequest[]>([]);
   const [myInvitations, setMyInvitations] = useState<TeamInvitation[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'discover' | 'requests' | 'invitations'>('discover');
+  const [activeTab, setActiveTab] = useState<'discover' | 'requests' | 'invitations' | 'create' | 'manage'>('discover');
+
+  // Team creation dialog state
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamDescription, setNewTeamDescription] = useState('');
+  const [newTeamMessage, setNewTeamMessage] = useState('');
+
+  // Team quit dialog state
+  const [showQuitDialog, setShowQuitDialog] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<UserTeam | null>(null);
+  const [quitAction, setQuitAction] = useState<'reassign' | 'disband'>('reassign');
+  const [newManagerId, setNewManagerId] = useState('');
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -108,27 +145,27 @@ export default function DiscoverPage() {
     try {
       setLoading(true);
       
-      // Debug API client state
-      console.log('🔍 API Client Debug Info:', apiClient.getDebugInfo());
-      console.log('🔍 Current User:', user);
-      
       track('DATA_LOAD_START', {
         page: 'discover',
-        data_types: ['teams', 'requests', 'invitations']
+        data_types: ['teams', 'requests', 'invitations', 'user_teams']
       });
 
       console.log('🔄 Loading discover data...');
 
-      // Load discoverable teams, user requests, and invitations in parallel
-      const [teamsResponse, requestsResponse, invitationsResponse] = await Promise.all([
+      // Load discoverable teams, user requests, invitations, and user's teams in parallel
+      const [teamsResponse, requestsResponse, invitationsResponse, userTeamsResponse, usersResponse] = await Promise.all([
         apiClient.get('/api/teams/discover'),
         apiClient.get('/api/users/me/team-requests'),
-        apiClient.get('/api/users/me/team-invitations')
+        apiClient.get('/api/users/me/team-invitations'),
+        apiClient.get('/api/teams'),
+        apiClient.get('/api/users')
       ]);
 
       setTeams(teamsResponse.data);
       setMyRequests(requestsResponse.data);
       setMyInvitations(invitationsResponse.data);
+      setMyTeams(userTeamsResponse.data);
+      setUsers(usersResponse.data.filter((u: User) => u.id !== user.id)); // Exclude current user
 
       console.log('✅ Discover data loaded successfully');
 
@@ -136,47 +173,12 @@ export default function DiscoverPage() {
         page: 'discover',
         teams_count: teamsResponse.data.length,
         requests_count: requestsResponse.data.length,
-        invitations_count: invitationsResponse.data.length
+        invitations_count: invitationsResponse.data.length,
+        user_teams_count: userTeamsResponse.data.length
       });
 
     } catch (error: any) {
       console.error('Failed to load discover data:', error);
-      console.error('Error details:', {
-        message: error.message,
-        status: error.status,
-        data: error.data
-      });
-      
-      // Let's try to test individual endpoints to see which one is failing
-      try {
-        console.log('🧪 Testing individual endpoints...');
-        
-        // Test each endpoint individually
-        try {
-          const teamsTest = await apiClient.get('/api/teams/discover');
-          console.log('✅ Teams discover endpoint works:', teamsTest.data);
-        } catch (teamError) {
-          console.error('❌ Teams discover endpoint failed:', teamError);
-        }
-
-        try {
-          const requestsTest = await apiClient.get('/api/users/me/team-requests');
-          console.log('✅ Team requests endpoint works:', requestsTest.data);
-        } catch (requestError) {
-          console.error('❌ Team requests endpoint failed:', requestError);
-        }
-
-        try {
-          const invitationsTest = await apiClient.get('/api/users/me/team-invitations');
-          console.log('✅ Team invitations endpoint works:', invitationsTest.data);
-        } catch (invitationError) {
-          console.error('❌ Team invitations endpoint failed:', invitationError);
-        }
-
-      } catch (testError) {
-        console.error('Individual endpoint testing failed:', testError);
-      }
-      
       toast.error('Failed to load teams and requests');
       
       track('DATA_LOAD_ERROR', {
@@ -211,6 +213,93 @@ export default function DiscoverPage() {
     }
   };
 
+  const handleCreateTeamRequest = async () => {
+    if (!newTeamName.trim()) return;
+
+    try {
+      await apiClient.post('/api/teams/request-creation', {
+        name: newTeamName,
+        description: newTeamDescription,
+        message: newTeamMessage
+      });
+
+      track('TEAM_CREATION_REQUEST', {
+        team_name: newTeamName,
+        message_provided: !!newTeamMessage
+      });
+
+      toast.success('Team creation request sent successfully!');
+      
+      setShowCreateDialog(false);
+      setNewTeamName('');
+      setNewTeamDescription('');
+      setNewTeamMessage('');
+      
+      // Reload data to update the UI
+      await loadData();
+      
+    } catch (error: any) {
+      console.error('Failed to send team creation request:', error);
+      toast.error(error.response?.data?.detail || 'Failed to send team creation request');
+    }
+  };
+
+  const handleQuitTeam = async () => {
+    if (!selectedTeam) return;
+
+    try {
+      await apiClient.post(`/api/teams/${selectedTeam.id}/quit`, {
+        reassignment: {
+          new_manager_id: quitAction === 'reassign' ? newManagerId : null,
+          message: quitAction === 'disband' ? 'Team disbanded by manager' : 'Manager reassigned'
+        }
+      });
+
+      track('TEAM_QUIT', {
+        team_id: selectedTeam.id,
+        action: quitAction,
+        new_manager_id: quitAction === 'reassign' ? newManagerId : null
+      });
+
+      toast.success(quitAction === 'reassign' ? 'Manager reassigned successfully!' : 'Team disbanded successfully!');
+      
+      setShowQuitDialog(false);
+      setSelectedTeam(null);
+      setQuitAction('reassign');
+      setNewManagerId('');
+      
+      // Reload data to update the UI
+      await loadData();
+      
+    } catch (error: any) {
+      console.error('Failed to quit team:', error);
+      toast.error(error.response?.data?.detail || 'Failed to quit team');
+    }
+  };
+
+  const handleInvitationResponse = async (invitationId: string, action: 'accept' | 'decline') => {
+    try {
+      await apiClient.put(`/api/team-invitations/${invitationId}`, {
+        action: action,
+        message: null
+      });
+
+      track('TEAM_INVITATION_RESPONSE', {
+        invitation_id: invitationId,
+        action: action
+      });
+
+      toast.success(`Invitation ${action}ed successfully!`);
+      
+      // Reload data to update the UI
+      await loadData();
+      
+    } catch (error: any) {
+      console.error('Failed to respond to invitation:', error);
+      toast.error(error.response?.data?.detail || 'Failed to respond to invitation');
+    }
+  };
+
   const formatRelativeDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -230,10 +319,20 @@ export default function DiscoverPage() {
     }
   };
 
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   const filteredTeams = teams.filter(team => 
     team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     team.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const managedTeams = myTeams.filter(team => team.user_role === 'manager');
 
   if (!user) {
     return null;
@@ -250,7 +349,7 @@ export default function DiscoverPage() {
               <div>
                 <h1 className="text-2xl font-bold text-primary">Discover Teams</h1>
                 <p className="text-secondary mt-1">
-                  Find teams to join or manage your team requests and invitations
+                  Find teams to join, manage your teams, or request to create new ones
                 </p>
               </div>
             </div>
@@ -294,6 +393,31 @@ export default function DiscoverPage() {
                   </Badge>
                 )}
               </Button>
+              {user.role !== 'admin' && (
+                <Button
+                  variant={activeTab === 'create' ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('create')}
+                  data-testid="create-tab"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Request Team
+                </Button>
+              )}
+              {managedTeams.length > 0 && (
+                <Button
+                  variant={activeTab === 'manage' ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('manage')}
+                  data-testid="manage-tab"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Manage Teams
+                  <Badge variant="secondary" size="sm" className="ml-2">
+                    {managedTeams.length}
+                  </Badge>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -435,6 +559,110 @@ export default function DiscoverPage() {
               </div>
             )}
 
+            {/* Request Team Creation Tab */}
+            {activeTab === 'create' && user.role !== 'admin' && (
+              <div className="space-y-6">
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-primary">Request Team Creation</h3>
+                      <p className="text-secondary text-sm mt-1">
+                        Submit a request to create a new team. An admin will review your request.
+                      </p>
+                    </div>
+                    
+                    <Button
+                      variant="primary"
+                      onClick={() => setShowCreateDialog(true)}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Team Request
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Current Teams */}
+                {myTeams.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-primary">Your Teams</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {myTeams.map((team) => (
+                        <Card key={team.id} className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-primary">{team.name}</h4>
+                              <p className="text-secondary text-sm">{team.description}</p>
+                              <div className="flex items-center gap-4 mt-2 text-xs text-muted">
+                                <span>{team.member_count} members</span>
+                                <span>Created: {formatDate(team.created_at)}</span>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant={team.user_role === 'manager' ? 'default' : 'secondary'}
+                              className="flex items-center gap-1"
+                            >
+                              {team.user_role === 'manager' && <Crown className="h-3 w-3" />}
+                              {team.user_role.charAt(0).toUpperCase() + team.user_role.slice(1)}
+                            </Badge>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Manage Teams Tab */}
+            {activeTab === 'manage' && managedTeams.length > 0 && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-primary">Teams You Manage</h3>
+                  <p className="text-secondary text-sm mt-1">
+                    Manage teams where you are the manager. You can reassign management or disband teams.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {managedTeams.map((team) => (
+                    <Card key={team.id} className="p-6">
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-primary flex items-center gap-2">
+                              <Crown className="h-4 w-4 text-yellow-500" />
+                              {team.name}
+                            </h4>
+                            <p className="text-secondary text-sm mt-1">{team.description}</p>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-muted">
+                              <span>{team.member_count} members</span>
+                              <span>Created: {formatDate(team.created_at)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={() => {
+                              setSelectedTeam(team);
+                              setShowQuitDialog(true);
+                            }}
+                          >
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Quit as Manager
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* My Requests Tab */}
             {activeTab === 'requests' && (
               <div className="space-y-4">
@@ -541,7 +769,7 @@ export default function DiscoverPage() {
                             variant="primary"
                             size="sm"
                             className="flex-1"
-                            // onClick={() => handleInvitationResponse(invitation.id, 'accept')}
+                            onClick={() => handleInvitationResponse(invitation.id, 'accept')}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Accept
@@ -550,7 +778,7 @@ export default function DiscoverPage() {
                             variant="outline"
                             size="sm"
                             className="flex-1"
-                            // onClick={() => handleInvitationResponse(invitation.id, 'decline')}
+                            onClick={() => handleInvitationResponse(invitation.id, 'decline')}
                           >
                             <XCircle className="h-4 w-4 mr-2" />
                             Decline
@@ -574,6 +802,129 @@ export default function DiscoverPage() {
             )}
           </>
         )}
+
+        {/* Team Creation Request Dialog */}
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Request Team Creation</DialogTitle>
+              <DialogDescription>
+                Submit a request to create a new team. An admin will review and approve your request.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="teamName">Team Name</Label>
+                <Input
+                  id="teamName"
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                  placeholder="Enter team name"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="teamDescription">Description</Label>
+                <textarea
+                  id="teamDescription"
+                  value={newTeamDescription}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewTeamDescription(e.target.value)}
+                  placeholder="Describe the purpose and goals of this team"
+                  rows={3}
+                  className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="teamMessage">Message to Admin (Optional)</Label>
+                <textarea
+                  id="teamMessage"
+                  value={newTeamMessage}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewTeamMessage(e.target.value)}
+                  placeholder="Explain why this team should be created..."
+                  rows={3}
+                  className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateTeamRequest} disabled={!newTeamName.trim()}>
+                Submit Request
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Team Quit Dialog */}
+        <Dialog open={showQuitDialog} onOpenChange={setShowQuitDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Quit Team Management</DialogTitle>
+              <DialogDescription>
+                {selectedTeam ? `What would you like to do with "${selectedTeam.name}"?` : ''}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="quitAction">Action</Label>
+                <Select value={quitAction} onValueChange={(value: 'reassign' | 'disband') => setQuitAction(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="reassign">Reassign to another member</SelectItem>
+                    <SelectItem value="disband">Disband the team</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {quitAction === 'reassign' && (
+                <div>
+                  <Label htmlFor="newManager">New Manager</Label>
+                  <Select value={newManagerId} onValueChange={setNewManagerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a new manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.full_name} ({user.username})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {quitAction === 'disband' && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-800">
+                    <strong>Warning:</strong> Disbanding the team will remove all members and archive associated projects. This action cannot be undone.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowQuitDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleQuitTeam} 
+                disabled={quitAction === 'reassign' && !newManagerId}
+                variant={quitAction === 'disband' ? 'destructive' : 'primary'}
+              >
+                {quitAction === 'reassign' ? 'Reassign Manager' : 'Disband Team'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

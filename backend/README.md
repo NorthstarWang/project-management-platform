@@ -54,10 +54,13 @@ All 10 required project management workflows are fully implemented:
 10. **Activity Tracking** - Complete audit trail for all actions
 
 ### Advanced Features
-- **Role-Based Access Control** - Admin, Manager, Member hierarchy with granular permissions
-- **Real-time Notifications** - 6 notification types with read/unread status management
-- **Activity Timeline** - Comprehensive audit trail for all user actions
-- **Team Collaboration** - Project assignments and board enrollments
+- **Dynamic Role-Based Team Management** - Team-specific managers, member-driven team creation requests, manager reassignment/disbanding
+- **Team Creation Workflow** - Members can request team creation with admin approval and manager assignment
+- **Manager Flexibility** - Managers can quit teams with reassignment to other members or team disbanding options
+- **Admin Management Panel** - Comprehensive admin interface for team creation requests, direct team creation, and team oversight
+- **Real-time Notifications** - Enhanced notification system for team requests, approvals, and role changes
+- **Activity Timeline** - Comprehensive audit trail for all user actions including team management activities
+- **Team Collaboration** - Enhanced project assignments and board enrollments with team-specific roles
 - **Threaded Comments** - Nested comment discussions on tasks
 - **Advanced Search** - Board-level and project-level search capabilities
 
@@ -70,7 +73,7 @@ The backend provides 50+ RESTful endpoints organized by feature:
 | **Synthetic API** | 8 | Session management, state control, event logging |
 | **Authentication** | 2 | User login and registration |
 | **User Management** | 3 | User profiles, permissions, task assignments |
-| **Team Management** | 3 | Team creation and membership operations |
+| **Team Management** | 8 | Enhanced team operations, creation requests, manager reassignment |
 | **Project Management** | 6 | Project lifecycle and manager assignments |
 | **Board Management** | 7 | Board operations and member access control |
 | **Task Management** | 8 | Complete CRUD with archiving and movement |
@@ -115,15 +118,27 @@ The system includes comprehensive realistic data for testing:
 - **75+ notifications** covering all notification types
 
 ### Test Users
+
+**Admin User:**
+| Username | Password | Role |
+|----------|----------|------|
+| admin_alice | admin123 | Admin |
+
+**Team Managers (Team-Specific Roles):**
+| Username | Password | Global Role | Team Role |
+|----------|----------|-------------|-----------|
+| david_rodriguez | member123 | Member | Manager (Frontend Team) |
+| sarah_johnson | member123 | Member | Manager (Backend Team) |
+| james_wilson | member123 | Member | Manager (Mobile Team) |
+
+**Team Members:**
 | Username | Password | Role | Team |
 |----------|----------|------|------|
-| admin_alice | admin123 | Admin | Cross-team |
-| manager_david | manager123 | Manager | Frontend |
-| manager_sarah | manager123 | Manager | Backend |
-| manager_james | manager123 | Manager | Mobile |
-| frontend_emma | dev123 | Member | Frontend |
-| backend_mike | dev123 | Member | Backend |
-| mobile_carlos | dev123 | Member | Mobile |
+| frontend_emma | dev123 | Member | Frontend Team |
+| backend_mike | dev123 | Member | Backend Team |
+| mobile_carlos | dev123 | Member | Mobile Team |
+
+**Note:** This system now uses **dynamic role-based team management** where manager role is team-specific, not global.
 
 ## 🧪 Testing & Quality
 

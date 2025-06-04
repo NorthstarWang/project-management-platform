@@ -9,11 +9,9 @@ import { Badge } from '@/components/ui/Badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building } from 'lucide-react';
-import { format } from 'date-fns';
 
 interface TeamCreationRequest {
   id: string;
@@ -380,12 +378,13 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="teamDescription">Description</Label>
-                <Textarea
+                <textarea
                   id="teamDescription"
                   value={newTeamDescription}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewTeamDescription(e.target.value)}
                   placeholder="Enter team description"
                   rows={3}
+                  className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -464,12 +463,13 @@ export default function AdminPage() {
 
             <div>
               <Label htmlFor="response">Response Message (Optional)</Label>
-              <Textarea
+              <textarea
                 id="response"
                 value={requestResponse}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRequestResponse(e.target.value)}
                 placeholder="Add a message to the requester..."
                 rows={3}
+                className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
               />
             </div>
           </div>

@@ -16,7 +16,8 @@ import {
   Zap,
   X,
   ArrowRight,
-  Search
+  Search,
+  Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -53,13 +54,22 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-const navigation = [
-  { name: 'Home', href: '/dashboard', icon: Home },
-  { name: 'Calendar', href: '/calendar', icon: Calendar },
-  { name: 'Notifications', href: '/notifications', icon: Bell },
-  { name: 'Discover', href: '/discover', icon: Search },
-  { name: 'Members', href: '/members', icon: Users },
-];
+const getNavigationItems = (userRole: string) => {
+  const baseNavigation = [
+    { name: 'Home', href: '/dashboard', icon: Home },
+    { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Notifications', href: '/notifications', icon: Bell },
+    { name: 'Discover', href: '/discover', icon: Search },
+    { name: 'Members', href: '/members', icon: Users },
+  ];
+
+  // Add admin panel for admin users
+  if (userRole === 'admin') {
+    baseNavigation.push({ name: 'Admin Panel', href: '/admin', icon: Shield });
+  }
+
+  return baseNavigation;
+};
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
@@ -158,6 +168,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   if (!user) {
     return null; // Don't render sidebar if no user
   }
+
+  const navigation = getNavigationItems(user.role);
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
