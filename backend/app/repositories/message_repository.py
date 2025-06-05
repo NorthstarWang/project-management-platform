@@ -1,16 +1,19 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+import uuid
 from app.models.message_models import ConversationType
-from app.repositories.base_repository import BaseRepository
 
 
-class MessageRepository(BaseRepository):
+class MessageRepository:
     def __init__(self):
-        super().__init__()
         self.conversations = []
         self.messages = []
         self.conversation_participants = []  # Track participants in conversations
         self.read_status = []  # Track read status per user per message
+        
+    def generate_id(self) -> str:
+        """Generate a unique ID"""
+        return str(uuid.uuid4())
         
     def create_conversation(
         self,
