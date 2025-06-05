@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
+from pydantic import BaseModel
+from typing import Optional
 from ..data_manager import data_manager
 from ..models.team_models import (
     TeamJoinRequest, TeamJoinRequestResponse, TeamInvitation, TeamInvitationResponse,
@@ -6,6 +8,14 @@ from ..models.team_models import (
 )
 from ..models import TeamIn
 from .dependencies import get_current_user, log_action
+
+# Additional models for admin operations
+class TeamMemberAdd(BaseModel):
+    user_id: str
+    role: str = "member"
+
+class TeamMemberUpdate(BaseModel):
+    role: str
 
 router = APIRouter(prefix="/api", tags=["teams"])
 
@@ -296,21 +306,40 @@ def get_user_team_requests(request: Request, current_user: dict = Depends(get_cu
 
 @router.get("/teams")
 def get_user_teams(request: Request, current_user: dict = Depends(get_current_user)):
-    """Get teams where user is a member"""
+    """Get teams where user is a member (or all teams for admin)"""
     try:
-        teams = data_manager.team_repository.get_user_teams(current_user["id"])
+        # For admins, return all teams
+        if current_user["role"] == "admin":
+            teams = data_manager.teams
+        else:
+            teams = data_manager.team_repository.get_user_teams(current_user["id"])
         
-        # Enhance with member information
+        # Enhance with member information and managers
         enhanced_teams = []
         for team in teams:
             members = data_manager.team_repository.get_team_members(team["id"])
+            managers = [m for m in members if m["role"] == "manager"]
+            
+            # Get manager user details
+            manager_users = []
+            for manager in managers:
+                user = data_manager.user_repository.find_by_id(manager["user_id"])
+                if user:
+                    manager_users.append({
+                        "id": user["id"],
+                        "full_name": user["full_name"],
+                        "role": "manager"
+                    })
+            
             enhanced_teams.append({
                 **team,
-                "member_count": len(members)
+                "member_count": len(members),
+                "managers": manager_users
             })
         
         log_action(request, "USER_TEAMS_GET", {
             "userId": current_user["id"],
+            "isAdmin": current_user["role"] == "admin",
             "teamsCount": len(enhanced_teams)
         })
         
@@ -340,6 +369,226 @@ def search_users(q: str = "", request: Request = None, current_user: dict = Depe
                         "full_name": user["full_name"],
                         "email": user["email"]
                     })
+        
+        if request:
+            log_action(request, "USERS_SEARCH", {
+                "searcherId": current_user["id"],
+                "query": q,
+                "resultsCount": len(filtered_users)
+            })
+        
+        return filtered_users
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# Admin-specific team management endpoints
+
+@router.get("/teams/{team_id}/members")
+def get_team_members(team_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Get all members of a team with their roles"""
+    try:
+        # Check if user has access (team member or admin)
+        user_teams = data_manager.project_service.get_user_teams(current_user["id"])
+        user_team_ids = [team["id"] for team in user_teams]
+        
+        if team_id not in user_team_ids and current_user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Access denied to this team")
+        
+        members = data_manager.team_repository.get_team_members(team_id)
+        
+        # Enhance members with user details
+        enhanced_members = []
+        for member in members:
+            user = data_manager.user_repository.find_by_id(member["user_id"])
+            if user:
+                enhanced_members.append({
+                    **member,
+                    "user": {
+                        "id": user["id"],
+                        "username": user["username"],
+                        "full_name": user["full_name"],
+                        "email": user["email"],
+                        "avatar": user.get("avatar")
+                    }
+                })
+        
+        log_action(request, "TEAM_MEMBERS_GET", {
+            "teamId": team_id,
+            "requestedBy": current_user["id"],
+            "membersCount": len(enhanced_members)
+        })
+        
+        return enhanced_members
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/teams/{team_id}/members")
+def add_team_member(team_id: str, member_data: TeamMemberAdd, request: Request, 
+                   current_user: dict = Depends(get_current_user)):
+    """Add a member to a team (admin only)"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can add members directly")
+    
+    try:
+        # Check if team exists
+        team = next((t for t in data_manager.teams if t["id"] == team_id), None)
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+        
+        # Check if user exists
+        user = data_manager.user_repository.find_by_id(member_data.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Add member
+        data_manager.team_repository.add_team_member(member_data.user_id, team_id, member_data.role)
+        
+        # Update user's team_ids
+        if team_id not in user.get("team_ids", []):
+            user.setdefault("team_ids", []).append(team_id)
+        
+        log_action(request, "TEAM_MEMBER_ADD", {
+            "adminId": current_user["id"],
+            "teamId": team_id,
+            "userId": member_data.user_id,
+            "role": member_data.role
+        })
+        
+        return {"message": f"User added to team as {member_data.role}"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/teams/{team_id}/members/{user_id}")
+def update_team_member_role(team_id: str, user_id: str, update_data: TeamMemberUpdate, 
+                           request: Request, current_user: dict = Depends(get_current_user)):
+    """Update a team member's role (admin only)"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can update member roles")
+    
+    try:
+        # Validate role
+        if update_data.role not in ["member", "manager"]:
+            raise HTTPException(status_code=400, detail="Invalid role")
+        
+        # Find the membership
+        membership = next(
+            (m for m in data_manager.team_memberships 
+             if m["team_id"] == team_id and m["user_id"] == user_id),
+            None
+        )
+        
+        if not membership:
+            raise HTTPException(status_code=404, detail="Team membership not found")
+        
+        # Update role
+        membership["role"] = update_data.role
+        
+        log_action(request, "TEAM_MEMBER_ROLE_UPDATE", {
+            "adminId": current_user["id"],
+            "teamId": team_id,
+            "userId": user_id,
+            "newRole": update_data.role
+        })
+        
+        return {"message": f"Role updated to {update_data.role}"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/teams/{team_id}/members/{user_id}")
+def remove_team_member(team_id: str, user_id: str, request: Request, 
+                      current_user: dict = Depends(get_current_user)):
+    """Remove a member from a team (admin only)"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can remove members")
+    
+    try:
+        # Remove from team_memberships
+        data_manager.team_memberships = [
+            m for m in data_manager.team_memberships
+            if not (m["team_id"] == team_id and m["user_id"] == user_id)
+        ]
+        
+        # Update user's team_ids
+        user = data_manager.user_repository.find_by_id(user_id)
+        if user and "team_ids" in user:
+            user["team_ids"] = [tid for tid in user["team_ids"] if tid != team_id]
+        
+        log_action(request, "TEAM_MEMBER_REMOVE", {
+            "adminId": current_user["id"],
+            "teamId": team_id,
+            "userId": user_id
+        })
+        
+        return {"message": "Member removed from team"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/teams/{team_id}")
+def disband_team(team_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    """Disband a team (admin only)"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can disband teams")
+    
+    try:
+        # Check if team exists
+        team = next((t for t in data_manager.teams if t["id"] == team_id), None)
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+        
+        # Remove all team memberships
+        members = [m for m in data_manager.team_memberships if m["team_id"] == team_id]
+        data_manager.team_memberships = [
+            m for m in data_manager.team_memberships if m["team_id"] != team_id
+        ]
+        
+        # Update users' team_ids
+        for member in members:
+            user = data_manager.user_repository.find_by_id(member["user_id"])
+            if user and "team_ids" in user:
+                user["team_ids"] = [tid for tid in user["team_ids"] if tid != team_id]
+        
+        # Remove team
+        data_manager.teams = [t for t in data_manager.teams if t["id"] != team_id]
+        
+        # Remove related data
+        data_manager.project_assignments = [
+            pa for pa in data_manager.project_assignments if pa["team_id"] != team_id
+        ]
+        
+        log_action(request, "TEAM_DISBAND", {
+            "adminId": current_user["id"],
+            "teamId": team_id,
+            "teamName": team["name"],
+            "membersRemoved": len(members)
+        })
+        
+        return {"message": "Team disbanded successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/users/search")
+def search_all_users(q: str = "", request: Request = None, current_user: dict = Depends(get_current_user)):
+    """Search all users (for admin functionality)"""
+    try:
+        # Get all users
+        all_users = data_manager.user_repository.find_all()
+        
+        # Filter by search query
+        filtered_users = []
+        for user in all_users:
+            # Check if search query matches name, username, or email
+            if (not q or 
+                q.lower() in user["full_name"].lower() or
+                q.lower() in user["username"].lower() or 
+                q.lower() in user["email"].lower()):
+                filtered_users.append({
+                    "id": user["id"],
+                    "username": user["username"],
+                    "full_name": user["full_name"],
+                    "email": user["email"],
+                    "role": user["role"],
+                    "team_ids": user.get("team_ids", [])
+                })
         
         if request:
             log_action(request, "USERS_SEARCH", {

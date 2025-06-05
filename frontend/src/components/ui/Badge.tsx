@@ -12,7 +12,7 @@ const badgeVariants = cva(
         default: 'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
         secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
         destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
-        outline: 'text-foreground border-border',
+        outline: 'text-primary border-secondary',
         // Status variants
         todo: 'bg-status-todo text-status-todo border-status-todo',
         progress: 'bg-status-progress text-status-progress border-status-progress',
@@ -24,14 +24,14 @@ const badgeVariants = cva(
         high: 'bg-priority-high text-priority-high border-priority-high',
         urgent: 'bg-priority-urgent text-priority-urgent border-priority-urgent',
         // Role variants
-        admin: 'bg-purple-100 text-purple-800 border-purple-200',
-        manager: 'bg-blue-100 text-blue-800 border-blue-200',
-        member: 'bg-gray-100 text-gray-800 border-gray-200',
+        admin: 'bg-tag-design text-tag-design border-tag-design',
+        manager: 'bg-tag-backend text-tag-backend border-tag-backend',
+        member: 'bg-accent-10 text-primary border-secondary',
         // Notification variants
-        success: 'bg-green-100 text-green-800 border-green-200',
-        warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        error: 'bg-red-100 text-red-800 border-red-200',
-        info: 'bg-blue-100 text-blue-800 border-blue-200',
+        success: 'bg-success text-success border-success',
+        warning: 'bg-warning text-warning border-warning',
+        error: 'bg-error-disabled text-error border-error',
+        info: 'bg-info text-info border-info',
       },
       size: {
         sm: 'px-2 py-0.5 text-xs',
@@ -66,7 +66,7 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       {removable && (
         <button
           type="button"
-          className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-offset-2"
+          className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-interactive-secondary-hover focus:outline-none focus:ring-2 focus:ring-offset-2"
           onClick={onRemove}
         >
           <span className="sr-only">Remove</span>

@@ -1,11 +1,11 @@
 from typing import Dict, Any, List, Optional
 from .repositories import (
     UserRepository, ProjectRepository, BoardRepository, 
-    TaskRepository, NotificationRepository, CommentRepository, TeamRepository
+    TaskRepository, NotificationRepository, CommentRepository, TeamRepository, MessageRepository
 )
 from .services import (
     UserService, ProjectService, BoardService,
-    TaskService, NotificationService, CommentService, TeamService
+    TaskService, NotificationService, CommentService, TeamService, MessageService
 )
 
 class DataManager:
@@ -44,6 +44,7 @@ class DataManager:
         self.team_repository = TeamRepository(
             self.teams, self.team_memberships, self.team_join_requests, self.team_invitations
         )
+        self.message_repository = MessageRepository()
         
         # Initialize services
         self.user_service = UserService(self.user_repository, self.team_repository)
@@ -62,6 +63,13 @@ class DataManager:
         )
         self.team_service = TeamService(
             self.team_repository, self.user_repository, self.notification_repository
+        )
+        # Initialize message service with dependencies
+        self.message_service = MessageService(
+            self.message_repository,
+            self.user_service,
+            self.team_service,
+            self.notification_service
         )
     
     def reset(self, seed: Optional[str] = None):

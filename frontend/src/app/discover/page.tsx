@@ -646,7 +646,7 @@ export default function DiscoverPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                            className="w-full text-error border-error hover:bg-error-disabled"
                             onClick={() => {
                               setSelectedTeam(team);
                               setShowQuitDialog(true);
@@ -903,8 +903,8 @@ export default function DiscoverPage() {
               )}
 
               {quitAction === 'disband' && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-800">
+                <div className="p-4 bg-error-disabled border border-error rounded-md">
+                  <p className="text-sm text-error">
                     <strong>Warning:</strong> Disbanding the team will remove all members and archive associated projects. This action cannot be undone.
                   </p>
                 </div>

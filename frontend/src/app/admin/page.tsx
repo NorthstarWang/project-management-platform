@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -11,7 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
-import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building, Shield, ArrowRight, BarChart3, Activity } from 'lucide-react';
 
 interface TeamCreationRequest {
   id: string;
@@ -204,11 +206,11 @@ export default function AdminPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-600"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+        return <Badge variant="warning"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
       case 'approved':
-        return <Badge variant="outline" className="text-green-600 border-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+        return <Badge variant="success"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
       case 'denied':
-        return <Badge variant="outline" className="text-red-600 border-red-600"><AlertCircle className="w-3 h-3 mr-1" />Denied</Badge>;
+        return <Badge variant="error"><AlertCircle className="w-3 h-3 mr-1" />Denied</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -218,8 +220,8 @@ export default function AdminPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading admin panel...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
+          <p className="mt-4 text-muted">Loading admin panel...</p>
         </div>
       </div>
     );
@@ -228,10 +230,91 @@ export default function AdminPage() {
   const pendingRequests = teamCreationRequests.filter(req => req.status === 'pending');
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <DashboardLayout>
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Management Panel</h1>
-        <p className="text-gray-600 mt-2">Manage teams, users, and team creation requests</p>
+        <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
+          <Shield className="h-8 w-8 text-accent" />
+          Admin Dashboard
+        </h1>
+        <p className="text-muted mt-2">Manage teams, users, and team creation requests</p>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted">Total Teams</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{teams.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted">Total Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{users.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted">Pending Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-accent">{pendingRequests.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted">Active Managers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {teams.reduce((acc, team) => acc + team.managers.length, 0)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Admin Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/teams')}>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Team Management
+              </span>
+              <ArrowRight className="h-5 w-5 text-muted" />
+            </CardTitle>
+            <CardDescription>
+              Full control over teams, members, and roles
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted">Create teams, assign managers, add/remove members, and disband teams</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Activity Analytics
+              </span>
+              <Badge variant="secondary">Coming Soon</Badge>
+            </CardTitle>
+            <CardDescription>
+              View system-wide analytics and reports
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted">Track user activity, team performance, and system usage</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -268,7 +351,7 @@ export default function AdminPage() {
           ) : (
             <div className="grid gap-4">
               {teamCreationRequests.map((request) => (
-                <Card key={request.id} className={request.status === 'pending' ? 'border-yellow-200 bg-yellow-50' : ''}>
+                <Card key={request.id} className={request.status === 'pending' ? 'border-warning bg-warning' : ''}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -485,5 +568,6 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardLayout>
   );
 } 

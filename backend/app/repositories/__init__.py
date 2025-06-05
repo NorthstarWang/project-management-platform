@@ -6,6 +6,7 @@ from .task_repository import TaskRepository
 from .notification_repository import NotificationRepository
 from .comment_repository import CommentRepository
 from .team_repository import TeamRepository
+from .message_repository import MessageRepository
 
 __all__ = [
     "UserRepository",
@@ -14,5 +15,6 @@ __all__ = [
     "TaskRepository",
     "NotificationRepository",
     "CommentRepository",
-    "TeamRepository"
+    "TeamRepository",
+    "MessageRepository"
 ] 
