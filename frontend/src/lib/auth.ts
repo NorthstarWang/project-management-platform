@@ -30,14 +30,13 @@ export interface RegisterData {
   role: 'admin' | 'manager' | 'member';
 }
 
-// Mock API base URL - can be configured via environment
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
 class MockAuthService {
   private sessionId: string | null = null;
   private currentUser: User | null = null;
+  private baseURL: string;
 
   constructor() {
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     // Initialize from localStorage on client side
     if (typeof window !== 'undefined') {
       this.sessionId = localStorage.getItem('session_id');
@@ -57,7 +56,7 @@ class MockAuthService {
    */
   async initializeSession(seed?: string): Promise<string> {
     try {
-      const url = new URL('/_synthetic/new_session', API_BASE_URL);
+      const url = new URL('/_synthetic/new_session', this.baseURL);
       if (seed) {
         url.searchParams.set('seed', seed);
       }
@@ -98,7 +97,7 @@ class MockAuthService {
         await this.initializeSession();
       }
 
-      const url = new URL('/api/login', API_BASE_URL);
+      const url = new URL('/api/login', this.baseURL);
       if (!this.sessionId) {
         throw new Error('No session available');
       }
@@ -155,7 +154,7 @@ class MockAuthService {
         await this.initializeSession();
       }
 
-      const url = new URL('/api/register', API_BASE_URL);
+      const url = new URL('/api/register', this.baseURL);
       if (!this.sessionId) {
         throw new Error('No session available');
       }
@@ -252,7 +251,7 @@ class MockAuthService {
     if (!this.sessionId) return;
 
     try {
-      const url = new URL('/_synthetic/log_event', API_BASE_URL);
+      const url = new URL('/_synthetic/log_event', this.baseURL);
       url.searchParams.set('session_id', this.sessionId);
 
       await fetch(url.toString(), {
@@ -280,7 +279,7 @@ class MockAuthService {
    */
   async resetEnvironment(seed?: string): Promise<void> {
     try {
-      const url = new URL('/_synthetic/reset', API_BASE_URL);
+      const url = new URL('/_synthetic/reset', this.baseURL);
       if (seed) {
         url.searchParams.set('seed', seed);
       }
@@ -309,7 +308,7 @@ class MockAuthService {
    */
   async getBackendState(): Promise<Record<string, unknown>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/_synthetic/state`, {
+      const response = await fetch(`${this.baseURL}/_synthetic/state`, {
         headers: {
           'Cookie': this.sessionId ? `session_id=${this.sessionId}` : '',
         },
