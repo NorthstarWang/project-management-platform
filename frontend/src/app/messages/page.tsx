@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 import { Search, Send, Users, MessageCircle, MoreVertical } from 'lucide-react';
 import apiClient from '@/services/apiClient';
@@ -67,7 +66,6 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -132,13 +130,10 @@ export default function MessagesPage() {
     }
 
     try {
-      setIsSearching(true);
       const response = await apiClient.get(`/api/users/search?q=${encodeURIComponent(query)}`);
       setSearchResults(response.data);
     } catch (error) {
       console.error('Failed to search users:', error);
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -295,7 +290,7 @@ export default function MessagesPage() {
                     >
                       <Avatar
                         fallback={display.avatar}
-                        size="md"
+                        size="default"
                         className="flex-shrink-0"
                       />
                       <div className="flex-1 text-left min-w-0">
@@ -342,7 +337,7 @@ export default function MessagesPage() {
                   <div className="flex items-center space-x-3">
                     <Avatar
                       fallback={getConversationDisplay(selectedConversation).avatar}
-                      size="md"
+                      size="default"
                     />
                     <div>
                       <h3 className="font-semibold text-primary">

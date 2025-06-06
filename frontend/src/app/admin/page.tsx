@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
-import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building, Shield, ArrowRight, BarChart3, Activity } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building, Shield, ArrowRight, Activity } from 'lucide-react';
 
 interface TeamCreationRequest {
   id: string;

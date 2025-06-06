@@ -321,6 +321,30 @@ export default function TaskDetailModal({
     }
   }, [formData, hasUnsavedChanges, autoSave, autoSaveEnabled]);
 
+  const loadComments = useCallback(async () => {
+    try {
+      setLoadingComments(true);
+      const response = await apiClient.get(`/api/tasks/${task.id}/comments`);
+      
+      // Backend already returns comments in threaded structure with replies
+      // No need to reorganize - just use the response directly
+      const threadedComments = response.data;
+      
+      console.log('📧 Loaded comments structure:', {
+        total_comments: threadedComments.length,
+        comments_with_replies: threadedComments.filter((c: Comment) => c.replies && c.replies.length > 0).length,
+        sample_comment: threadedComments[0] || null
+      });
+      
+      setComments(threadedComments);
+    } catch (error) {
+      console.error('Failed to load comments:', error);
+      toast.error('Failed to load comments');
+    } finally {
+      setLoadingComments(false);
+    }
+  }, [task.id]);
+
   useEffect(() => {
     loadComments();
     trackEvent('TASK_DETAIL_VIEW', {
@@ -329,7 +353,7 @@ export default function TaskDetailModal({
       task_title: task.title,
       timestamp: new Date().toISOString()
     });
-  }, [task.id]);
+  }, [task.id, task.title, loadComments]);
 
   const formatDetailedDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -416,30 +440,6 @@ export default function TaskDetailModal({
       return `Due in ${diffDays} days`;
     } else {
       return formatDateOnly(dateString);
-    }
-  };
-
-  const loadComments = async () => {
-    try {
-      setLoadingComments(true);
-      const response = await apiClient.get(`/api/tasks/${task.id}/comments`);
-      
-      // Backend already returns comments in threaded structure with replies
-      // No need to reorganize - just use the response directly
-      const threadedComments = response.data;
-      
-      console.log('📧 Loaded comments structure:', {
-        total_comments: threadedComments.length,
-        comments_with_replies: threadedComments.filter((c: Comment) => c.replies && c.replies.length > 0).length,
-        sample_comment: threadedComments[0] || null
-      });
-      
-      setComments(threadedComments);
-    } catch (error) {
-      console.error('Failed to load comments:', error);
-      toast.error('Failed to load comments');
-    } finally {
-      setLoadingComments(false);
     }
   };
 

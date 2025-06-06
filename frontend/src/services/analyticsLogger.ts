@@ -522,7 +522,7 @@ class AnalyticsLogger {
   /**
    * Main logging method - sends to /_synthetic/log_event
    */
-  public logEvent(actionType: string, payload: LogPayload = {}): void {
+  public logEvent(actionType: string, payload: LogPayload = { text: '' }): void {
     if (!this.isClient) return;
 
     // Ensure page_url is always included

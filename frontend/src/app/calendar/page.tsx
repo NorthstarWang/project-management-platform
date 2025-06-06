@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
@@ -50,37 +50,13 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [showTeamTasks, setShowTeamTasks] = useState(false);
 
-  useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    
-    if (!userData) {
-      router.push('/login');
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    
-    // Log calendar page view
-    track('PAGE_VIEW', {
-      page_name: 'calendar',
-      page_url: '/calendar',
-      user_id: parsedUser.id,
-      user_role: parsedUser.role,
-      view_mode: viewMode
-    });
-    
-    // Load calendar data
-    loadCalendarData();
-  }, [router, viewMode, showTeamTasks]);
-
-  const loadCalendarData = async () => {
+  const loadCalendarData = useCallback(async () => {
     try {
       setLoading(true);
       
       // Log data loading start
       track('DATA_LOAD_START', {
+        text: 'Started loading calendar tasks data',
         page: 'calendar',
         data_types: ['tasks_with_due_dates'],
         view_mode: viewMode,
@@ -124,6 +100,7 @@ export default function CalendarPage() {
 
       // Log successful data load
       track('DATA_LOAD_SUCCESS', {
+        text: `Successfully loaded ${tasksWithDueDates.length} calendar tasks`,
         page: 'calendar',
         tasks_count: tasksWithDueDates.length,
         view_mode: viewMode,
@@ -136,19 +113,47 @@ export default function CalendarPage() {
       
       // Log data loading error
       track('DATA_LOAD_ERROR', {
+        text: 'Failed to load calendar tasks data',
         page: 'calendar',
         error: error.message || 'Unknown error'
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [viewMode, showTeamTasks, user]);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    
+    // Log calendar page view
+    track('PAGE_VIEW', {
+      text: `User viewed calendar page in ${viewMode} mode`,
+      page_name: 'calendar',
+      page_url: '/calendar',
+      user_id: parsedUser.id,
+      user_role: parsedUser.role,
+      view_mode: viewMode
+    });
+    
+    // Load calendar data
+    loadCalendarData();
+  }, [router, viewMode, showTeamTasks, loadCalendarData]);
 
   const handleViewModeChange = (mode: 'month' | 'week') => {
     setViewMode(mode);
     
     // Log view mode change
     track('VIEW_MODE_CHANGE', {
+      text: `Changed calendar view from ${viewMode} to ${mode}`,
       page: 'calendar',
       old_mode: viewMode,
       new_mode: mode
@@ -168,6 +173,7 @@ export default function CalendarPage() {
     
     // Log date navigation
     track('DATE_NAVIGATION', {
+      text: `Navigated calendar ${direction === 'next' ? 'forward' : 'backward'} in ${viewMode} view`,
       page: 'calendar',
       direction,
       view_mode: viewMode,

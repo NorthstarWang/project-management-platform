@@ -14,8 +14,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { toast } from '@/components/ui/CustomToast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { 
-  Users, Plus, Crown, UserPlus, UserMinus, Edit, Trash2, 
-  Search, Shield, Building, ChevronRight, AlertTriangle
+  Users, Plus, Crown, UserPlus, UserMinus, Trash2, 
+  Search, Shield, Building, ChevronRight
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { cn } from '@/lib/utils';
@@ -775,14 +775,13 @@ export default function AdminTeamsPage() {
 
         {/* Disband Confirmation */}
         <ConfirmDialog
-          open={showDisbandConfirm}
-          onOpenChange={setShowDisbandConfirm}
+          isOpen={showDisbandConfirm}
+          onClose={() => setShowDisbandConfirm(false)}
           title="Disband Team"
           description={`Are you sure you want to disband "${teamToDisband?.name}"? This action cannot be undone.`}
           confirmText="Disband Team"
-          confirmVariant="destructive"
+          type="danger"
           onConfirm={disbandTeam}
-          icon={<AlertTriangle className="h-6 w-6 text-error" />}
         />
       </div>
     </DashboardLayout>
