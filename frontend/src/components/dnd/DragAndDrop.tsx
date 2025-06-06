@@ -87,7 +87,10 @@ const trackEvent = async (actionType: string, payload: any) => {
   if (typeof window !== 'undefined') {
     try {
       const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
+      track(actionType, {
+        text: payload.text || `User performed ${actionType} action`,
+        ...payload
+      });
     } catch (error) {
       console.warn('Analytics tracking failed:', error);
     }
@@ -596,6 +599,7 @@ export function DragAndDrop({
 
       // Log successful move
       trackEvent('TASK_MOVED', {
+        text: `User successfully moved task "${task?.title}" from ${sourceStatusObj?.name} to ${targetStatusObj?.name} at position ${newPosition}`,
         task_id: taskId,
         task_title: task?.title,
         source_status: oldStatus,
@@ -619,6 +623,7 @@ export function DragAndDrop({
       
       // Log failed move
       trackEvent('TASK_MOVE_FAILED', {
+        text: `User's attempt to move task failed: ${error.response?.data?.detail || error.message || 'Unknown error'}`,
         task_id: taskId,
         source_status: oldStatus,
         target_status: newStatus,
@@ -644,6 +649,7 @@ export function DragAndDrop({
         setIsDragging(true);
         previousItems.current = items;
         trackEvent('TASK_DRAG_START', {
+          text: 'User started dragging a task on the board',
           board_id: boardId,
           timestamp: new Date().toISOString()
         });
@@ -675,6 +681,7 @@ export function DragAndDrop({
             console.log('🎯 Drag canceled - reverting optimistic updates');
             setItems(previousItems.current);
             trackEvent('TASK_DRAG_CANCELLED', {
+              text: 'User cancelled the drag operation before dropping the task',
               board_id: boardId,
               reason: 'user_cancelled'
             });

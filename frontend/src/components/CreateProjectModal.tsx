@@ -33,7 +33,10 @@ const trackEvent = async (actionType: string, payload: any) => {
   if (typeof window !== 'undefined') {
     try {
       const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
+      track(actionType, {
+        text: payload.text || `User performed ${actionType} action`,
+        ...payload
+      });
     } catch (error) {
       console.warn('Analytics tracking failed:', error);
     }
@@ -54,6 +57,7 @@ const logSyntheticEvent = async (actionType: string, payload: any) => {
           body: JSON.stringify({
             actionType,
             payload: {
+              text: payload.text || `User performed ${actionType} action`,
               ...payload,
               page_url: window.location.href,
               timestamp: Date.now(),
@@ -114,6 +118,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
       
       // Log team loading success
       logSyntheticEvent('TEAMS_LOAD_SUCCESS', {
+        text: `User's team data loaded successfully: ${response.data.length} teams found`,
         teams_count: response.data.length,
         target_element_identifier: '[data-testid="project-team-select"]'
       });
@@ -123,6 +128,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
       
       // Log team loading error
       logSyntheticEvent('TEAMS_LOAD_ERROR', {
+        text: `User's team data failed to load: ${error instanceof Error ? error.message : 'Unknown error'}`,
         error: error instanceof Error ? error.message : 'Unknown error',
         target_element_identifier: '[data-testid="project-team-select"]'
       });
@@ -214,6 +220,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
 
       // Track project creation attempt
       trackEvent('PROJECT_CREATE_ATTEMPT', {
+        text: `User attempted to create project "${formData.name}"${formData.team_id ? ' with a team' : ''}`,
         project_name: formData.name,
         team_id: formData.team_id,
         has_description: !!formData.description,
@@ -223,6 +230,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
       
       // Log to synthetic API
       logSyntheticEvent('PROJECT_CREATE_ATTEMPT', {
+        text: `User clicked create button to create project "${formData.name}"`,
         project_name: formData.name,
         team_id: formData.team_id,
         has_description: !!formData.description,
@@ -238,6 +246,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
 
       // Track successful creation
       trackEvent('PROJECT_CREATE_SUCCESS', {
+        text: `User successfully created project "${response.data.name}"`,
         project_id: response.data.id,
         project_name: response.data.name,
         team_id: response.data.team_id,
@@ -246,6 +255,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
       
       // Log successful creation to synthetic API
       logSyntheticEvent('PROJECT_CREATE_SUCCESS', {
+        text: `User successfully created project "${response.data.name}"`,
         project_id: response.data.id,
         project_name: response.data.name,
         team_id: response.data.team_id,
@@ -266,6 +276,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
 
       // Track creation error
       trackEvent('PROJECT_CREATE_ERROR', {
+        text: `User's attempt to create project "${formData.name}" failed: ${errorMessage}`,
         project_name: formData.name,
         error: errorMessage,
         timestamp: new Date().toISOString()
@@ -273,6 +284,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
       
       // Log creation error to synthetic API
       logSyntheticEvent('PROJECT_CREATE_ERROR', {
+        text: `User's project creation failed: ${errorMessage}`,
         project_name: formData.name,
         error: errorMessage,
         target_element_identifier: '[data-testid="create-project-button"]'
@@ -285,12 +297,14 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
   const handleClose = () => {
     if (!loading) {
       trackEvent('PROJECT_CREATE_CANCEL', {
+        text: `User cancelled creating project${formData.name ? ` "${formData.name}"` : ''} and closed the modal`,
         project_name: formData.name,
         form_filled: !!(formData.name || formData.description || formData.team_id),
         timestamp: new Date().toISOString()
       });
       
       logSyntheticEvent('MODAL_CLOSE', {
+        text: 'User closed the create project modal',
         modal_name: 'create_project',
         form_filled: !!(formData.name || formData.description || formData.team_id),
         target_element_identifier: '[data-testid="cancel-project-button"]'

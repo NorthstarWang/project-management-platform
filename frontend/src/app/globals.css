@@ -22,6 +22,14 @@
   --color-emerald-darker: #012e36;
   --color-green-darker: #009357;
   --color-green-lighter: #00b36b;
+  
+  /* Gradient Accent Colors - Dark Theme */
+  --color-gradient-teal: var(--color-mint);
+  --color-gradient-purple: var(--color-lilac);
+  --color-gradient-cyan: var(--color-green);
+  --color-gradient-mint-light: #4FD1C5;
+  --color-gradient-emerald-glow: var(--color-banana);
+  --color-gradient-ocean: #81E6D9;
 
   /* Radix UI Theme Integration */
   --accent-1: var(--color-firefly-darker);
@@ -244,6 +252,14 @@
   --color-salsa-darker: #d65716;
   --color-morning-dew-darker: #d1f2ef;
   --color-morning-dew-darkest: #b8ebe6;
+  
+  /* Gradient Accent Colors - Light Theme */
+  --color-gradient-teal: var(--color-misty);
+  --color-gradient-purple: var(--color-salsa);
+  --color-gradient-cyan: var(--color-mint-flash);
+  --color-gradient-mint-light: var(--color-acid-apple);
+  --color-gradient-emerald-glow: #7FDBFF;
+  --color-gradient-ocean: #FFB6C1;
 
   /* Radix UI Theme Integration */
   --accent-1: var(--color-morning-dew);
@@ -479,6 +495,27 @@ button, [role="button"], [type="button"], [type="submit"], [type="reset"] {
 
 button:disabled, [role="button"]:disabled {
   cursor: not-allowed;
+}
+
+/* ===== GRADIENT-AWARE BORDERS ===== */
+.gradient-border {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.dark .gradient-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.gradient-border-thick {
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.dark .gradient-border-thick {
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 /* ===== ENHANCED HOVER EFFECTS ===== */

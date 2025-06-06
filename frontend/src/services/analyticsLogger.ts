@@ -8,6 +8,7 @@
  */
 
 export interface LogPayload {
+  text: string; // Required natural language description of the action
   page_url?: string;
   target_element_identifier?: string;
   [key: string]: any;
@@ -52,6 +53,7 @@ class AnalyticsLogger {
       
       // Log session start
       this.logEvent('session_start', {
+        text: 'User started a new session',
         user_agent: navigator.userAgent,
         viewport_size: `${window.innerWidth}x${window.innerHeight}`,
       });
@@ -71,7 +73,9 @@ class AnalyticsLogger {
     // Click events
     document.addEventListener('click', (event) => {
       const target = event.target as Element;
+      const elementDescription = this.getElementDescription(target);
       this.logEvent('click', {
+        text: `User clicked on ${elementDescription}`,
         page_url: window.location.href,
         target_element_identifier: this.getElementIdentifier(target),
         coordinates: { x: event.clientX, y: event.clientY },
@@ -101,7 +105,9 @@ class AnalyticsLogger {
       if (isInteractive) {
         clearTimeout(mouseoverTimeout);
         mouseoverTimeout = setTimeout(() => {
+          const elementDescription = this.getElementDescription(target);
           this.logEvent('mouseover', {
+            text: `User hovered over ${elementDescription}`,
             page_url: window.location.href,
             target_element_identifier: this.getElementIdentifier(target),
             coordinates: { x: event.clientX, y: event.clientY },
@@ -114,8 +120,11 @@ class AnalyticsLogger {
     document.addEventListener('keydown', (event) => {
       const target = event.target as HTMLElement;
       const isPasswordField = target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'password';
+      const elementDescription = this.getElementDescription(target);
+      const keyDescription = isPasswordField ? '[REDACTED]' : event.key;
       
       this.logEvent('keydown', {
+        text: `User pressed "${keyDescription}" key in ${elementDescription}`,
         page_url: window.location.href,
         target_element_identifier: this.getElementIdentifier(target),
         key: isPasswordField ? '[REDACTED]' : event.key,
@@ -126,7 +135,9 @@ class AnalyticsLogger {
     // Form submissions
     document.addEventListener('submit', (event) => {
       const form = event.target as HTMLFormElement;
+      const formName = form.getAttribute('name') || form.getAttribute('id') || 'unnamed form';
       this.logEvent('form_submit', {
+        text: `User submitted the ${formName} form`,
         page_url: window.location.href,
         target_element_identifier: this.getElementIdentifier(form),
         form_action: form.action,
@@ -140,6 +151,7 @@ class AnalyticsLogger {
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         this.logEvent('scroll', {
+          text: `User scrolled to position (${window.scrollX}, ${window.scrollY})`,
           page_url: window.location.href,
           scroll_x: window.scrollX,
           scroll_y: window.scrollY,
@@ -150,7 +162,9 @@ class AnalyticsLogger {
     // Focus changes
     document.addEventListener('focusin', (event) => {
       const target = event.target as Element;
+      const elementDescription = this.getElementDescription(target);
       this.logEvent('focus', {
+        text: `User focused on ${elementDescription}`,
         page_url: window.location.href,
         target_element_identifier: this.getElementIdentifier(target),
       });
@@ -159,6 +173,7 @@ class AnalyticsLogger {
     // Page loads
     window.addEventListener('load', () => {
       this.logEvent('page_load', {
+        text: `Page "${document.title}" finished loading`,
         page_url: window.location.href,
         load_time: performance.now(),
       });
@@ -167,6 +182,7 @@ class AnalyticsLogger {
     // Navigation (for SPAs)
     window.addEventListener('popstate', () => {
       this.logEvent('navigate', {
+        text: `User navigated to ${window.location.pathname}`,
         page_url: window.location.href,
         type: 'popstate',
       });
@@ -196,6 +212,7 @@ class AnalyticsLogger {
     localStorage.setItem = (key: string, value: string) => {
       originalSetItem.call(localStorage, key, value);
       this.logEvent('STORAGE_SET', {
+        text: `User stored value in localStorage with key "${key}"`,
         storageType: 'localStorage',
         key,
         value,
@@ -206,6 +223,7 @@ class AnalyticsLogger {
     localStorage.removeItem = (key: string) => {
       originalRemoveItem.call(localStorage, key);
       this.logEvent('STORAGE_REMOVE', {
+        text: `User removed "${key}" from localStorage`,
         storageType: 'localStorage',
         key,
         page_url: window.location.href,
@@ -215,6 +233,7 @@ class AnalyticsLogger {
     localStorage.clear = () => {
       originalClear.call(localStorage);
       this.logEvent('STORAGE_CLEAR', {
+        text: 'User cleared all localStorage data',
         storageType: 'localStorage',
         page_url: window.location.href,
       });
@@ -228,6 +247,7 @@ class AnalyticsLogger {
     sessionStorage.setItem = (key: string, value: string) => {
       originalSessionSetItem.call(sessionStorage, key, value);
       this.logEvent('STORAGE_SET', {
+        text: `User stored value in sessionStorage with key "${key}"`,
         storageType: 'sessionStorage',
         key,
         value,
@@ -238,6 +258,7 @@ class AnalyticsLogger {
     sessionStorage.removeItem = (key: string) => {
       originalSessionRemoveItem.call(sessionStorage, key);
       this.logEvent('STORAGE_REMOVE', {
+        text: `User removed "${key}" from sessionStorage`,
         storageType: 'sessionStorage',
         key,
         page_url: window.location.href,
@@ -247,6 +268,7 @@ class AnalyticsLogger {
     sessionStorage.clear = () => {
       originalSessionClear.call(sessionStorage);
       this.logEvent('STORAGE_CLEAR', {
+        text: 'User cleared all sessionStorage data',
         storageType: 'sessionStorage',
         page_url: window.location.href,
       });
@@ -254,11 +276,13 @@ class AnalyticsLogger {
 
     // Listen for storage events from other tabs/windows
     window.addEventListener('storage', (event) => {
+      const storageType = event.storageArea === localStorage ? 'localStorage' : 'sessionStorage';
       this.logEvent('STORAGE_EXTERNAL_CHANGE', {
+        text: `Storage key "${event.key}" was changed in ${storageType} from another tab/window`,
         key: event.key,
         oldValue: event.oldValue,
         newValue: event.newValue,
-        storageArea: event.storageArea === localStorage ? 'localStorage' : 'sessionStorage',
+        storageArea: storageType,
         url: event.url,
         page_url: window.location.href,
       });
@@ -300,6 +324,7 @@ class AnalyticsLogger {
     });
 
     this.logEvent('STORAGE_SNAPSHOT', {
+      text: 'Captured snapshot of all browser storage (localStorage, sessionStorage, and cookies)',
       localStorage: localStorageData,
       sessionStorage: sessionStorageData,
       cookies: cookiesData,
@@ -327,6 +352,7 @@ class AnalyticsLogger {
           const summary = this.summarizeMutations(mutations);
           if (summary.hasSignificantChanges) {
             this.logEvent('DOM_MUTATION', {
+              text: `DOM changed: ${summary.addedNodes} nodes added, ${summary.removedNodes} nodes removed, ${summary.attributeChanges} attributes changed`,
               page_url: window.location.href,
               ...summary,
             });
@@ -400,6 +426,64 @@ class AnalyticsLogger {
     }
 
     return summary;
+  }
+
+  /**
+   * Get human-readable description of an element
+   */
+  private getElementDescription(element: Element): string {
+    // Check for aria-label first
+    const ariaLabel = element.getAttribute('aria-label');
+    if (ariaLabel) {
+      return `the "${ariaLabel}" element`;
+    }
+
+    // Check for button or link text
+    if (element.tagName === 'BUTTON' || element.tagName === 'A') {
+      const text = element.textContent?.trim();
+      if (text) {
+        return `the "${text}" ${element.tagName.toLowerCase()}`;
+      }
+    }
+
+    // Check for input fields
+    if (element.tagName === 'INPUT') {
+      const input = element as HTMLInputElement;
+      const type = input.type || 'text';
+      const placeholder = input.placeholder;
+      const name = input.name;
+      if (placeholder) {
+        return `the ${type} field with placeholder "${placeholder}"`;
+      } else if (name) {
+        return `the ${name} ${type} field`;
+      } else {
+        return `a ${type} field`;
+      }
+    }
+
+    // Check for data-testid
+    const testId = element.getAttribute('data-testid');
+    if (testId) {
+      // Convert testId to human readable format
+      const readable = testId.replace(/-/g, ' ').replace(/_/g, ' ');
+      return `the ${readable} element`;
+    }
+
+    // Check for ID
+    if (element.id) {
+      const readable = element.id.replace(/-/g, ' ').replace(/_/g, ' ');
+      return `the ${readable} element`;
+    }
+
+    // Default to tag name with classes
+    const tagName = element.tagName.toLowerCase();
+    const classList = element.classList;
+    if (classList.length > 0) {
+      const mainClass = classList[0].replace(/-/g, ' ').replace(/_/g, ' ');
+      return `a ${tagName} with ${mainClass} styling`;
+    }
+
+    return `a ${tagName} element`;
   }
 
   /**
@@ -498,7 +582,12 @@ class AnalyticsLogger {
   /**
    * Log custom event
    */
-  public track(actionType: string, payload: LogPayload = {}): void {
+  public track(actionType: string, payload: LogPayload): void {
+    // Ensure text field is provided
+    if (!payload.text) {
+      console.error('Analytics: text field is required in payload');
+      return;
+    }
     this.logEvent(actionType, payload);
   }
 
@@ -509,6 +598,7 @@ class AnalyticsLogger {
     if (!this.isClient) return;
     
     this.logEvent('page_view', {
+      text: `User viewed the ${pageName || document.title} page`,
       page_name: pageName,
       page_title: document.title,
       referrer: document.referrer,
@@ -520,6 +610,7 @@ class AnalyticsLogger {
    */
   public taskDone(taskName: string, additionalData?: any): void {
     this.logEvent('TASK_DONE', {
+      text: `Task "${taskName}" was completed`,
       taskName,
       ...additionalData,
     });
@@ -530,6 +621,7 @@ class AnalyticsLogger {
    */
   public userInteraction(interactionType: string, elementSelector: string, data?: any): void {
     this.logEvent('user_interaction', {
+      text: `User performed ${interactionType} interaction with ${elementSelector}`,
       interaction_type: interactionType,
       target_element_identifier: elementSelector,
       ...data,
@@ -554,7 +646,17 @@ class AnalyticsLogger {
    * Log drag and drop events
    */
   public logDragEvent(eventType: 'start' | 'over' | 'end' | 'drop', data: any): void {
+    const eventDescriptions = {
+      start: 'started dragging',
+      over: 'dragged over',
+      end: 'ended dragging',
+      drop: 'dropped'
+    };
+    const description = eventDescriptions[eventType];
+    const itemDescription = data.draggedItem || 'an item';
+    
     this.logEvent(`drag_${eventType}`, {
+      text: `User ${description} ${itemDescription}`,
       page_url: window.location.href,
       ...data,
     });
@@ -565,7 +667,7 @@ class AnalyticsLogger {
 const analyticsLogger = new AnalyticsLogger();
 
 // Export convenience functions with client-side checks
-export const track = (actionType: string, payload?: LogPayload) => {
+export const track = (actionType: string, payload: LogPayload) => {
   if (typeof window !== 'undefined') {
     analyticsLogger.track(actionType, payload);
   }

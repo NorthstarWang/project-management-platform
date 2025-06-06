@@ -122,6 +122,7 @@ class NotificationRedirectionService {
 
     // Track permission error for analytics
     this.trackRedirection(notification, 'permission_denied', {
+      text: `User attempted to access notification content but was denied due to insufficient permissions`,
       error_type: 'access_denied',
       error_message: 'User lacks permission to access notification content'
     });
@@ -159,6 +160,7 @@ class NotificationRedirectionService {
 
     // Track data integrity error for analytics
     this.trackRedirection(notification, 'data_not_found', {
+      text: `User attempted to access notification content but the referenced data no longer exists`,
       error_type: 'missing_reference',
       error_message: 'Referenced content no longer exists'
     });
@@ -248,6 +250,7 @@ class NotificationRedirectionService {
       
       // Track redirection
       this.trackRedirection(notification, 'task_detail', {
+        text: `User clicked on notification to view task "${task.title}" in board "${targetBoard.name}"`,
         task_id: task.id,
         board_id: targetBoard.id,
         list_id: targetList.id
@@ -335,6 +338,7 @@ class NotificationRedirectionService {
       
       // Track redirection
       this.trackRedirection(notification, 'task_comment', {
+        text: `User clicked on notification to view comment on task "${task.title}" in board "${targetBoard.name}"`,
         task_id: task.id,
         board_id: targetBoard.id,
         list_id: targetList.id,
@@ -365,6 +369,7 @@ class NotificationRedirectionService {
 
       // Track redirection
       this.trackRedirection(notification, 'board', {
+        text: `User clicked on notification to view board`,
         board_id: notification.related_board_id
       });
 
@@ -392,6 +397,7 @@ class NotificationRedirectionService {
 
       // Track redirection
       this.trackRedirection(notification, 'project', {
+        text: `User clicked on notification to view project`,
         project_id: notification.related_project_id
       });
 
@@ -416,6 +422,7 @@ class NotificationRedirectionService {
 
       // Track redirection
       this.trackRedirection(notification, 'team_discover', {
+        text: `User clicked on team-related notification to view discover page`,
         team_id: notification.related_team_id,
         join_request_id: notification.related_join_request_id,
         invitation_id: notification.related_invitation_id
@@ -438,6 +445,7 @@ class NotificationRedirectionService {
       try {
         const { track } = await import('./analyticsLogger');
         track('NOTIFICATION_REDIRECT', {
+          text: additionalData.text || `User redirected from ${notification.type} notification to ${redirectType}`,
           notification_id: notification.id,
           notification_type: notification.type,
           redirect_type: redirectType,

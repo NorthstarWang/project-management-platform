@@ -87,7 +87,10 @@ const trackEvent = async (actionType: string, payload: any) => {
   if (typeof window !== 'undefined') {
     try {
       const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
+      track(actionType, {
+        text: payload.text || `User performed ${actionType} action`,
+        ...payload
+      });
     } catch (error) {
       console.warn('Analytics tracking failed:', error);
     }
@@ -141,6 +144,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
           
           // Track successful search
           trackEvent('GLOBAL_SEARCH_PERFORMED', {
+            text: `User searched for "${query}" and found ${response.data.total_count} results`,
             query,
             results_count: response.data.total_count,
             results_breakdown: {
@@ -158,6 +162,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
           
           // Track search error
           trackEvent('GLOBAL_SEARCH_ERROR', {
+            text: `User's search for "${query}" failed with error`,
             query,
             error: error instanceof Error ? error.message : 'Unknown error',
             timestamp: new Date().toISOString()
@@ -176,6 +181,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
   const handleProjectClick = (projectId: string) => {
     // Track search result click
     trackEvent('SEARCH_RESULT_CLICK', {
+      text: `User clicked on project search result from query "${query}"`,
       result_type: 'project',
       result_id: projectId,
       query,
@@ -190,6 +196,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
   const handleBoardClick = (boardId: string) => {
     // Track search result click
     trackEvent('SEARCH_RESULT_CLICK', {
+      text: `User clicked on board search result from query "${query}"`,
       result_type: 'board',
       result_id: boardId,
       query,
@@ -204,6 +211,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
   const handleTaskClick = async (task: SearchResult['tasks'][0]) => {
     // Track search result click
     trackEvent('SEARCH_RESULT_CLICK', {
+      text: `User clicked on task "${task.title}" search result from query "${query}"`,
       result_type: 'task',
       result_id: task.id,
       task_status: task.status,
@@ -221,6 +229,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
   const handleCommentClick = async (comment: SearchResult['comments'][0]) => {
     // Track search result click
     trackEvent('SEARCH_RESULT_CLICK', {
+      text: `User clicked on ${comment.type} search result from query "${query}"`,
       result_type: comment.type,
       result_id: comment.id,
       comment_task_id: comment.task_id,

@@ -34,7 +34,10 @@ const trackEvent = async (actionType: string, payload: any) => {
   if (typeof window !== 'undefined') {
     try {
       const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
+      track(actionType, {
+        text: payload.text || `User performed ${actionType} action`,
+        ...payload
+      });
     } catch (error) {
       console.warn('Analytics tracking failed:', error);
     }
@@ -78,6 +81,7 @@ export default function CreateListModal({
       
       // Track list creation attempt
       trackEvent('LIST_CREATE_ATTEMPT', {
+        text: `User attempted to create list "${formData.name}" in board`,
         list_name: formData.name,
         board_id: boardId
       });
@@ -92,6 +96,7 @@ export default function CreateListModal({
       if (response.status === 200 || response.status === 201) {
         // Track successful creation
         trackEvent('LIST_CREATED', {
+          text: `User successfully created list "${response.data.name}" in board`,
           list_id: response.data.id,
           list_name: response.data.name,
           board_id: boardId,
@@ -100,6 +105,7 @@ export default function CreateListModal({
 
         // Log for synthetic API
         trackEvent('TASK_DONE', {
+          text: 'User completed the task of creating a new list',
           taskName: 'create_list',
           list_id: response.data.id,
           list_name: response.data.name,
@@ -115,6 +121,7 @@ export default function CreateListModal({
       
       // Track creation failure
       trackEvent('LIST_CREATE_FAILED', {
+        text: `User's attempt to create list "${formData.name}" failed: ${error.response?.data?.detail || error.message}`,
         error: error.response?.data?.detail || error.message,
         list_name: formData.name,
         board_id: boardId

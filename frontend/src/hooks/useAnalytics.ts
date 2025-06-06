@@ -47,6 +47,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): AnalyticsHook {
   // Memoized analytics functions
   const trackWithContext = useCallback((actionType: string, payload?: LogPayload) => {
     const enhancedPayload = {
+      text: payload?.text || `User performed ${actionType} action${componentName ? ` in ${componentName} component` : ''}`,
       component_name: componentName,
       route: router.asPath,
       ...payload,
@@ -86,6 +87,7 @@ export function useFormAnalytics(formName: string) {
 
   const trackFormSubmit = useCallback((data?: any) => {
     track('form_submit', {
+      text: `User submitted the ${formName} form`,
       form_name: formName,
       ...data,
     });
@@ -93,6 +95,7 @@ export function useFormAnalytics(formName: string) {
 
   const trackFieldChange = useCallback((fieldName: string, value: any) => {
     track('form_field_change', {
+      text: `User changed the ${fieldName} field in the ${formName} form`,
       form_name: formName,
       field_name: fieldName,
       field_value: fieldName.toLowerCase().includes('password') ? '[REDACTED]' : value,
@@ -112,11 +115,15 @@ export function useClickAnalytics() {
   const { userInteraction } = useAnalytics();
 
   const trackButtonClick = useCallback((buttonName: string, data?: any) => {
-    userInteraction('button_click', `[data-testid="${buttonName}"]`, data);
+    userInteraction('button_click', `[data-testid="${buttonName}"]`, {
+      text: `User clicked on the ${buttonName} button`,
+      ...data
+    });
   }, [userInteraction]);
 
   const trackLinkClick = useCallback((linkText: string, href: string) => {
     userInteraction('link_click', `a[href="${href}"]`, {
+      text: `User clicked on the "${linkText}" link`,
       link_text: linkText,
       href,
     });

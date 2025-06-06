@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/Label';
 import { Card } from '@/components/ui/Card';
 import { toast } from '@/components/ui/CustomToast';
 import authService from '@/services/authService';
+import BackgroundWrapper from '@/components/ui/BackgroundWrapper';
 
 interface LoginForm {
   username: string;
@@ -78,8 +79,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <BackgroundWrapper>
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-primary">
             Sign in to your account
@@ -141,7 +143,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-secondary" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-card text-muted">Test Accounts</span>
+                <span className="px-3 py-1 bg-white/60 dark:bg-black/60 backdrop-blur-md rounded-full text-muted gradient-border">Test Accounts</span>
               </div>
             </div>
 
@@ -155,5 +157,6 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+    </BackgroundWrapper>
   );
 } 

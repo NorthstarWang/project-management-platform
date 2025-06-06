@@ -97,7 +97,10 @@ const trackEvent = async (actionType: string, payload: any) => {
   if (typeof window !== 'undefined') {
     try {
       const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
+      track(actionType, {
+        text: payload.text || `User performed ${actionType} action`,
+        ...payload
+      });
     } catch (error) {
       console.warn('Analytics tracking failed:', error);
     }
@@ -321,6 +324,7 @@ export default function TaskDetailModal({
   useEffect(() => {
     loadComments();
     trackEvent('TASK_DETAIL_VIEW', {
+      text: `User opened task detail modal for "${task.title}"`,
       task_id: task.id,
       task_title: task.title,
       timestamp: new Date().toISOString()
@@ -521,6 +525,7 @@ export default function TaskDetailModal({
       await apiClient.put(`/api/tasks/${task.id}`, updates);
       
       trackEvent('TASK_UPDATE', {
+        text: `User saved updates to task "${task.title}" - modified fields: ${Array.from(modifiedFields).join(', ')}`,
         task_id: task.id,
         updates: Array.from(modifiedFields),
         timestamp: new Date().toISOString()
@@ -578,6 +583,7 @@ export default function TaskDetailModal({
       const newCommentData = response.data;
       
       trackEvent('COMMENT_ADD', {
+        text: `User added a ${newComment.length} character comment to task "${task.title}"`,
         task_id: task.id,
         comment_length: newComment.length,
         timestamp: new Date().toISOString()
@@ -616,6 +622,7 @@ export default function TaskDetailModal({
       const newReply = response.data;
       
       trackEvent('COMMENT_REPLY', {
+        text: `User replied to a comment on task "${task.title}" with a ${replyContent.length} character reply`,
         task_id: task.id,
         parent_comment_id: parentCommentId,
         reply_length: replyContent.length,
@@ -673,6 +680,7 @@ export default function TaskDetailModal({
       await apiClient.put(`/api/tasks/${task.id}`, updates);
       
       trackEvent('TASK_SOFT_DELETE', {
+        text: `User moved task "${task.title}" to recycle bin from ${task.status} status`,
         task_id: task.id,
         task_title: task.title,
         previous_status: task.status,
@@ -702,6 +710,7 @@ export default function TaskDetailModal({
       await apiClient.put(`/api/tasks/${task.id}`, updates);
       
       trackEvent('TASK_RECOVER', {
+        text: `User recovered task "${task.title}" from recycle bin back to todo status`,
         task_id: task.id,
         task_title: task.title,
         recovered_to_status: 'todo',
@@ -725,6 +734,7 @@ export default function TaskDetailModal({
       await apiClient.delete(`/api/tasks/${task.id}`);
       
       trackEvent('TASK_PERMANENT_DELETE', {
+        text: `User permanently deleted task "${task.title}" from the system`,
         task_id: task.id,
         task_title: task.title,
         timestamp: new Date().toISOString()

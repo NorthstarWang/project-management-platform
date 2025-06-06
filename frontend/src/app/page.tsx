@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Separator } from '@/components/ui/Separator';
+import { motion, AnimatePresence } from 'framer-motion';
+import BackgroundWrapper from '@/components/ui/BackgroundWrapper';
 import { 
   Zap, 
   Users, 
@@ -35,7 +37,7 @@ function LandingHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-primary/95 backdrop-blur-md border-b border-secondary">
+    <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-black/60 backdrop-blur-xl border-b gradient-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -44,7 +46,7 @@ function LandingHeader() {
               <Zap className="h-5 w-5 text-on-accent" />
             </div>
             <span className="text-xl font-bold text-primary">Hub</span>
-            <Badge variant="secondary" size="sm" className="hidden sm:inline-flex">Beta</Badge>
+            <Badge variant="secondary" size="sm" className="hidden sm:inline-flex bg-white/90 dark:bg-black/70 text-accent gradient-border backdrop-blur-md">Beta</Badge>
           </div>
 
           {/* Desktop Navigation */}
@@ -64,10 +66,14 @@ function LandingHeader() {
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
             <Link href="/login">
-              <Button variant="ghost" size="sm">Sign In</Button>
+              <Button variant="ghost" size="sm" className="hover:scale-100">
+                <span className="hover:scale-105 transition-transform">Sign In</span>
+              </Button>
             </Link>
             <Link href="/register">
-              <Button size="sm">Get Started</Button>
+              <Button size="sm" className="hover:scale-100">
+                <span className="hover:scale-105 transition-transform">Get Started</span>
+              </Button>
             </Link>
           </div>
 
@@ -85,29 +91,62 @@ function LandingHeader() {
         </div>
 
         {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 bg-secondary rounded-lg mt-2 mb-4">
-              {navigation.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className="block px-3 py-2 text-secondary hover:text-primary transition-colors duration-200"
-                  onClick={() => setMobileMenuOpen(false)}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div 
+              className="md:hidden"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              <motion.div 
+                className="px-2 pt-2 pb-3 space-y-1 bg-secondary rounded-lg mt-2 mb-4"
+                initial={{ y: -10 }}
+                animate={{ y: 0 }}
+                exit={{ y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {navigation.map((item, index) => (
+                  <motion.a
+                    key={item.name}
+                    href={item.href}
+                    className="block px-3 py-2 text-secondary hover:text-primary transition-colors duration-200"
+                    onClick={() => setMobileMenuOpen(false)}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    {item.name}
+                  </motion.a>
+                ))}
+                <Separator className="my-2" />
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navigation.length * 0.05 }}
                 >
-                  {item.name}
-                </a>
-              ))}
-              <Separator className="my-2" />
-              <Link href="/login" className="block px-3 py-2">
-                <Button variant="ghost" size="sm" className="w-full justify-start">Sign In</Button>
-              </Link>
-              <Link href="/register" className="block px-3 py-2">
-                <Button size="sm" className="w-full">Get Started</Button>
-              </Link>
-            </div>
-          </div>
-        )}
+                  <Link href="/login" className="block px-3 py-2">
+                    <Button variant="ghost" size="sm" className="w-full justify-start hover:scale-100">
+                      <span className="hover:scale-105 transition-transform">Sign In</span>
+                    </Button>
+                  </Link>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: (navigation.length + 1) * 0.05 }}
+                >
+                  <Link href="/register" className="block px-3 py-2">
+                    <Button size="sm" className="w-full hover:scale-100">
+                      <span className="hover:scale-105 transition-transform">Get Started</span>
+                    </Button>
+                  </Link>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   );
@@ -116,10 +155,12 @@ function LandingHeader() {
 // Hero Section
 function HeroSection() {
   return (
-    <section className="relative px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
-      <div className="container mx-auto text-center">
+    <section className="relative px-4 sm:px-6 lg:px-8 py-20 lg:py-32 bg-transparent dark:bg-black/10 backdrop-blur-sm">
+      {/* Subtle overlay for better text contrast */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background-primary/20 via-transparent to-background-primary/30 pointer-events-none" />
+      <div className="container mx-auto text-center relative z-10">
         <div className="max-w-4xl mx-auto">
-          <Badge variant="outline" className="mb-6 bg-accent-5 border-accent-20">
+          <Badge variant="outline" className="mb-6 bg-accent-10 border-accent-20 text-accent dark:text-accent-11">
             <Star className="w-3 h-3 mr-1" />
             Trusted by 10,000+ teams worldwide
           </Badge>
@@ -137,31 +178,33 @@ function HeroSection() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Link href="/register">
-              <Button size="lg" className="w-full sm:w-auto">
-                Get Started Free
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button size="lg" className="w-full sm:w-auto hover:scale-100">
+                <span className="hover:scale-105 transition-transform flex items-center">
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </span>
               </Button>
             </Link>
             <Link href="#demo">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                See How It Works
+              <Button variant="outline" size="lg" className="w-full sm:w-auto hover:scale-100">
+                <span className="hover:scale-105 transition-transform">See How It Works</span>
               </Button>
             </Link>
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-muted">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-accent-success" />
-              <span>No credit card required</span>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex items-center gap-2 bg-white/80 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
+              <CheckCircle className="h-5 w-5 text-accent-success dark:text-accent" />
+              <span className="text-primary font-medium">No credit card required</span>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-accent-success" />
-              <span>14-day free trial</span>
+            <div className="flex items-center gap-2 bg-white/80 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
+              <CheckCircle className="h-5 w-5 text-accent-success dark:text-accent" />
+              <span className="text-primary font-medium">14-day free trial</span>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-accent-success" />
-              <span>Cancel anytime</span>
+            <div className="flex items-center gap-2 bg-white/80 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
+              <CheckCircle className="h-5 w-5 text-accent-success dark:text-accent" />
+              <span className="text-primary font-medium">Cancel anytime</span>
             </div>
           </div>
         </div>
@@ -206,7 +249,7 @@ function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="py-20 bg-secondary">
+    <section id="features" className="py-20 bg-transparent dark:bg-black/10 backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
@@ -252,7 +295,7 @@ function SocialProofSection() {
   ];
 
   return (
-    <section className="py-16 bg-primary">
+    <section className="py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <p className="text-muted mb-8">Trusted by leading organizations worldwide</p>
@@ -297,7 +340,7 @@ function TestimonialsSection() {
   ];
 
   return (
-    <section id="testimonials" className="py-20 bg-secondary">
+    <section id="testimonials" className="py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
@@ -386,7 +429,7 @@ function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="py-20 bg-primary">
+    <section id="pricing" className="py-20 bg-transparent dark:bg-black/10 backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
@@ -399,10 +442,10 @@ function PricingSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {plans.map((plan, index) => (
-            <Card key={index} className={`relative hover:shadow-lg transition-all duration-300 ${plan.popular ? 'border-2 border-accent shadow-lg' : ''}`}>
+            <Card key={index} className={`relative hover:shadow-lg transition-all duration-300 flex flex-col ${plan.popular ? 'border-2 border-accent shadow-lg' : ''}`}>
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-interactive-primary text-on-accent">Most Popular</Badge>
+                  <Badge className="bg-interactive-primary text-on-accent dark:bg-accent dark:text-firefly">Most Popular</Badge>
                 </div>
               )}
               <CardHeader className="text-center">
@@ -413,20 +456,20 @@ function PricingSection() {
                 </div>
                 <CardDescription className="mt-2">{plan.description}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-6">
+              <CardContent className="flex-grow flex flex-col">
+                <ul className="space-y-3 mb-6 flex-grow">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-accent-success mr-3 flex-shrink-0" />
+                      <CheckCircle className="h-4 w-4 text-accent-success dark:text-accent-success mr-3 flex-shrink-0" />
                       <span className="text-secondary">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Button 
-                  className="w-full" 
+                  className="w-full hover:scale-100 mt-auto" 
                   variant={plan.popular ? "primary" : "outline"}
                 >
-                  {plan.cta}
+                  <span className="hover:scale-105 transition-transform">{plan.cta}</span>
                 </Button>
               </CardContent>
             </Card>
@@ -485,7 +528,7 @@ function LandingFooter() {
   ];
 
   return (
-    <footer className="bg-card border-t border-secondary">
+    <footer className="bg-white/70 dark:bg-black/70 backdrop-blur-xl border-t gradient-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
         <div className="py-12 lg:py-16">
@@ -564,7 +607,7 @@ function LandingFooter() {
 // Main Landing Page
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-primary">
+    <BackgroundWrapper>
       <LandingHeader />
       <main>
         <HeroSection />
@@ -574,6 +617,6 @@ export default function LandingPage() {
         <PricingSection />
       </main>
       <LandingFooter />
-    </div>
+    </BackgroundWrapper>
   );
 }

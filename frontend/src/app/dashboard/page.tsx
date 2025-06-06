@@ -90,7 +90,10 @@ const trackEvent = async (actionType: string, payload: any) => {
   if (typeof window !== 'undefined') {
     try {
       const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
+      track(actionType, {
+        text: payload.text || `User performed ${actionType} action`,
+        ...payload
+      });
     } catch (error) {
       console.warn('Analytics tracking failed:', error);
     }
@@ -114,6 +117,7 @@ export default function DashboardPage() {
       
       // Log data loading start
       trackEvent('DATA_LOAD_START', {
+        text: 'User\'s dashboard started loading data for projects, boards, tasks, comments, and activities',
         page: 'dashboard',
         data_types: ['projects', 'boards', 'tasks', 'comments', 'activities']
       });
@@ -136,6 +140,7 @@ export default function DashboardPage() {
 
       // Log successful data load
       trackEvent('DATA_LOAD_SUCCESS', {
+        text: `User\'s dashboard successfully loaded ${projectsRes.data.length} projects, ${boardsRes.data.length} boards, and ${tasksRes.data.length} tasks`,
         page: 'dashboard',
         projects_count: projectsRes.data.length,
         boards_count: boardsRes.data.length,
@@ -148,6 +153,7 @@ export default function DashboardPage() {
       
       // Log data loading error
       trackEvent('DATA_LOAD_ERROR', {
+        text: `User\'s dashboard data loading failed: ${error.message || 'Unknown error'}`,
         page: 'dashboard',
         error: error.message || 'Unknown error'
       });
@@ -201,6 +207,7 @@ export default function DashboardPage() {
 
       // Track user login
       trackEvent('USER_LOGIN', {
+        text: `User ${user.username} (${user.role}) logged in and accessed the dashboard`,
         user_id: user.id,
         username: user.username,
         user_role: user.role
@@ -268,6 +275,7 @@ export default function DashboardPage() {
 
   const handleQuickAction = (action: string, projectId?: string) => {
     trackEvent('QUICK_ACTION_CLICK', {
+      text: `User clicked on "${action}" quick action${projectId ? ' for a specific project' : ''}`,
       action,
       project_id: projectId,
       page: 'dashboard'
@@ -275,6 +283,7 @@ export default function DashboardPage() {
 
     // Add more specific synthetic API tracking
     trackEvent('DASHBOARD_INTERACTION', {
+      text: `User interacted with dashboard by performing "${action}" action`,
       interaction_type: 'quick_action',
       action_name: action,
       target_project_id: projectId,

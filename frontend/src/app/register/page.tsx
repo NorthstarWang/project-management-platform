@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/Select';
 import { toast } from '@/components/ui/CustomToast';
 import apiClient from '@/services/apiClient';
+import BackgroundWrapper from '@/components/ui/BackgroundWrapper';
 
 interface RegisterForm {
   username: string;
@@ -99,6 +100,7 @@ export default function RegisterPage() {
 
       // Track successful registration
       await trackEvent('USER_REGISTER', {
+        text: `User registered new account with username "${form.username}" and role "${form.role}"`,
         username: form.username,
         email: form.email,
         role: form.role
@@ -120,8 +122,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <BackgroundWrapper>
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-primary">
             Create your account
@@ -236,5 +239,6 @@ export default function RegisterPage() {
         </Card>
       </div>
     </div>
+    </BackgroundWrapper>
   );
 } 

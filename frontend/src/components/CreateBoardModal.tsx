@@ -37,7 +37,10 @@ const trackEvent = async (actionType: string, payload: any) => {
   if (typeof window !== 'undefined') {
     try {
       const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
+      track(actionType, {
+        text: payload.text || `User performed ${actionType} action`,
+        ...payload
+      });
     } catch (error) {
       console.warn('Analytics tracking failed:', error);
     }
@@ -101,6 +104,7 @@ export default function CreateBoardModal({
       
       // Track board creation attempt
       trackEvent('BOARD_CREATE_ATTEMPT', {
+        text: `User attempted to create board "${formData.name}" in project`,
         board_name: formData.name,
         project_id: projectId,
         has_description: !!formData.description.trim(),
@@ -119,6 +123,7 @@ export default function CreateBoardModal({
       if (response.status === 200 || response.status === 201) {
         // Track successful creation
         trackEvent('BOARD_CREATED', {
+          text: `User successfully created board "${response.data.name}" in project`,
           board_id: response.data.id,
           board_name: response.data.name,
           project_id: projectId,
@@ -127,6 +132,7 @@ export default function CreateBoardModal({
 
         // Log for synthetic API
         trackEvent('TASK_DONE', {
+          text: 'User completed the task of creating a new board',
           taskName: 'create_board',
           board_id: response.data.id,
           board_name: response.data.name,

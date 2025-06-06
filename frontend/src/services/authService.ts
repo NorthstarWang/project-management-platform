@@ -227,6 +227,7 @@ class AuthenticationService {
       if (this.sessionId && this.currentUser) {
         console.log('📝 Logging logout event...');
         await this.logEvent('USER_LOGOUT', {
+          text: `User ${this.currentUser.username} logged out from the system`,
           user_id: this.currentUser.id,
           username: this.currentUser.username,
         });
@@ -353,6 +354,7 @@ class AuthenticationService {
         body: JSON.stringify({
           actionType,
           payload: {
+            text: payload.text || `User performed ${actionType} action`,
             ...payload,
             timestamp: Date.now(),
             page_url: typeof window !== 'undefined' ? window.location.href : '',

@@ -138,7 +138,10 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       try {
         const { track } = await import('./analyticsLogger');
-        track(eventType, data);
+        track(eventType, {
+          text: data.text || `User triggered ${eventType} event`,
+          ...data
+        });
       } catch (error) {
         // Silently fail if analytics logger is not available
         console.warn('Analytics tracking failed:', error);
@@ -177,6 +180,7 @@ class ApiClient {
       if (!response.ok) {
         // Log API errors
         this.trackEvent('api_error', {
+          text: `User's API ${method} request to ${endpoint} failed with status ${response.status}`,
           method,
           url,
           status: response.status,
@@ -193,6 +197,7 @@ class ApiClient {
 
       // Log successful API calls
       this.trackEvent('api_success', {
+        text: `User's API ${method} request to ${endpoint} succeeded with status ${response.status}`,
         method,
         url,
         status: response.status,
@@ -209,6 +214,7 @@ class ApiClient {
 
       // Network errors
       this.trackEvent('api_network_error', {
+        text: `User's API ${method} request to ${endpoint} failed due to network error`,
         method,
         url,
         error: error instanceof Error ? error.message : 'Network error',

@@ -12,12 +12,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-btn-primary text-btn-primary hover:bg-btn-primary-hover hover:scale-105 hover:shadow-lg active:bg-btn-primary-active active:scale-95 disabled:bg-btn-primary-disabled disabled:text-white/50 focus-visible:ring-accent',
-        secondary: 'bg-btn-secondary text-btn-secondary border border-btn-secondary hover:bg-btn-secondary-hover hover:scale-105 hover:shadow-md active:bg-btn-secondary-active active:scale-95 focus-visible:ring-accent',
-        ghost: 'bg-transparent text-primary hover:bg-btn-ghost-hover hover:scale-105 active:bg-btn-ghost-active active:scale-95 focus-visible:ring-accent',
-        outline: 'border border-secondary bg-transparent hover:bg-interactive-secondary-hover hover:scale-105 hover:shadow-md text-primary active:scale-95 disabled:border-secondary/50 disabled:text-primary/50 focus-visible:ring-accent',
-        destructive: 'bg-error text-white hover:bg-red-600 hover:scale-105 hover:shadow-lg active:bg-red-700 active:scale-95 focus-visible:ring-red-500',
-        link: 'text-accent underline-offset-4 hover:underline hover:scale-105 p-0 h-auto active:scale-95 focus-visible:ring-accent',
+        primary: 'bg-btn-primary text-btn-primary hover:bg-btn-primary-hover hover:shadow-lg active:bg-btn-primary-active disabled:bg-btn-primary-disabled disabled:text-white/50 focus-visible:ring-accent',
+        secondary: 'bg-white/20 dark:bg-black/20 backdrop-blur-sm text-btn-secondary gradient-border-thick hover:bg-white/30 dark:hover:bg-black/30 hover:shadow-md active:bg-btn-secondary-active focus-visible:ring-accent',
+        ghost: 'bg-transparent text-primary hover:bg-btn-ghost-hover active:bg-btn-ghost-active focus-visible:ring-accent',
+        outline: 'gradient-border-thick bg-white/10 dark:bg-black/10 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-black/20 hover:shadow-md text-primary disabled:opacity-50 focus-visible:ring-accent',
+        destructive: 'bg-error text-white hover:bg-red-600 hover:shadow-lg active:bg-red-700 focus-visible:ring-red-500',
+        link: 'text-accent underline-offset-4 hover:underline p-0 h-auto focus-visible:ring-accent',
       },
       size: {
         sm: 'h-8 px-3 text-xs',
@@ -73,7 +73,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled || loading}
-        whileHover={disabled || loading ? {} : { scale: 1.05 }}
+        whileHover={disabled || loading ? {} : {}}
         whileTap={disabled || loading ? {} : { scale: 0.95 }}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ 
@@ -126,6 +126,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           initial={{ opacity: 0 }}
           animate={{ opacity: disabled || loading ? 0.5 : 1 }}
           transition={{ delay: 0.1 }}
+          whileHover={disabled || loading ? {} : { scale: 1.05 }}
         >
           {children}
         </motion.span>
