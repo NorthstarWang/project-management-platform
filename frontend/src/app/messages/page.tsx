@@ -295,7 +295,7 @@ export default function MessagesPage() {
                     >
                       <Avatar
                         fallback={display.avatar}
-                        size="md"
+                        size="sm"
                         className="flex-shrink-0"
                       />
                       <div className="flex-1 text-left min-w-0">
@@ -342,7 +342,7 @@ export default function MessagesPage() {
                   <div className="flex items-center space-x-3">
                     <Avatar
                       fallback={getConversationDisplay(selectedConversation).avatar}
-                      size="md"
+                      size="sm"
                     />
                     <div>
                       <h3 className="font-semibold text-primary">

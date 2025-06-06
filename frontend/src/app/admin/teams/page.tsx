@@ -775,14 +775,13 @@ export default function AdminTeamsPage() {
 
         {/* Disband Confirmation */}
         <ConfirmDialog
-          open={showDisbandConfirm}
-          onOpenChange={setShowDisbandConfirm}
+          isOpen={showDisbandConfirm}
+          onClose={() => setShowDisbandConfirm(false)}
           title="Disband Team"
           description={`Are you sure you want to disband "${teamToDisband?.name}"? This action cannot be undone.`}
-          confirmText="Disband Team"
-          confirmVariant="destructive"
+          confirmText="Disband"
+          type="danger"
           onConfirm={disbandTeam}
-          icon={<AlertTriangle className="h-6 w-6 text-error" />}
         />
       </div>
     </DashboardLayout>

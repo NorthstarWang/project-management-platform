@@ -64,6 +64,7 @@ export default function CalendarPage() {
     
     // Log calendar page view
     track('PAGE_VIEW', {
+      text: 'User viewed calendar page',
       page_name: 'calendar',
       page_url: '/calendar',
       user_id: parsedUser.id,
@@ -81,6 +82,7 @@ export default function CalendarPage() {
       
       // Log data loading start
       track('DATA_LOAD_START', {
+        text: 'User started loading calendar data',
         page: 'calendar',
         data_types: ['tasks_with_due_dates'],
         view_mode: viewMode,
@@ -124,6 +126,7 @@ export default function CalendarPage() {
 
       // Log successful data load
       track('DATA_LOAD_SUCCESS', {
+        text: 'User successfully loaded calendar data',
         page: 'calendar',
         tasks_count: tasksWithDueDates.length,
         view_mode: viewMode,
@@ -135,7 +138,8 @@ export default function CalendarPage() {
       toast.error('Failed to load calendar data');
       
       // Log data loading error
-      track('DATA_LOAD_ERROR', {
+      track('DATA_LOAD_ERROR', {  
+        text: 'User failed to load calendar data',
         page: 'calendar',
         error: error.message || 'Unknown error'
       });
@@ -149,6 +153,7 @@ export default function CalendarPage() {
     
     // Log view mode change
     track('VIEW_MODE_CHANGE', {
+      text: 'User changed calendar view mode',
       page: 'calendar',
       old_mode: viewMode,
       new_mode: mode
@@ -168,6 +173,7 @@ export default function CalendarPage() {
     
     // Log date navigation
     track('DATE_NAVIGATION', {
+      text: 'User navigated to a different date in the calendar',
       page: 'calendar',
       direction,
       view_mode: viewMode,

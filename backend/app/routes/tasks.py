@@ -43,6 +43,7 @@ def create_task(task_in: TaskIn, request: Request, current_user: dict = Depends(
         )
         
         log_action(request, "TASK_CREATE", {
+            "text": f"User {current_user['full_name']} created task {task['title']} in list {task['list_id']}",
             "taskId": task["id"],
             "taskTitle": task["title"],
             "listId": task["list_id"],
@@ -84,6 +85,7 @@ def update_task(task_id: str, task_update: TaskUpdate, request: Request,
         )
         
         log_action(request, "TASK_UPDATE", {
+            "text": f"User {current_user['full_name']} updated task {task['title']} in list {task['list_id']} with updates {task_update.dict(exclude_unset=True)}",
             "taskId": task_id,
             "updates": task_update.dict(exclude_unset=True),
             "updatedBy": current_user["id"]
@@ -111,6 +113,7 @@ def delete_task(task_id: str, request: Request, current_user: dict = Depends(get
         
         data_manager.task_service.delete_task(task_id, current_user["id"])
         log_action(request, "TASK_DELETE", {
+            "text": f"User {current_user['full_name']} deleted task {task['title']}",
             "taskId": task_id,
             "deletedBy": current_user["id"]
         })
@@ -153,6 +156,7 @@ def move_task(task_id: str, move_data: TaskMoveIn, request: Request,
         )
         
         log_action(request, "TASK_MOVE", {
+            "text": f"User {current_user['full_name']} moved task {task['title']} from list {source_list['id']} to list {move_data.list_id}",
             "taskId": task_id,
             "fromListId": source_list["id"],
             "toListId": move_data.list_id,
@@ -183,6 +187,7 @@ def archive_task(task_id: str, request: Request, current_user: dict = Depends(ge
         archived_task = data_manager.task_service.archive_task(task_id, current_user["id"])
         
         log_action(request, "TASK_ARCHIVE", {
+            "text": f"User {current_user['full_name']} archived task {task['title']}",
             "taskId": task_id,
             "archivedBy": current_user["id"]
         })
@@ -210,6 +215,7 @@ def unarchive_task(task_id: str, request: Request, current_user: dict = Depends(
         unarchived_task = data_manager.task_service.unarchive_task(task_id, current_user["id"])
         
         log_action(request, "TASK_UNARCHIVE", {
+            "text": f"User {current_user['full_name']} unarchived task {task['title']}",
             "taskId": task_id,
             "unarchivedBy": current_user["id"]
         })
@@ -239,6 +245,7 @@ def get_task_full_details(task_id: str, request: Request, current_user: dict = D
         activities = data_manager.task_service.get_task_activities(task_id)
         
         log_action(request, "TASK_FULL_GET", {
+            "text": f"User {current_user['full_name']} viewed full details for task {task['title']}",
             "taskId": task_id,
             "requestedBy": current_user["id"]
         })
@@ -269,6 +276,7 @@ def get_task_details(task_id: str, request: Request, current_user: dict = Depend
             raise HTTPException(status_code=403, detail="Access denied to this board")
         
         log_action(request, "TASK_GET", {
+            "text": f"User {current_user['full_name']} viewed task {task['title']}",
             "taskId": task_id,
             "requestedBy": current_user["id"]
         })
@@ -296,6 +304,7 @@ def get_task_activities(task_id: str, request: Request, current_user: dict = Dep
         activities = data_manager.task_service.get_task_activities(task_id)
         
         log_action(request, "TASK_ACTIVITIES_GET", {
+            "text": f"User {current_user['full_name']} viewed activities for task {task['title']}",
             "taskId": task_id,
             "requestedBy": current_user["id"]
         })

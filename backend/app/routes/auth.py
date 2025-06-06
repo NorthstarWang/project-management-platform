@@ -17,7 +17,8 @@ def register_user(user_in: UserIn, request: Request):
             role=user_in.role.value
         )
         
-        log_action(request, "USER_REGISTER", {
+        log_action(request, "USER_REGISTER", {  
+            "text": f"User {user['username']} registered with role {user['role']}",
             "userId": user["id"],
             "username": user["username"],
             "role": user["role"]
@@ -45,7 +46,8 @@ def login_user(login_request: LoginRequest, request: Request):
         if not user:
             raise HTTPException(status_code=401, detail="Invalid username or password")
         
-        log_action(request, "USER_LOGIN", {
+        log_action(request, "USER_LOGIN", {  
+            "text": f"User {user['username']} logged in",
             "userId": user["id"],
             "username": user["username"]
         })

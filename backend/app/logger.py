@@ -41,6 +41,7 @@ class LogMiddleware:
             session_id=session_id,
             action_type="HTTP_REQUEST",
             payload={
+                "text": f"User made a request to {request.url} with method {request.method}, query params {request.query_params}, body {request.body}, status code {response.status_code}",
                 "method": request.method,
                 "url": str(request.url),
                 "status_code": response.status_code,

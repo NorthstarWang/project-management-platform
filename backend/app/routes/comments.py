@@ -58,6 +58,7 @@ def create_comment(comment_in: CommentIn, request: Request, current_user: dict =
             )
         
         log_action(request, "COMMENT_CREATE", {
+            "text": f"User {current_user['full_name']} created comment {comment['id']} on task {comment_in.task_id}",
             "commentId": comment["id"],
             "taskId": comment_in.task_id,
             "parentCommentId": comment_in.parent_comment_id,
@@ -81,7 +82,11 @@ def list_task_comments(task_id: str, request: Request, current_user: dict = Depe
             raise HTTPException(status_code=403, detail="Access denied")
         
         comments = data_manager.comment_service.get_task_comments_with_replies(task_id)
-        log_action(request, "TASK_COMMENTS_GET", {"taskId": task_id, "requestedBy": current_user["id"]})
+        log_action(request, "TASK_COMMENTS_GET", {
+            "text": f"User {current_user['full_name']} viewed comments for task {task_id}",
+            "taskId": task_id,
+            "requestedBy": current_user["id"]
+        })
         return comments
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) 

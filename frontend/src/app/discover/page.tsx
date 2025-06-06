@@ -125,6 +125,7 @@ export default function DiscoverPage() {
     if (user && isAuthenticated) {
       // Log page view
       track('PAGE_VIEW', {
+        text: 'User viewed discover page',
         page_name: 'discover',
         page_url: '/discover',
         user_id: user.id,
@@ -146,6 +147,7 @@ export default function DiscoverPage() {
       setLoading(true);
       
       track('DATA_LOAD_START', {
+        text: 'User started loading discover data',
         page: 'discover',
         data_types: ['teams', 'requests', 'invitations', 'user_teams']
       });
@@ -170,6 +172,7 @@ export default function DiscoverPage() {
       console.log('✅ Discover data loaded successfully');
 
       track('DATA_LOAD_SUCCESS', {
+        text: 'User successfully loaded discover data',
         page: 'discover',
         teams_count: teamsResponse.data.length,
         requests_count: requestsResponse.data.length,
@@ -182,6 +185,7 @@ export default function DiscoverPage() {
       toast.error('Failed to load teams and requests');
       
       track('DATA_LOAD_ERROR', {
+        text: 'User failed to load discover data',
         page: 'discover',
         error: error.message || 'Unknown error'
       });
@@ -198,6 +202,7 @@ export default function DiscoverPage() {
       });
 
       track('TEAM_JOIN_REQUEST', {
+        text: `User sent a join request to team ${teamId} with message: ${message}`,
         team_id: teamId,
         message_provided: !!message
       });
@@ -224,6 +229,7 @@ export default function DiscoverPage() {
       });
 
       track('TEAM_CREATION_REQUEST', {
+        text: `User sent a team creation request for team ${newTeamName} with message: ${newTeamMessage}`,
         team_name: newTeamName,
         message_provided: !!newTeamMessage
       });
@@ -256,6 +262,7 @@ export default function DiscoverPage() {
       });
 
       track('TEAM_QUIT', {
+        text: `User ${quitAction === 'reassign' ? 'reassigned' : 'disbanded'} team ${selectedTeam.name}`,
         team_id: selectedTeam.id,
         action: quitAction,
         new_manager_id: quitAction === 'reassign' ? newManagerId : null
@@ -285,6 +292,7 @@ export default function DiscoverPage() {
       });
 
       track('TEAM_INVITATION_RESPONSE', {
+        text: `User responded to a team invitation with action ${action}`,
         invitation_id: invitationId,
         action: action
       });
