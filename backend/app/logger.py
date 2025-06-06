@@ -37,6 +37,11 @@ class LogMiddleware:
             or request.query_params.get("session_id")
             or "no_session"
         )
+        
+        # Don't log synthetic requests
+        if "_synthetic" in str(request.url):
+            return response
+        
         logger.log_action(
             session_id=session_id,
             action_type="HTTP_REQUEST",
