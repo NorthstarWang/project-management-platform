@@ -81,25 +81,25 @@ export function Toaster({
 export const toast = {
   success: (message: string, options?: any) => {
     return sonnerToast.success(message, {
-      icon: <CheckCircle2 className="h-5 w-5 text-accent-success" />,
+      icon: <CheckCircle2 className="h-5 w-5 text-success" />,
       ...options,
     });
   },
   error: (message: string, options?: any) => {
     return sonnerToast.error(message, {
-      icon: <XCircle className="h-5 w-5 text-accent-error" />,
+      icon: <XCircle className="h-5 w-5 text-error" />,
       ...options,
     });
   },
   warning: (message: string, options?: any) => {
     return sonnerToast.warning(message, {
-      icon: <AlertCircle className="h-5 w-5 text-accent-warning" />,
+      icon: <AlertCircle className="h-5 w-5 text-warning" />,
       ...options,
     });
   },
   info: (message: string, options?: any) => {
     return sonnerToast.info(message, {
-      icon: <Info className="h-5 w-5 text-accent-info" />,
+      icon: <Info className="h-5 w-5 text-info" />,
       ...options,
     });
   },

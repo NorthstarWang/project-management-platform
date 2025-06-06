@@ -447,7 +447,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:overflow-y-auto bg-card shadow-lg border-r border-secondary">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:overflow-y-auto bg-card/95 backdrop-blur-xl shadow-lg border-r border-secondary">
         {sidebarContent}
       </div>
 
@@ -471,7 +471,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-card shadow-lg border-r border-secondary lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-card/95 backdrop-blur-xl shadow-lg border-r border-secondary lg:hidden"
             >
               {sidebarContent}
             </motion.div>

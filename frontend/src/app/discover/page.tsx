@@ -639,7 +639,7 @@ export default function DiscoverPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h4 className="font-semibold text-primary flex items-center gap-2">
-                              <Crown className="h-4 w-4 text-yellow-500" />
+                              <Crown className="h-4 w-4 text-warning" />
                               {team.name}
                             </h4>
                             <p className="text-secondary text-sm mt-1">{team.description}</p>

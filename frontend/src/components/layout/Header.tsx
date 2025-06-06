@@ -56,7 +56,7 @@ export function Header({ currentUser, onMenuClick, showMenuButton = false }: Hea
   };
 
   return (
-    <header className="bg-card shadow-sm border-b border-card transition-all duration-300 theme-transition">
+    <header className="bg-card/90 backdrop-blur-xl shadow-sm border-b border-card transition-all duration-300 theme-transition">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Mobile menu button */}

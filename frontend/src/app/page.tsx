@@ -37,7 +37,7 @@ function LandingHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-black/60 backdrop-blur-xl border-b gradient-border">
+    <header className="sticky top-0 z-50 w-full bg-background-glass backdrop-blur-xl border-b gradient-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -46,7 +46,7 @@ function LandingHeader() {
               <Zap className="h-5 w-5 text-on-accent" />
             </div>
             <span className="text-xl font-bold text-primary">Hub</span>
-            <Badge variant="secondary" size="sm" className="hidden sm:inline-flex bg-white/90 dark:bg-black/70 text-accent gradient-border backdrop-blur-md">Beta</Badge>
+            <Badge variant="secondary" size="sm" className="hidden sm:inline-flex bg-background-glass text-accent gradient-border backdrop-blur-md">Beta</Badge>
           </div>
 
           {/* Desktop Navigation */}
@@ -155,12 +155,12 @@ function LandingHeader() {
 // Hero Section
 function HeroSection() {
   return (
-    <section className="relative px-4 sm:px-6 lg:px-8 py-20 lg:py-32 bg-transparent dark:bg-black/10 backdrop-blur-sm">
+    <section className="relative px-4 sm:px-6 lg:px-8 py-20 lg:py-32 bg-transparent backdrop-blur-sm">
       {/* Subtle overlay for better text contrast */}
       <div className="absolute inset-0 bg-gradient-to-b from-background-primary/20 via-transparent to-background-primary/30 pointer-events-none" />
       <div className="container mx-auto text-center relative z-10">
         <div className="max-w-4xl mx-auto">
-          <Badge variant="outline" className="mb-6 bg-accent-10 border-accent-20 text-accent dark:text-accent-11">
+          <Badge variant="outline" className="mb-6 bg-accent-10 border-accent-20 text-accent">
             <Star className="w-3 h-3 mr-1" />
             Trusted by 10,000+ teams worldwide
           </Badge>
@@ -194,16 +194,16 @@ function HeroSection() {
 
           {/* Trust Indicators */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <div className="flex items-center gap-2 bg-white/80 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
-              <CheckCircle className="h-5 w-5 text-accent-success dark:text-accent" />
+            <div className="flex items-center gap-2 bg-background-glass backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
+              <CheckCircle className="h-5 w-5 text-success" />
               <span className="text-primary font-medium">No credit card required</span>
             </div>
-            <div className="flex items-center gap-2 bg-white/80 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
-              <CheckCircle className="h-5 w-5 text-accent-success dark:text-accent" />
+            <div className="flex items-center gap-2 bg-background-glass backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
+              <CheckCircle className="h-5 w-5 text-success" />
               <span className="text-primary font-medium">14-day free trial</span>
             </div>
-            <div className="flex items-center gap-2 bg-white/80 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
-              <CheckCircle className="h-5 w-5 text-accent-success dark:text-accent" />
+            <div className="flex items-center gap-2 bg-background-glass backdrop-blur-sm px-4 py-2 rounded-full gradient-border">
+              <CheckCircle className="h-5 w-5 text-success" />
               <span className="text-primary font-medium">Cancel anytime</span>
             </div>
           </div>
@@ -249,7 +249,7 @@ function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="py-20 bg-transparent dark:bg-black/10 backdrop-blur-sm">
+    <section id="features" className="py-20 bg-transparent backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
@@ -263,7 +263,7 @@ function FeaturesSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <Card key={index} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <Card key={index} variant="elevated" className="glassmorphism hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <CardHeader>
                 <div className="w-12 h-12 bg-accent-10 rounded-lg flex items-center justify-center text-accent mb-4">
                   {feature.icon}
@@ -353,11 +353,11 @@ function TestimonialsSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="hover:shadow-lg transition-all duration-300">
+            <Card key={index} variant="elevated" className="glassmorphism hover:shadow-lg transition-all duration-300">
               <CardContent className="pt-6">
                 <div className="flex mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                    <Star key={i} className="h-4 w-4 text-rating fill-current" />
                   ))}
                 </div>
                 <p className="text-secondary mb-6 italic">
@@ -429,7 +429,7 @@ function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="py-20 bg-transparent dark:bg-black/10 backdrop-blur-sm">
+    <section id="pricing" className="py-20 bg-transparent backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
@@ -442,10 +442,10 @@ function PricingSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {plans.map((plan, index) => (
-            <Card key={index} className={`relative hover:shadow-lg transition-all duration-300 flex flex-col ${plan.popular ? 'border-2 border-accent shadow-lg' : ''}`}>
+            <Card key={index} variant="elevated" className={`glassmorphism relative hover:shadow-lg transition-all duration-300 flex flex-col ${plan.popular ? 'border-2 border-accent shadow-lg' : ''}`}>
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-interactive-primary text-on-accent dark:bg-accent dark:text-firefly">Most Popular</Badge>
+                  <Badge className="bg-interactive-primary text-on-accent">Most Popular</Badge>
                 </div>
               )}
               <CardHeader className="text-center">
@@ -460,7 +460,7 @@ function PricingSection() {
                 <ul className="space-y-3 mb-6 flex-grow">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-accent-success dark:text-accent-success mr-3 flex-shrink-0" />
+                      <CheckCircle className="h-4 w-4 text-success mr-3 flex-shrink-0" />
                       <span className="text-secondary">{feature}</span>
                     </li>
                   ))}
@@ -528,7 +528,7 @@ function LandingFooter() {
   ];
 
   return (
-    <footer className="bg-white/70 dark:bg-black/70 backdrop-blur-xl border-t gradient-border">
+    <footer className="bg-background-glass backdrop-blur-xl border-t gradient-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
         <div className="py-12 lg:py-16">
