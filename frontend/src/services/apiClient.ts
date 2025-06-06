@@ -20,7 +20,7 @@ class ApiClient {
   private defaultHeaders: Record<string, string>;
   private sessionId: string | null = null;
 
-  constructor(baseURL: string = 'http://localhost:8000') {
+  constructor(baseURL: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') {
     this.baseURL = baseURL;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
