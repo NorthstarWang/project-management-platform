@@ -220,7 +220,7 @@ export default function MessagesPage() {
         <div className="w-80 border-r border-secondary flex flex-col bg-card">
           {/* Search Header */}
           <div className="p-4 border-b border-secondary">
-            <h2 className="text-lg font-semibold mb-4 text-primary">Messages</h2>
+            <h2 className="text-lg font-semibold text-primary" style={{ marginBottom: '1rem' }}>Messages</h2>
             <div className="relative">
               <Input
                 type="text"
@@ -267,8 +267,12 @@ export default function MessagesPage() {
             {isLoading ? (
               <div className="p-4 text-center text-muted">Loading conversations...</div>
             ) : conversations.length === 0 ? (
-              <div className="p-4 text-center text-muted">
-                No conversations yet. Search for users to start chatting!
+              <div className="flex-1 flex items-center justify-center p-4">
+                <div className="text-center">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-3 text-muted stroke-current" />
+                  <p className="text-sm text-muted">No conversations yet</p>
+                  <p className="text-xs text-muted mt-1">Search for users to start chatting!</p>
+                </div>
               </div>
             ) : (
               <div className="space-y-1 p-2">
@@ -362,7 +366,7 @@ export default function MessagesPage() {
                 {messages.length === 0 ? (
                   <div className="flex items-center justify-center min-h-[300px]">
                     <div className="text-center p-6 rounded-2xl bg-card/30 backdrop-blur-sm border border-secondary/50">
-                      <MessageCircle className="h-10 w-10 mx-auto mb-3 text-muted/40" />
+                      <MessageCircle className="h-10 w-10 mx-auto mb-3 text-muted stroke-current" />
                       <p className="text-sm text-muted">No messages yet. Start the conversation!</p>
                     </div>
                   </div>
@@ -446,7 +450,7 @@ export default function MessagesPage() {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center max-w-sm p-8 rounded-2xl bg-card/50 backdrop-blur-md border border-secondary">
-                <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted/50" />
+                <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted stroke-current" />
                 <h3 className="text-lg font-medium text-primary mb-2">No conversation selected</h3>
                 <p className="text-sm text-muted">
                   Choose a conversation from the list or search for users to start chatting
