@@ -36,7 +36,8 @@ class AnalyticsLogger {
     if (!this.isClient) return;
 
     try {
-      const response = await fetch('http://localhost:8000/_synthetic/new_session', {
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${baseURL}/_synthetic/new_session`, {
         method: 'POST',
       });
       
@@ -548,8 +549,10 @@ class AnalyticsLogger {
   private async sendLogEntry(logData: { actionType: string; payload: LogPayload }): Promise<void> {
     if (!this.sessionId || !this.isClient) return;
 
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
     try {
-      await fetch(`http://localhost:8000/_synthetic/log_event?session_id=${this.sessionId}`, {
+      await fetch(`${baseURL}/_synthetic/log_event?session_id=${this.sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(logData),
