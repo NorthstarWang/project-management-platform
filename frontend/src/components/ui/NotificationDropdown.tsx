@@ -92,7 +92,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
 
       {/* Dropdown */}
       {isOpen && (
-        <Card className="absolute right-0 top-full mt-2 w-96 max-h-[600px] overflow-hidden shadow-lg border border-card z-50">
+        <Card className="absolute right-0 top-full mt-2 w-96 max-h-[600px] overflow-hidden shadow-lg border border-card z-[80]">
           {/* Header */}
           <div className="p-4 border-b border-card">
             <div className="flex items-center justify-between">

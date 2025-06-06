@@ -65,7 +65,7 @@ function formatDate(timestamp: number): string {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [teamCreationRequests, setTeamCreationRequests] = useState<TeamCreationRequest[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -86,6 +86,8 @@ export default function AdminPage() {
   const [assignedManagerId, setAssignedManagerId] = useState('');
 
   useEffect(() => {
+    if (authLoading) return;
+    
     if (!user) {
       router.push('/login');
       return;
@@ -97,7 +99,7 @@ export default function AdminPage() {
     }
 
     fetchData();
-  }, [user, router]);
+  }, [user, router, authLoading]);
 
   const fetchData = async () => {
     try {
@@ -215,14 +217,16 @@ export default function AdminPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
-          <p className="mt-4 text-muted">Loading admin panel...</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
+            <p className="mt-4 text-muted">Loading admin panel...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 

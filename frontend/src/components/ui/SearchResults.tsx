@@ -302,7 +302,7 @@ export function SearchResults({ query, isOpen, onClose, anchorRef }: SearchResul
           left: position.left,
           width: Math.min(position.width, 600),
           maxWidth: '600px',
-          zIndex: 50
+          zIndex: 80
         }}
         className="bg-card rounded-lg shadow-xl border border-card max-h-[70vh] overflow-hidden"
       >

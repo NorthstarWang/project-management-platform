@@ -162,7 +162,7 @@ export default function GradientDemoPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-accent">•</span>
-                Slow, smooth animations that don't distract from content
+                Slow, smooth animations that don&apos;t distract from content
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-accent">•</span>

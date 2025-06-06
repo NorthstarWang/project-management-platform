@@ -354,9 +354,12 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
             
             # Create due date (some tasks have due dates)
             due_date = None
-            if random.random() > 0.6:
-                due_date = datetime.now() + timedelta(days=random.randint(1, 30))
-                due_date = due_date.isoformat()
+            if random.random() > 0.3:  # 70% of tasks have due dates
+                # Spread due dates across past 60 days and future 90 days
+                days_offset = random.randint(-60, 90)
+                due_date = datetime.now() + timedelta(days=days_offset)
+                # Convert to Unix timestamp (seconds since epoch)
+                due_date = due_date.timestamp()
             
             # Determine task type based on title content
             task_type = "task"  # default
