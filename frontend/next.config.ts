@@ -1,13 +1,13 @@
 import type { NextConfig } from "next";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
 const nextConfig: NextConfig = {
   // Enable standalone output for Docker
   output: 'standalone',
   
   // Configure API proxy to backend
   async rewrites() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
     return [
       {
         source: '/api/:path*',
