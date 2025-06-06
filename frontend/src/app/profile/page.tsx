@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -82,22 +82,7 @@ export default function ProfilePage() {
     comments_made: 0,
   });
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  // Load user profile when component mounts
-  useEffect(() => {
-    if (user && isAuthenticated) {
-      loadUserProfile();
-      loadUserStatistics();
-    }
-  }, [user, isAuthenticated]);
-
-  const loadUserProfile = async () => {
+  const loadUserProfile = useCallback(async () => {
     try {
       setIsLoadingProfile(true);
       const response = await apiClient.get('/api/users/me/profile');
@@ -126,9 +111,9 @@ export default function ProfilePage() {
     } finally {
       setIsLoadingProfile(false);
     }
-  };
+  }, [user]);
 
-  const loadUserStatistics = async () => {
+  const loadUserStatistics = useCallback(async () => {
     try {
       setIsLoadingStats(true);
       const response = await apiClient.get('/api/users/me/statistics');
@@ -140,7 +125,22 @@ export default function ProfilePage() {
     } finally {
       setIsLoadingStats(false);
     }
-  };
+  }, []);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Load user profile when component mounts
+  useEffect(() => {
+    if (user && isAuthenticated) {
+      loadUserProfile();
+      loadUserStatistics();
+    }
+  }, [user, isAuthenticated, loadUserProfile, loadUserStatistics]);
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
     setProfileData(prev => ({

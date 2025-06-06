@@ -13,9 +13,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: 'bg-btn-primary text-btn-primary hover:bg-btn-primary-hover hover:shadow-lg active:bg-btn-primary-active disabled:bg-btn-primary-disabled disabled:text-white/50 focus-visible:ring-accent',
-        secondary: 'bg-white/20 dark:bg-black/20 backdrop-blur-sm text-btn-secondary gradient-border-thick hover:bg-white/30 dark:hover:bg-black/30 hover:shadow-md active:bg-btn-secondary-active focus-visible:ring-accent',
+        secondary: 'bg-button-secondary-bg backdrop-blur-sm text-btn-secondary gradient-border-thick hover:bg-button-secondary-hover hover:shadow-md active:bg-button-secondary-active focus-visible:ring-accent',
         ghost: 'bg-transparent text-primary hover:bg-btn-ghost-hover active:bg-btn-ghost-active focus-visible:ring-accent',
-        outline: 'gradient-border-thick bg-white/10 dark:bg-black/10 backdrop-blur-sm hover:bg-white/20 dark:hover:bg-black/20 hover:shadow-md text-primary disabled:opacity-50 focus-visible:ring-accent',
+        outline: 'gradient-border-thick bg-background-glass backdrop-blur-sm hover:bg-interactive-secondary-hover hover:shadow-md text-primary disabled:opacity-50 focus-visible:ring-accent',
         destructive: 'bg-error text-white hover:bg-red-600 hover:shadow-lg active:bg-red-700 focus-visible:ring-red-500',
         link: 'text-accent underline-offset-4 hover:underline p-0 h-auto focus-visible:ring-accent',
       },

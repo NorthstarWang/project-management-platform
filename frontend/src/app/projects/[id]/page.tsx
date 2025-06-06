@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -100,37 +100,13 @@ export default function ProjectPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
 
-  useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    
-    if (!userData) {
-      router.push('/login');
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    
-    // Log project page view
-    trackEvent('PAGE_VIEW', {
-      page_name: 'project',
-      page_url: `/projects/${projectId}`,
-      project_id: projectId,
-      user_id: parsedUser.id,
-      user_role: parsedUser.role
-    });
-    
-    // Load project data
-    loadProjectData();
-  }, [router, projectId]);
-
-  const loadProjectData = async () => {
+  const loadProjectData = useCallback(async () => {
     try {
       setLoading(true);
       
       // Log data loading start
       trackEvent('DATA_LOAD_START', {
+        text: `Started loading data for project ${projectId}`,
         page: 'project',
         project_id: projectId,
         data_types: ['project', 'boards', 'team', 'team_members']
@@ -217,6 +193,7 @@ export default function ProjectPage() {
 
       // Log successful data load
       trackEvent('DATA_LOAD_SUCCESS', {
+        text: `Successfully loaded project data with ${enhancedBoards.length} boards and ${teamMembers.length} team members`,
         page: 'project',
         project_id: projectId,
         boards_count: enhancedBoards.length,
@@ -229,6 +206,7 @@ export default function ProjectPage() {
       
       // Log data loading error
       trackEvent('DATA_LOAD_ERROR', {
+        text: `Failed to load project data: ${error.message || 'Unknown error'}`,
         page: 'project',
         project_id: projectId,
         error: error.message || 'Unknown error'
@@ -236,11 +214,38 @@ export default function ProjectPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, teamMembers.length]);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    
+    // Log project page view
+    trackEvent('PAGE_VIEW', {
+      text: `User viewed project page for project ${projectId}`,
+      page_name: 'project',
+      page_url: `/projects/${projectId}`,
+      project_id: projectId,
+      user_id: parsedUser.id,
+      user_role: parsedUser.role
+    });
+    
+    // Load project data
+    loadProjectData();
+  }, [router, projectId, loadProjectData]);
 
   const handleBoardClick = (boardId: string) => {
     // Log board click
     trackEvent('BOARD_CLICK', {
+      text: `User clicked on board ${boardId} in project ${projectId}`,
       page: 'project',
       project_id: projectId,
       board_id: boardId
@@ -248,6 +253,7 @@ export default function ProjectPage() {
     
     // Add enhanced board interaction tracking
     trackEvent('PROJECT_BOARD_INTERACTION', {
+      text: `User navigated to board ${boardId} from project detail page`,
       interaction_type: 'board_navigation',
       board_id: boardId,
       project_id: projectId,
@@ -262,12 +268,14 @@ export default function ProjectPage() {
   const handleCreateBoard = () => {
     // Log create board click
     trackEvent('CREATE_BOARD_CLICK', {
+      text: `User clicked create board button in project ${projectId}`,
       page: 'project',
       project_id: projectId
     });
     
     // Add enhanced board creation tracking
     trackEvent('PROJECT_BOARD_CREATION_ATTEMPT', {
+      text: `User attempted to create a new board in project ${project?.name || projectId} (currently ${boards.length} boards)`,
       interaction_type: 'create_board_button',
       project_id: projectId,
       current_boards_count: boards.length,
@@ -317,6 +325,7 @@ export default function ProjectPage() {
       
       // Log successful deletion
       trackEvent('PROJECT_DELETE', {
+        text: `User successfully deleted project "${project.name}"`,
         project_id: projectId,
         project_name: project.name,
         cascade_deleted: response.data.cascadeDeleted,
@@ -333,6 +342,7 @@ export default function ProjectPage() {
       
       // Log deletion error
       trackEvent('PROJECT_DELETE_ERROR', {
+        text: `Failed to delete project: ${error.response?.data?.detail || error.message || 'Unknown error'}`,
         project_id: projectId,
         error: error.response?.data?.detail || error.message || 'Unknown error',
         timestamp: new Date().toISOString()
@@ -345,6 +355,7 @@ export default function ProjectPage() {
 
   const handleDeleteClick = () => {
     trackEvent('PROJECT_DELETE_ATTEMPT', {
+      text: `User attempted to delete project "${project?.name}" with ${boards.length} boards and ${boards.reduce((total, board) => total + (board.tasks_count || 0), 0)} tasks`,
       project_id: projectId,
       project_name: project?.name,
       boards_count: boards.length,

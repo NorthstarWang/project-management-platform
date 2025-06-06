@@ -93,7 +93,7 @@ export function ProfileDropdown({ currentUser }: ProfileDropdownProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-64 rounded-lg bg-dropdown border-dropdown shadow-dropdown z-50"
+            className="absolute right-0 mt-2 w-64 rounded-lg bg-dropdown border-dropdown shadow-dropdown z-[80]"
             data-testid="profile-dropdown-menu"
           >
             {/* User Info Section */}

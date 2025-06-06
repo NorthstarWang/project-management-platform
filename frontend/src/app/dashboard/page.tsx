@@ -10,10 +10,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
 import { 
-  CustomDialog as Dialog,
-  CustomDialogContent as DialogContent,
-} from '@/components/ui/CustomDialog';
-import { 
   FolderOpen, 
   CheckSquare, 
   Clock, 
@@ -372,7 +368,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-primary mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-primary" style={{ marginBottom: '1rem' }}>Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button
               variant="outline"
@@ -689,15 +685,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Create Project Modal */}
-      <Dialog open={showCreateProject} onOpenChange={setShowCreateProject}>
-        <DialogContent className="max-w-2xl">
-          <CreateProjectModal 
-            isOpen={showCreateProject}
-            onClose={() => setShowCreateProject(false)}
-            onProjectCreated={loadDashboardData}
-          />
-        </DialogContent>
-      </Dialog>
+      {showCreateProject && (
+        <CreateProjectModal 
+          isOpen={showCreateProject}
+          onClose={() => setShowCreateProject(false)}
+          onProjectCreated={loadDashboardData}
+        />
+      )}
     </DashboardLayout>
   );
 } 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -133,17 +133,7 @@ export default function CreateTaskModal({
     setFormData(prev => ({ ...prev, list_id: listId, status }));
   }, [listId, lists]);
 
-  useEffect(() => {
-    if (users.length === 0 && !loadingUsers) {
-      onLoadUsers();
-    }
-  }, [users.length, loadingUsers, onLoadUsers]);
-
-  useEffect(() => {
-    loadBoardTasks();
-  }, [lists]);
-
-  const loadBoardTasks = async () => {
+  const loadBoardTasks = useCallback(async () => {
     if (lists.length === 0) return;
     
     try {
@@ -172,7 +162,17 @@ export default function CreateTaskModal({
     } finally {
       setLoadingTasks(false);
     }
-  };
+  }, [lists]);
+
+  useEffect(() => {
+    if (users.length === 0 && !loadingUsers) {
+      onLoadUsers();
+    }
+  }, [users.length, loadingUsers, onLoadUsers]);
+
+  useEffect(() => {
+    loadBoardTasks();
+  }, [lists, loadBoardTasks]);
 
   const handleInputChange = (field: keyof TaskFormData, value: string) => {
     // Convert "unassigned" back to empty string for assignee_id

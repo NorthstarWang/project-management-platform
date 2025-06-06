@@ -74,6 +74,7 @@ export default function MembersPage() {
     
     // Log members page view
     track('PAGE_VIEW', {
+      text: 'User viewed team members page',
       page_name: 'members',
       page_url: '/members',
       user_id: parsedUser.id,
@@ -90,6 +91,7 @@ export default function MembersPage() {
       
       // Log data loading start
       track('DATA_LOAD_START', {
+        text: 'Started loading members data',
         page: 'members',
         data_types: ['users', 'teams', 'team_memberships']
       });
@@ -105,6 +107,7 @@ export default function MembersPage() {
 
       // Log successful data load
       track('DATA_LOAD_SUCCESS', {
+        text: 'Successfully loaded members data',
         page: 'members',
         users_count: usersRes.data.length,
         teams_count: teamsRes.data.length
@@ -116,6 +119,7 @@ export default function MembersPage() {
       
       // Log data loading error
       track('DATA_LOAD_ERROR', {
+        text: 'Failed to load members data',
         page: 'members',
         error: error.message || 'Unknown error'
       });
@@ -129,6 +133,7 @@ export default function MembersPage() {
     
     // Log search action
     track('SEARCH', {
+      text: 'User searched for members',
       page: 'members',
       query,
       filters: {
@@ -139,6 +144,7 @@ export default function MembersPage() {
 
     // Add enhanced search tracking
     track('MEMBERS_SEARCH_INTERACTION', {
+      text: 'Member search interaction tracked',
       interaction_type: 'search_input',
       search_query: query,
       search_query_length: query.length,
@@ -160,6 +166,7 @@ export default function MembersPage() {
     
     // Log filter change
     track('FILTER_CHANGE', {
+      text: `Changed ${filterType} filter to ${value}`,
       page: 'members',
       filter_type: filterType,
       filter_value: value
@@ -167,6 +174,7 @@ export default function MembersPage() {
 
     // Add enhanced filter tracking
     track('MEMBERS_FILTER_INTERACTION', {
+      text: 'Member filter interaction tracked',
       interaction_type: 'filter_change',
       filter_type: filterType,
       filter_value: value,
@@ -183,6 +191,7 @@ export default function MembersPage() {
   const handleUserAction = (action: string, userId: string) => {
     // Log user action
     track('USER_ACTION', {
+      text: `User performed ${action} action on member`,
       page: 'members',
       action,
       target_user_id: userId

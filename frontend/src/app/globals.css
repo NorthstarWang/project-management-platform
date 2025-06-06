@@ -24,12 +24,12 @@
   --color-green-lighter: #00b36b;
   
   /* Gradient Accent Colors - Dark Theme */
-  --color-gradient-teal: var(--color-mint);
-  --color-gradient-purple: var(--color-lilac);
-  --color-gradient-cyan: var(--color-green);
-  --color-gradient-mint-light: #4FD1C5;
-  --color-gradient-emerald-glow: var(--color-banana);
-  --color-gradient-ocean: #81E6D9;
+  --color-gradient-teal: #00D4FF;        /* Bright cyan-blue */
+  --color-gradient-purple: #B794F4;      /* Vibrant purple */
+  --color-gradient-cyan: #00F5FF;        /* Electric cyan */
+  --color-gradient-mint-light: #00D37F;  /* Bright green (using main green) */
+  --color-gradient-emerald-glow: #FF0080; /* Hot pink */
+  --color-gradient-ocean: #6B46C1;       /* Deep purple */
 
   /* Radix UI Theme Integration */
   --accent-1: var(--color-firefly-darker);
@@ -103,6 +103,9 @@
   --accent-warning-bg: rgb(255 238 180 / 0.1);
   --accent-warning-border: rgb(255 238 180 / 0.3);
   --accent-warning-text: #e6d078;
+  
+  --accent-rating: var(--color-banana);
+  --accent-rating-hover: #ffe066;
 
   --accent-info: var(--color-lilac);
   --accent-info-bg: rgb(210 196 251 / 0.1);
@@ -133,11 +136,11 @@
   --button-ghost-active: rgb(175 248 200 / 0.12);
 
   /* Surface Components */
-  --card-bg: var(--background-secondary);
-  --card-hover: var(--color-emerald-darker);
+  --card-bg: rgb(15 40 48 / 0.6);  /* Semi-transparent background */
+  --card-hover: rgb(1 71 81 / 0.7);
   --card-border: var(--border-secondary);
   --card-shadow: rgb(0 0 0 / 0.3);
-  --card-content-bg: var(--color-firefly-darker);
+  --card-content-bg: rgb(10 31 38 / 0.6);
   --card-content-border: var(--border-muted);
 
   /* Form Components */
@@ -150,6 +153,7 @@
 
   /* Overlay Components */
   --dropdown-bg: var(--background-secondary);
+  --dropdown-bg-solid: rgb(15 40 48 / 0.85); /* Darker dropdown for icon selector */
   --dropdown-border: var(--border-secondary);
   --dropdown-shadow: rgb(0 0 0 / 0.4);
   --dropdown-item-hover: rgb(0 211 127 / 0.15);
@@ -198,6 +202,21 @@
   --dnd-overlay: rgb(0 211 127 / 0.2);
   --dnd-drop-zone: rgb(175 248 200 / 0.05);
   --dnd-drop-zone-active: rgb(175 248 200 / 0.12);
+
+  /* Opacity System for Theme Transitions */
+  --opacity-overlay-primary: 0.8;
+  --opacity-overlay-secondary: 0.6;
+  --opacity-overlay-backdrop: 0.95;
+  --opacity-glass-primary: 0.85;
+  --opacity-glass-secondary: 0.95;
+  --opacity-gradient-background: 0.4;
+  --opacity-gradient-bubble: 0.4;
+  --opacity-gradient-bubble-max: 0.8;
+  --opacity-gradient-dashboard: 0.03;
+  --opacity-gradient-dashboard-blur: 0.05;
+  --opacity-badge-overlay: 0.9;
+  --opacity-card-overlay: 0.8;
+  --opacity-header-overlay: 0.8;
   --dnd-drag-shadow: rgb(0 0 0 / 0.3);
 
   /* Status Indicators */
@@ -333,6 +352,9 @@
   --accent-warning-bg: rgb(222 245 79 / 0.1);
   --accent-warning-border: rgb(222 245 79 / 0.3);
   --accent-warning-text: #b8c93f;
+  
+  --accent-rating: #f59e0b;
+  --accent-rating-hover: #d97706;
 
   --accent-info: var(--color-misty);
   --accent-info-bg: rgb(106 201 255 / 0.1);
@@ -363,11 +385,11 @@
   --button-ghost-active: rgb(250 115 40 / 0.08);
 
   /* Surface Components */
-  --card-bg: var(--background-secondary);
-  --card-hover: #f8fffe;
+  --card-bg: rgb(255 255 255 / 0.7);  /* Semi-transparent white */
+  --card-hover: rgb(248 255 254 / 0.8);
   --card-border: var(--border-secondary);
   --card-shadow: rgb(2 44 16 / 0.1);
-  --card-content-bg: #f0fffe;
+  --card-content-bg: rgb(240 255 254 / 0.7);
   --card-content-border: var(--border-muted);
 
   /* Form Components */
@@ -380,6 +402,7 @@
 
   /* Overlay Components */
   --dropdown-bg: var(--background-secondary);
+  --dropdown-bg-solid: rgb(255 255 255 / 0.95); /* Solid dropdown for icon selector */
   --dropdown-border: var(--border-secondary);
   --dropdown-shadow: rgb(2 44 16 / 0.15);
   --dropdown-item-hover: rgb(250 115 40 / 0.1);
@@ -428,6 +451,21 @@
   --dnd-overlay: rgb(250 115 40 / 0.2);
   --dnd-drop-zone: rgb(250 115 40 / 0.03);
   --dnd-drop-zone-active: rgb(250 115 40 / 0.08);
+
+  /* Opacity System for Theme Transitions */
+  --opacity-overlay-primary: 0.8;
+  --opacity-overlay-secondary: 0.9;
+  --opacity-overlay-backdrop: 0.95;
+  --opacity-glass-primary: 0.8;
+  --opacity-glass-secondary: 0.7;
+  --opacity-gradient-background: 1;
+  --opacity-gradient-bubble: 0.8;
+  --opacity-gradient-bubble-max: 1;
+  --opacity-gradient-dashboard: 0.02;
+  --opacity-gradient-dashboard-blur: 0.03;
+  --opacity-badge-overlay: 0.7;
+  --opacity-card-overlay: 0.7;
+  --opacity-header-overlay: 0.6;
   --dnd-drag-shadow: rgb(2 44 16 / 0.2);
 
   /* Status Indicators */
@@ -880,6 +918,100 @@ body:has([data-dnd-drag-overlay]) [data-testid^="droppable-status-"] button {
 .bg-card-content { background-color: var(--card-content-bg); }
 .border-card-content { border-color: var(--card-content-border); }
 
+/* Glassmorphism Effect */
+.glassmorphism {
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-secondary);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Dashboard-specific glassmorphism with enhanced blur */
+.glassmorphism-dashboard {
+  background: var(--card-bg);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border-secondary);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Stable Bubble Animations */
+@keyframes bubble-float-1 {
+  0%, 100% { transform: translate(10%, 20%) scale(1); }
+  33% { transform: translate(90%, 60%) scale(1.2); }
+  66% { transform: translate(40%, 80%) scale(0.9); }
+}
+
+@keyframes bubble-float-2 {
+  0%, 100% { transform: translate(85%, 70%) scale(1.1); }
+  33% { transform: translate(15%, 30%) scale(0.9); }
+  66% { transform: translate(50%, 10%) scale(1.2); }
+}
+
+@keyframes bubble-float-3 {
+  0%, 100% { transform: translate(50%, 10%) scale(1); }
+  33% { transform: translate(80%, 60%) scale(1.3); }
+  66% { transform: translate(20%, 90%) scale(0.8); }
+}
+
+@keyframes bubble-float-4 {
+  0%, 100% { transform: translate(10%, 80%) scale(0.9); }
+  33% { transform: translate(90%, 20%) scale(1.1); }
+  66% { transform: translate(40%, 50%) scale(1); }
+}
+
+@keyframes bubble-float-5 {
+  0%, 100% { transform: translate(80%, 50%) scale(1.2); }
+  33% { transform: translate(20%, 80%) scale(0.8); }
+  66% { transform: translate(60%, 20%) scale(1.1); }
+}
+
+@keyframes bubble-float-6 {
+  0%, 100% { transform: translate(30%, 40%) scale(1); }
+  33% { transform: translate(70%, 10%) scale(1.2); }
+  66% { transform: translate(50%, 70%) scale(0.9); }
+}
+
+/* Gradient Layer Animations */
+@keyframes gradient-shift-1 {
+  0%, 100% { opacity: var(--opacity-gradient-background); }
+  25% { opacity: var(--opacity-gradient-background); }
+  33% { opacity: 0; }
+  66% { opacity: 0; }
+  75% { opacity: var(--opacity-gradient-background); }
+}
+
+@keyframes gradient-shift-2 {
+  0%, 100% { opacity: 0; }
+  25% { opacity: var(--opacity-gradient-background); }
+  33% { opacity: var(--opacity-gradient-background); }
+  66% { opacity: 0; }
+  75% { opacity: 0; }
+}
+
+@keyframes gradient-shift-3 {
+  0%, 100% { opacity: 0; }
+  25% { opacity: 0; }
+  33% { opacity: 0; }
+  58% { opacity: var(--opacity-gradient-background); }
+  66% { opacity: var(--opacity-gradient-background); }
+  75% { opacity: 0; }
+}
+
+/* Animation classes */
+.animate-gradient-shift-1 {
+  animation: gradient-shift-1 45s ease-in-out infinite;
+}
+
+.animate-gradient-shift-2 {
+  animation: gradient-shift-2 45s ease-in-out infinite;
+}
+
+.animate-gradient-shift-3 {
+  animation: gradient-shift-3 45s ease-in-out infinite;
+}
+
 /* Text Utilities */
 .text-primary { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
@@ -925,6 +1057,7 @@ body:has([data-dnd-drag-overlay]) [data-testid^="droppable-status-"] button {
 
 /* Dropdown Utilities */
 .bg-dropdown { background-color: var(--dropdown-bg); }
+.bg-dropdown-solid { background-color: var(--dropdown-bg-solid); }
 .border-dropdown { border-color: var(--dropdown-border); }
 .shadow-dropdown { box-shadow: 0 10px 15px -3px var(--dropdown-shadow); }
 .bg-dropdown-item-hover { background-color: var(--dropdown-item-hover); }
@@ -998,6 +1131,9 @@ body:has([data-dnd-drag-overlay]) [data-testid^="droppable-status-"] button {
 .bg-error-disabled { background-color: var(--accent-error-bg-disabled); }
 .text-error { color: var(--accent-error-text); }
 .border-error { border-color: var(--accent-error-border); }
+
+.text-rating { color: var(--accent-rating); }
+.text-rating-hover:hover { color: var(--accent-rating-hover); }
 
 /* Radix UI Accent Scale Utilities */
 .bg-accent-1 { background-color: var(--accent-1); }

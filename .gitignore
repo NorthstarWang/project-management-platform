@@ -67,4 +67,6 @@ frontend/build/
 frontend/dist/
 
 # Claude AI files
-.claude/ 
+.claude/settings.local.json
+.mcp.json
+CLAUDE.md

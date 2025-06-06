@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { useDroppable } from '@dnd-kit/react';
@@ -496,7 +496,7 @@ export function DragAndDrop({
   const [isDragging, setIsDragging] = useState(false);
   
   // Sort board statuses by position to ensure correct order
-  const sortedBoardStatuses = React.useMemo(() => {
+  const sortedBoardStatuses = useMemo(() => {
     return [...boardStatuses].sort((a, b) => a.position - b.position);
   }, [boardStatuses]);
   
@@ -537,7 +537,7 @@ export function DragAndDrop({
   }, [lists]);
   
   // Group tasks by status - memoized to prevent recalculation
-  const tasksByStatus = React.useMemo(() => {
+  const tasksByStatus = useMemo(() => {
     return sortedBoardStatuses.reduce((acc, status) => {
       acc[status.id] = tasks
         .filter(task => task.status === status.id)
@@ -641,7 +641,7 @@ export function DragAndDrop({
       // Force refresh to get correct state
       onTaskMoved();
     }
-  }, [tasks, boardId, onTaskMoved]);
+  }, [tasks, boardId, onTaskMoved, sortedBoardStatuses]);
 
   return (
     <DragDropProvider

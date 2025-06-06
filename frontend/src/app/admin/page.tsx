@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
-import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building, Shield, ArrowRight, BarChart3, Activity } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building, Shield, ArrowRight, Activity } from 'lucide-react';
 
 interface TeamCreationRequest {
   id: string;
@@ -66,7 +65,7 @@ function formatDate(timestamp: number): string {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [teamCreationRequests, setTeamCreationRequests] = useState<TeamCreationRequest[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -87,6 +86,8 @@ export default function AdminPage() {
   const [assignedManagerId, setAssignedManagerId] = useState('');
 
   useEffect(() => {
+    if (authLoading) return;
+    
     if (!user) {
       router.push('/login');
       return;
@@ -98,7 +99,7 @@ export default function AdminPage() {
     }
 
     fetchData();
-  }, [user, router]);
+  }, [user, router, authLoading]);
 
   const fetchData = async () => {
     try {
@@ -216,14 +217,16 @@ export default function AdminPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
-          <p className="mt-4 text-muted">Loading admin panel...</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
+            <p className="mt-4 text-muted">Loading admin panel...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -344,8 +347,8 @@ export default function AdminPage() {
           {teamCreationRequests.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
-                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No team creation requests found</p>
+                <AlertCircle className="w-12 h-12 text-muted mx-auto mb-4" />
+                <p className="text-muted">No team creation requests found</p>
               </CardContent>
             </Card>
           ) : (
@@ -378,14 +381,14 @@ export default function AdminPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 mb-4">{request.team_description}</p>
+                    <p className="text-secondary mb-4">{request.team_description}</p>
                     {request.message && (
                       <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                        <p className="text-sm text-gray-600 mb-1">Message from requester:</p>
-                        <p className="text-gray-800">{request.message}</p>
+                        <p className="text-sm text-muted mb-1">Message from requester:</p>
+                        <p className="text-primary">{request.message}</p>
                       </div>
                     )}
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-muted">
                       <p>Requested: {formatDate(request.created_at)}</p>
                       {request.reviewed_at && (
                         <p>Reviewed: {formatDate(request.reviewed_at)} by {request.reviewer?.full_name}</p>
@@ -393,8 +396,8 @@ export default function AdminPage() {
                     </div>
                     {request.response_message && (
                       <div className="mt-3 bg-blue-50 p-3 rounded-lg">
-                        <p className="text-sm text-blue-600 mb-1">Admin response:</p>
-                        <p className="text-blue-800">{request.response_message}</p>
+                        <p className="text-sm text-info mb-1">Admin response:</p>
+                        <p className="text-info">{request.response_message}</p>
                       </div>
                     )}
                   </CardContent>
@@ -407,7 +410,7 @@ export default function AdminPage() {
         <TabsContent value="teams" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Teams Management</h2>
-            <p className="text-gray-600">{teams.length} teams total</p>
+            <p className="text-muted">{teams.length} teams total</p>
           </div>
 
           <div className="grid gap-4">
@@ -419,7 +422,7 @@ export default function AdminPage() {
                       <CardTitle className="text-lg">{team.name}</CardTitle>
                       <CardDescription className="mt-1">{team.description}</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-sm text-muted">
                       <Users className="w-4 h-4" />
                       {team.member_count} members
                     </div>
@@ -434,7 +437,7 @@ export default function AdminPage() {
                       </Badge>
                     ))}
                   </div>
-                  <div className="mt-4 text-sm text-gray-500">
+                  <div className="mt-4 text-sm text-muted">
                     Created: {formatDate(team.created_at)}
                   </div>
                 </CardContent>
