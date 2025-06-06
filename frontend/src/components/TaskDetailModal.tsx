@@ -802,7 +802,7 @@ export default function TaskDetailModal({
               <Input
                 value={formData.title}
                 onChange={(e) => handleFieldChange('title', e.target.value)}
-                className={`text-xl font-semibold bg-transparent border-none p-0 focus:bg-input focus:border-input-border focus:p-2 focus:rounded transition-all ${
+                className={`text-xl font-semibold bg-transparent border-none p-0 focus:bg-input focus:border-input-border focus:p-2 focus:rounded transition-all w-full break-words ${
                   modifiedFields.has('title') ? 'text-accent font-semibold' : ''
                 }`}
                 placeholder="Task title..."
