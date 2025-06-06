@@ -120,7 +120,8 @@ class AuthenticationService {
 
       // Step 1: Initialize a new session
       console.log('📝 Step 1: Creating new session...');
-      const sessionResponse = await fetch('http://localhost:8000/_synthetic/new_session', {
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const sessionResponse = await fetch(`${baseURL}/_synthetic/new_session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +146,7 @@ class AuthenticationService {
 
       // Step 3: Attempt login with session_id as query parameter
       console.log('🔐 Step 2: Attempting login...');
-      const loginUrl = `http://localhost:8000/api/login?session_id=${this.sessionId}`;
+      const loginUrl = `${baseURL}/api/login?session_id=${this.sessionId}`;
       const loginResponse = await fetch(loginUrl, {
         method: 'POST',
         headers: {
@@ -345,7 +346,8 @@ class AuthenticationService {
     if (!this.sessionId) return;
 
     try {
-      const url = `http://localhost:8000/_synthetic/log_event?session_id=${this.sessionId}`;
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const url = `${baseURL}/_synthetic/log_event?session_id=${this.sessionId}`;
       await fetch(url, {
         method: 'POST',
         headers: {

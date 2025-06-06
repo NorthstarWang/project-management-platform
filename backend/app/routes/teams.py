@@ -28,6 +28,7 @@ def create_team(team_in: TeamIn, request: Request, current_user: dict = Depends(
     try:
         team = data_manager.project_service.create_team(team_in.name, team_in.description)
         log_action(request, "TEAM_CREATE", {
+            "text": f"User {current_user['full_name']} created team {team['name']}",
             "teamId": team["id"],
             "teamName": team["name"],
             "createdBy": current_user["id"]
@@ -49,6 +50,7 @@ def request_team_creation(creation_request: TeamCreationRequest, request: Reques
         )
         
         log_action(request, "TEAM_CREATION_REQUEST", {
+            "text": f"User {current_user['full_name']} sent team creation request for team {creation_request.name}",
             "userId": current_user["id"],
             "teamName": creation_request.name,
             "requestId": result["id"]
@@ -67,6 +69,7 @@ def get_team_creation_requests(status: str = None, request: Request = None,
         
         if request:
             log_action(request, "TEAM_CREATION_REQUESTS_GET", {
+                "text": f"User {current_user['full_name']} viewed team creation requests",
                 "adminId": current_user["id"],
                 "status": status,
                 "requestsCount": len(requests)
@@ -90,6 +93,7 @@ def handle_team_creation_request(request_id: str, response: TeamCreationRequestR
         )
         
         log_action(request, "TEAM_CREATION_REQUEST_RESPONSE", {
+            "text": f"User {current_user['full_name']} responded to team creation request {request_id} with action {response.action}",
             "adminId": current_user["id"],
             "requestId": request_id,
             "action": response.action,
@@ -113,6 +117,7 @@ def quit_team(team_id: str, quit_request: TeamQuitRequest, request: Request,
         )
         
         log_action(request, "TEAM_QUIT", {
+            "text": f"User {current_user['full_name']} quit team {team_id} with action {result['action']}",
             "managerId": current_user["id"],
             "teamId": team_id,
             "action": result["action"],
@@ -130,6 +135,7 @@ def get_discoverable_teams(request: Request, current_user: dict = Depends(get_cu
         teams = data_manager.team_service.get_discoverable_teams(current_user["id"])
         
         log_action(request, "TEAMS_DISCOVER", {
+            "text": f"User {current_user['full_name']} viewed discoverable teams",
             "userId": current_user["id"],
             "teamsCount": len(teams)
         })
@@ -156,7 +162,11 @@ def get_team_details(team_id: str, request: Request, current_user: dict = Depend
         # Get team members using the existing method
         members = data_manager.user_repository.find_by_team(data_manager.team_memberships, team_id)
         
-        log_action(request, "TEAM_GET", {"teamId": team_id, "requestedBy": current_user["id"]})
+        log_action(request, "TEAM_GET", {
+            "text": f"User {current_user['full_name']} viewed team {team['name']}",
+            "teamId": team_id, 
+            "requestedBy": current_user["id"]
+        })
         return {**team, "members": members}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -176,6 +186,7 @@ def request_to_join_team(team_id: str, join_request: TeamJoinRequest, request: R
         )
         
         log_action(request, "TEAM_JOIN_REQUEST", {
+            "text": f"User {current_user['full_name']} requested to join team {team_id}",
             "userId": current_user["id"],
             "teamId": team_id,
             "requestId": result["id"]
@@ -195,6 +206,7 @@ def get_team_join_requests(team_id: str, request: Request, current_user: dict = 
         )
         
         log_action(request, "TEAM_JOIN_REQUESTS_GET", {
+            "text": f"User {current_user['full_name']} viewed join requests for team {team_id}",
             "managerId": current_user["id"],
             "teamId": team_id,
             "requestsCount": len(requests)
@@ -217,6 +229,7 @@ def handle_join_request(request_id: str, response: TeamJoinRequestResponse, requ
         )
         
         log_action(request, "TEAM_JOIN_REQUEST_RESPONSE", {
+            "text": f"User {current_user['full_name']} responded to join request {request_id} with action {response.action}",
             "managerId": current_user["id"],
             "requestId": request_id,
             "action": response.action
@@ -242,6 +255,7 @@ def send_team_invitation(team_id: str, invitation: TeamInvitation, request: Requ
         )
         
         log_action(request, "TEAM_INVITATION_SEND", {
+            "text": f"User {current_user['full_name']} sent team invitation to {invitation.user_id} for team {team_id}",
             "inviterId": current_user["id"],
             "userId": invitation.user_id,
             "teamId": team_id,
@@ -259,6 +273,7 @@ def get_user_team_invitations(request: Request, current_user: dict = Depends(get
         invitations = data_manager.team_service.get_user_team_invitations(current_user["id"])
         
         log_action(request, "USER_TEAM_INVITATIONS_GET", {
+            "text": f"User {current_user['full_name']} viewed team invitations",
             "userId": current_user["id"],
             "invitationsCount": len(invitations)
         })
@@ -280,6 +295,7 @@ def handle_team_invitation(invitation_id: str, response: TeamInvitationResponse,
         )
         
         log_action(request, "TEAM_INVITATION_RESPONSE", {
+            "text": f"User {current_user['full_name']} responded to team invitation {invitation_id} with action {response.action}",
             "userId": current_user["id"],
             "invitationId": invitation_id,
             "action": response.action
@@ -296,6 +312,7 @@ def get_user_team_requests(request: Request, current_user: dict = Depends(get_cu
         requests = data_manager.team_service.get_user_team_requests(current_user["id"])
         
         log_action(request, "USER_TEAM_REQUESTS_GET", {
+            "text": f"User {current_user['full_name']} viewed team join requests",
             "userId": current_user["id"],
             "requestsCount": len(requests)
         })
@@ -338,6 +355,7 @@ def get_user_teams(request: Request, current_user: dict = Depends(get_current_us
             })
         
         log_action(request, "USER_TEAMS_GET", {
+            "text": f"User {current_user['full_name']} viewed teams",
             "userId": current_user["id"],
             "isAdmin": current_user["role"] == "admin",
             "teamsCount": len(enhanced_teams)
@@ -372,6 +390,7 @@ def search_users(q: str = "", request: Request = None, current_user: dict = Depe
         
         if request:
             log_action(request, "USERS_SEARCH", {
+                "text": f"User {current_user['full_name']} searched for users with query {q}",
                 "searcherId": current_user["id"],
                 "query": q,
                 "resultsCount": len(filtered_users)
@@ -413,6 +432,7 @@ def get_team_members(team_id: str, request: Request, current_user: dict = Depend
                 })
         
         log_action(request, "TEAM_MEMBERS_GET", {
+            "text": f"User {current_user['full_name']} viewed team members for team {team_id}",
             "teamId": team_id,
             "requestedBy": current_user["id"],
             "membersCount": len(enhanced_members)
@@ -448,6 +468,7 @@ def add_team_member(team_id: str, member_data: TeamMemberAdd, request: Request,
             user.setdefault("team_ids", []).append(team_id)
         
         log_action(request, "TEAM_MEMBER_ADD", {
+            "text": f"User {current_user['full_name']} added {member_data.user_id} to team {team_id} as {member_data.role}",
             "adminId": current_user["id"],
             "teamId": team_id,
             "userId": member_data.user_id,
@@ -484,6 +505,7 @@ def update_team_member_role(team_id: str, user_id: str, update_data: TeamMemberU
         membership["role"] = update_data.role
         
         log_action(request, "TEAM_MEMBER_ROLE_UPDATE", {
+            "text": f"User {current_user['full_name']} updated role of {user_id} in team {team_id} to {update_data.role}",
             "adminId": current_user["id"],
             "teamId": team_id,
             "userId": user_id,
@@ -514,6 +536,7 @@ def remove_team_member(team_id: str, user_id: str, request: Request,
             user["team_ids"] = [tid for tid in user["team_ids"] if tid != team_id]
         
         log_action(request, "TEAM_MEMBER_REMOVE", {
+            "text": f"User {current_user['full_name']} removed {user_id} from team {team_id}",
             "adminId": current_user["id"],
             "teamId": team_id,
             "userId": user_id
@@ -556,6 +579,7 @@ def disband_team(team_id: str, request: Request, current_user: dict = Depends(ge
         ]
         
         log_action(request, "TEAM_DISBAND", {
+            "text": f"User {current_user['full_name']} disbanded team {team['name']}",
             "adminId": current_user["id"],
             "teamId": team_id,
             "teamName": team["name"],
@@ -592,6 +616,7 @@ def search_all_users(q: str = "", request: Request = None, current_user: dict = 
         
         if request:
             log_action(request, "USERS_SEARCH", {
+                "text": f"User {current_user['full_name']} searched for users with query {q}",
                 "searcherId": current_user["id"],
                 "query": q,
                 "resultsCount": len(filtered_users)

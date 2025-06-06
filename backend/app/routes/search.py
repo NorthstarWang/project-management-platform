@@ -176,6 +176,7 @@ def global_search(q: str, request: Request, current_user: dict = Depends(get_cur
         
         # Log search action
         log_action(request, "GLOBAL_SEARCH", {
+            "text": f"User {current_user['full_name']} searched for {q}",
             "query": q,
             "userId": current_user["id"],
             "userRole": current_user["role"],
@@ -206,6 +207,7 @@ def search_board_tasks(board_id: str, q: str, request: Request,
         
         tasks = data_manager.task_service.search_tasks_in_board(board_id, q)
         log_action(request, "BOARD_SEARCH", {
+            "text": f"User {current_user['full_name']} searched for {q} in board {board_id}",
             "boardId": board_id,
             "query": q,
             "resultCount": len(tasks),
@@ -229,6 +231,7 @@ def search_project_tasks(project_id: str, q: str, request: Request,
         
         tasks = data_manager.task_service.search_tasks_in_project(project_id, q)
         log_action(request, "PROJECT_SEARCH", {
+            "text": f"User {current_user['full_name']} searched for {q} in project {project_id}",
             "projectId": project_id,
             "query": q,
             "resultCount": len(tasks),

@@ -12,13 +12,19 @@ def list_users(request: Request, current_user: dict = Depends(get_current_user))
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     users = data_manager.user_service.get_all_users()
-    log_action(request, "USERS_LIST", {"requestedBy": current_user["id"]})
+    log_action(request, "USERS_LIST", {
+        "text": f"User {current_user['full_name']} listed users",
+        "requestedBy": current_user["id"]
+    })
     return users
 
 @router.get("/users/me")
 def get_current_user_info(request: Request, current_user: dict = Depends(get_current_user)):
     """Get current user information"""
-    log_action(request, "USER_ME_GET", {"userId": current_user["id"]})
+    log_action(request, "USER_ME_GET", {
+        "text": f"User {current_user['full_name']} viewed their own profile",
+        "userId": current_user["id"]
+    })
     return current_user
 
 @router.get("/users/me/profile", response_model=UserProfile)
@@ -29,7 +35,10 @@ def get_current_user_profile(request: Request, current_user: dict = Depends(get_
         if not profile:
             raise HTTPException(status_code=404, detail="User profile not found")
         
-        log_action(request, "USER_PROFILE_GET", {"userId": current_user["id"]})
+        log_action(request, "USER_PROFILE_GET", {
+            "text": f"User {current_user['full_name']} viewed their own profile",
+            "userId": current_user["id"]
+        })
         return profile
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -52,6 +61,7 @@ def update_current_user_profile(
         )
         
         log_action(request, "USER_PROFILE_UPDATE", {
+            "text": f"User {current_user['full_name']} updated their profile with updates {update_data}",
             "userId": current_user["id"],
             "updatedFields": list(update_data.keys())
         })
@@ -68,7 +78,10 @@ def get_current_user_statistics(request: Request, current_user: dict = Depends(g
     try:
         stats = data_manager.user_service.get_user_statistics(current_user["id"])
         
-        log_action(request, "USER_STATISTICS_GET", {"userId": current_user["id"]})
+        log_action(request, "USER_STATISTICS_GET", {
+            "text": f"User {current_user['full_name']} viewed their own statistics",
+            "userId": current_user["id"]
+        })
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get user statistics: {str(e)}")
@@ -90,6 +103,7 @@ def get_user_profile(
             raise HTTPException(status_code=404, detail="User profile not found")
         
         log_action(request, "USER_PROFILE_GET", {
+            "text": f"User {current_user['full_name']} viewed profile for user {user_id}",
             "userId": user_id,
             "requestedBy": current_user["id"]
         })
@@ -121,7 +135,10 @@ def get_current_user_assigned_tasks(request: Request, current_user: dict = Depen
             
             enhanced_tasks.append(enhanced_task)
         
-        log_action(request, "USER_ME_TASKS_GET", {"userId": current_user["id"]})
+        log_action(request, "USER_ME_TASKS_GET", {
+            "text": f"User {current_user['full_name']} viewed tasks assigned to them",
+            "userId": current_user["id"]
+        })
         return enhanced_tasks
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -181,7 +198,11 @@ def get_user_assigned_tasks(user_id: str, request: Request, current_user: dict =
             
             enhanced_tasks.append(enhanced_task)
         
-        log_action(request, "USER_TASKS_GET", {"userId": user_id, "requestedBy": current_user["id"]})
+        log_action(request, "USER_TASKS_GET", {
+            "text": f"User {current_user['full_name']} viewed tasks assigned to user {user_id}",
+            "userId": user_id,
+            "requestedBy": current_user["id"]
+        })
         return enhanced_tasks
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -255,6 +276,7 @@ def get_my_team_members(request: Request, current_user: dict = Depends(get_curre
             team_members = [u for u in all_users if u["id"] != current_user["id"]]
         
         log_action(request, "TEAM_MEMBERS_LIST", {
+            "text": f"User {current_user['full_name']} viewed team members",
             "managerId": current_user["id"],
             "memberCount": len(team_members)
         })

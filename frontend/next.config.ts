@@ -6,14 +6,16 @@ const nextConfig: NextConfig = {
   
   // Configure API proxy to backend
   async rewrites() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
     return [
       {
         source: '/api/:path*',
-        destination: 'http://backend:8000/api/:path*',
+        destination: `${API_URL}/api/:path*`,
       },
       {
         source: '/_synthetic/:path*',
-        destination: 'http://backend:8000/_synthetic/:path*',
+        destination: `${API_URL}/_synthetic/:path*`,
       },
     ]
   },

@@ -37,7 +37,10 @@ def regenerate_mock_data(request: Request):
             "board_memberships": len(data_manager.board_memberships)
         }
         
-        log_action(request, "MOCK_DATA_REGENERATED", counts)
+        log_action(request, "MOCK_DATA_REGENERATED", {
+            "text": "Mock data regenerated with fixed notification access",
+            "counts": counts
+        })
         
         return {
             "status": "success",

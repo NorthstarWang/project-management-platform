@@ -50,8 +50,10 @@ const logSyntheticEvent = async (actionType: string, payload: any) => {
       // Get session ID from localStorage or URL
       const sessionId = localStorage.getItem('session_id') || new URLSearchParams(window.location.search).get('session_id');
       
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
       if (sessionId) {
-        await fetch(`http://localhost:8000/_synthetic/log_event?session_id=${sessionId}`, {
+        await fetch(`${baseURL}/_synthetic/log_event?session_id=${sessionId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

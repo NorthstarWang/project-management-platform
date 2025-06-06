@@ -20,6 +20,7 @@ def create_board(board_in: BoardIn, request: Request, current_user: dict = Depen
             icon=board_in.icon
         )
         log_action(request, "BOARD_CREATE", {
+            "text": f"User {current_user['full_name']} created board {board['name']} in project {board['project_id']}",
             "boardId": board["id"],
             "boardName": board["name"],
             "projectId": board["project_id"],
@@ -59,7 +60,11 @@ def list_project_boards(project_id: str, request: Request, current_user: dict = 
             enhanced_board["tasks_count"] = task_count
             enhanced_boards.append(enhanced_board)
         
-        log_action(request, "PROJECT_BOARDS_LIST", {"projectId": project_id, "requestedBy": current_user["id"]})
+        log_action(request, "PROJECT_BOARDS_LIST", {
+            "text": f"User {current_user['full_name']} listed boards for project {project_id}",
+            "projectId": project_id,
+            "requestedBy": current_user["id"]
+        })
         return enhanced_boards
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -100,7 +105,11 @@ def get_board_details(board_id: str, request: Request, current_user: dict = Depe
             
             board_list["tasks"] = enhanced_tasks
         
-        log_action(request, "BOARD_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
+        log_action(request, "BOARD_GET", {
+            "text": f"User {current_user['full_name']} viewed board {board_id}",
+            "boardId": board_id,
+            "requestedBy": current_user["id"]
+        })
         return board
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -139,6 +148,7 @@ def enroll_board_member(board_id: str, membership_in: BoardMembershipIn, request
             )
         
         log_action(request, "BOARD_ENROLL_MEMBER", {
+            "text": f"User {current_user['full_name']} enrolled user {membership_in.user_id} in board {board_id}",
             "boardId": board_id,
             "userId": membership_in.user_id,
             "enrolledBy": current_user["id"]
@@ -174,6 +184,7 @@ def remove_board_member(board_id: str, user_id: str, request: Request,
             raise HTTPException(status_code=404, detail="User not found in board")
         
         log_action(request, "BOARD_REMOVE_MEMBER", {
+            "text": f"User {current_user['full_name']} removed user {user_id} from board {board_id}",
             "boardId": board_id,
             "userId": user_id,
             "removedBy": current_user["id"]
@@ -191,7 +202,11 @@ def list_board_members(board_id: str, request: Request, current_user: dict = Dep
             raise HTTPException(status_code=403, detail="Access denied to this board")
         
         members = data_manager.board_service.get_board_members(board_id)
-        log_action(request, "BOARD_MEMBERS_LIST", {"boardId": board_id, "requestedBy": current_user["id"]})
+        log_action(request, "BOARD_MEMBERS_LIST", {
+            "text": f"User {current_user['full_name']} listed members of board {board_id}",
+            "boardId": board_id,
+            "requestedBy": current_user["id"]
+        })
         return members
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -218,6 +233,7 @@ def create_list(list_in: ListIn, request: Request, current_user: dict = Depends(
             position=list_in.position
         )
         log_action(request, "LIST_CREATE", {
+            "text": f"User {current_user['full_name']} created list {board_list['name']} in board {board_id}",
             "listId": board_list["id"],
             "listName": board_list["name"],
             "boardId": board_id,
@@ -238,7 +254,11 @@ def get_board_statuses(board_id: str, request: Request, current_user: dict = Dep
         # Get board statuses
         statuses = data_manager.board_service.get_board_statuses(board_id)
         
-        log_action(request, "BOARD_STATUSES_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
+        log_action(request, "BOARD_STATUSES_GET", {
+            "text": f"User {current_user['full_name']} viewed statuses for board {board_id}",
+            "boardId": board_id,
+            "requestedBy": current_user["id"]
+        })
         return statuses
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -262,7 +282,11 @@ def get_board_task_types(board_id: str, request: Request, current_user: dict = D
             {"id": "task", "name": "Task", "color": "#6B7280", "icon": "task"}
         ]
         
-        log_action(request, "BOARD_TASK_TYPES_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
+        log_action(request, "BOARD_TASK_TYPES_GET", {
+            "text": f"User {current_user['full_name']} viewed task types for board {board_id}",
+            "boardId": board_id,
+            "requestedBy": current_user["id"]
+        })
         return default_task_types
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -282,6 +306,7 @@ def add_board_status(board_id: str, status_in: CustomStatusIn, request: Request,
     # TODO: Implement custom status storage
     # For now, return a success message
     log_action(request, "BOARD_STATUS_ADD", {
+        "text": f"User {current_user['full_name']} added status {status_in.name} to board {board_id}",
         "boardId": board_id,
         "statusName": status_in.name,
         "addedBy": current_user["id"]
@@ -304,6 +329,7 @@ def add_board_task_type(board_id: str, task_type_in: CustomTaskTypeIn, request: 
     # TODO: Implement custom task type storage
     # For now, return a success message
     log_action(request, "BOARD_TASK_TYPE_ADD", {
+        "text": f"User {current_user['full_name']} added task type {task_type_in.name} to board {board_id}",
         "boardId": board_id,
         "taskTypeName": task_type_in.name,
         "addedBy": current_user["id"]
@@ -333,6 +359,7 @@ def update_board_statuses(board_id: str, statuses_update: BoardStatusesUpdate, r
         )
         
         log_action(request, "BOARD_STATUSES_UPDATE", {
+            "text": f"User {current_user['full_name']} updated statuses for board {board_id}",
             "boardId": board_id,
             "statusCount": len(statuses),
             "migrations": len(statuses_update.migrationMapping),
@@ -354,7 +381,11 @@ def get_board_task_counts(board_id: str, request: Request, current_user: dict = 
         # Get task counts
         task_counts = data_manager.board_service.get_task_counts_by_status(board_id)
         
-        log_action(request, "BOARD_TASK_COUNTS_GET", {"boardId": board_id, "requestedBy": current_user["id"]})
+        log_action(request, "BOARD_TASK_COUNTS_GET", {
+            "text": f"User {current_user['full_name']} viewed task counts for board {board_id}",
+            "boardId": board_id,
+            "requestedBy": current_user["id"]
+        })
         return task_counts
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -394,7 +425,12 @@ def get_board_tasks(board_id: str, request: Request, current_user: dict = Depend
                 
                 all_tasks.append(enhanced_task)
         
-        log_action(request, "BOARD_TASKS_GET", {"boardId": board_id, "taskCount": len(all_tasks), "requestedBy": current_user["id"]})
+        log_action(request, "BOARD_TASKS_GET", {
+            "text": f"User {current_user['full_name']} viewed tasks for board {board_id}",
+            "boardId": board_id,
+            "taskCount": len(all_tasks),
+            "requestedBy": current_user["id"]
+        })
         return all_tasks
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -469,6 +505,7 @@ def delete_board(board_id: str, request: Request, current_user: dict = Depends(g
         data_manager.boards[:] = [b for b in data_manager.boards if b.get("id") != board_id]
         
         log_action(request, "BOARD_DELETE", {
+            "text": f"User {current_user['full_name']} deleted board {board_id}",
             "boardId": board_id,
             "boardName": board["name"],
             "projectId": board["project_id"],

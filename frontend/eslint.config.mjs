@@ -15,6 +15,10 @@ const eslintConfig = [
     rules: {
       // Disable the 'any' type linting error
       "@typescript-eslint/no-explicit-any": "off",
+      // Disable unused variables warnings
+      "@typescript-eslint/no-unused-vars": "off",
+      // Keep React Hook dependency warnings
+      "react-hooks/exhaustive-deps": "warn"
     },
   },
 ];

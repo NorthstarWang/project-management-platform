@@ -55,8 +55,8 @@ export default function NotificationsPage() {
     setUser(parsedUser);
     
     // Log notifications page view
-    track('PAGE_VIEW', {
-      text: 'User viewed the notifications page',
+    track('PAGE_VIEW', {  
+      text: 'User viewed notifications page',
       page_name: 'notifications',
       page_url: '/notifications',
       user_id: parsedUser.id,
@@ -88,7 +88,7 @@ export default function NotificationsPage() {
     
     // Log filter change
     track('NOTIFICATION_FILTER_CHANGE', {
-      text: `User changed notification filter from ${filter} to ${newFilter}`,
+      text: `User changed filter to ${newFilter}`,
       page: 'notifications',
       old_filter: filter,
       new_filter: newFilter,
@@ -105,7 +105,7 @@ export default function NotificationsPage() {
     
     // Log mark all as read action
     track('NOTIFICATIONS_MARK_ALL_READ', {
-      text: `User marked all ${unreadCount} notifications as read`,
+      text: 'User marked all notifications as read',
       page: 'notifications',
       count: unreadCount,
       user_id: user?.id
@@ -117,6 +117,7 @@ export default function NotificationsPage() {
     
     // Log refresh action
     track('NOTIFICATIONS_REFRESH', {
+      text: 'User refreshed notifications',
       text: 'User refreshed notifications',
       page: 'notifications',
       user_id: user?.id

@@ -10,6 +10,7 @@ def list_user_notifications(request: Request, unread_only: bool = False,
     """List notifications for the current user"""
     notifications = data_manager.notification_service.get_user_notifications(current_user["id"], unread_only)
     log_action(request, "NOTIFICATIONS_GET", {
+        "text": f"User {current_user['full_name']} viewed notifications",
         "userId": current_user["id"],
         "unreadOnly": unread_only
     })
@@ -34,6 +35,7 @@ def mark_notification_read(notification_id: str, request: Request,
             raise HTTPException(status_code=404, detail="Notification not found")
         
         log_action(request, "NOTIFICATION_READ", {
+            "text": f"User {current_user['full_name']} marked notification {notification_id} as read",
             "notificationId": notification_id,
             "userId": current_user["id"]
         })
@@ -46,6 +48,7 @@ def mark_all_notifications_read(request: Request, current_user: dict = Depends(g
     """Mark all notifications as read for the current user"""
     count = data_manager.notification_service.mark_all_notifications_read(current_user["id"])
     log_action(request, "NOTIFICATIONS_MARK_ALL_READ", {
+        "text": f"User {current_user['full_name']} marked all notifications as read",
         "userId": current_user["id"],
         "count": count
     })
@@ -56,6 +59,7 @@ def get_unread_notification_count(request: Request, current_user: dict = Depends
     """Get count of unread notifications"""
     count = data_manager.notification_service.get_unread_count(current_user["id"])
     log_action(request, "NOTIFICATIONS_UNREAD_COUNT", {
+        "text": f"User {current_user['full_name']} viewed unread notification count",
         "userId": current_user["id"],
         "count": count
     })

@@ -24,6 +24,7 @@ def create_project(project_in: ProjectIn, request: Request, current_user: dict =
             icon=project_in.icon
         )
         log_action(request, "PROJECT_CREATE", {
+            "text": f"User {current_user['full_name']} created project {project['name']}",
             "projectId": project["id"],
             "projectName": project["name"],
             "teamId": project["team_id"],
@@ -37,7 +38,10 @@ def create_project(project_in: ProjectIn, request: Request, current_user: dict =
 def list_user_projects(request: Request, current_user: dict = Depends(get_current_user)):
     """List projects accessible to the current user"""
     projects = data_manager.project_service.get_user_projects(current_user["id"], current_user["role"])
-    log_action(request, "PROJECTS_LIST", {"userId": current_user["id"]})
+    log_action(request, "PROJECTS_LIST", {
+        "text": f"User {current_user['full_name']} listed projects",
+        "userId": current_user["id"]
+    })
     return projects
 
 @router.get("/projects/{project_id}")
@@ -55,7 +59,11 @@ def get_project_details(project_id: str, request: Request, current_user: dict = 
         if project_id not in user_project_ids:
             raise HTTPException(status_code=403, detail="Access denied to this project")
         
-        log_action(request, "PROJECT_GET", {"projectId": project_id, "requestedBy": current_user["id"]})
+        log_action(request, "PROJECT_GET", {
+            "text": f"User {current_user['full_name']} viewed project {project_id}",
+            "projectId": project_id,
+            "requestedBy": current_user["id"]
+        })
         return project
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -97,6 +105,7 @@ def assign_project_manager(project_id: str, assignment_in: ProjectAssignmentIn, 
             )
         
         log_action(request, "PROJECT_ASSIGN_MANAGER", {
+            "text": f"User {current_user['full_name']} assigned manager {assignment_in.manager_id} to project {project_id}",
             "projectId": project_id,
             "managerId": assignment_in.manager_id,
             "assignedBy": current_user["id"]
@@ -110,7 +119,11 @@ def list_project_managers(project_id: str, request: Request, current_user: dict 
     """List managers assigned to a project"""
     try:
         managers = data_manager.project_service.get_project_managers(project_id)
-        log_action(request, "PROJECT_MANAGERS_LIST", {"projectId": project_id, "requestedBy": current_user["id"]})
+        log_action(request, "PROJECT_MANAGERS_LIST", {
+            "text": f"User {current_user['full_name']} listed managers for project {project_id}",
+            "projectId": project_id,
+            "requestedBy": current_user["id"]
+        })
         return managers
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -122,7 +135,10 @@ def get_manager_assigned_projects(request: Request, current_user: dict = Depends
         raise HTTPException(status_code=403, detail="Only managers can access assigned projects")
     
     projects = data_manager.project_repository.find_manager_projects(current_user["id"])
-    log_action(request, "MANAGER_PROJECTS_GET", {"managerId": current_user["id"]})
+    log_action(request, "MANAGER_PROJECTS_GET", {
+        "text": f"User {current_user['full_name']} viewed projects assigned to them as manager",
+        "managerId": current_user["id"]
+    })
     return projects
 
 @router.delete("/projects/{project_id}")
@@ -201,6 +217,7 @@ def delete_project(project_id: str, request: Request, current_user: dict = Depen
         data_manager.projects[:] = [p for p in data_manager.projects if p.get("id") != project_id]
         
         log_action(request, "PROJECT_DELETE", {
+            "text": f"User {current_user['full_name']} deleted project {project['name']}",
             "projectId": project_id,
             "projectName": project["name"],
             "deletedBy": current_user["id"],
