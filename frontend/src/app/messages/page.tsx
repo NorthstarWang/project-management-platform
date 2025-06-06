@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 import { Search, Send, Users, MessageCircle, MoreVertical } from 'lucide-react';
 import apiClient from '@/services/apiClient';
@@ -67,7 +66,6 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -132,13 +130,10 @@ export default function MessagesPage() {
     }
 
     try {
-      setIsSearching(true);
       const response = await apiClient.get(`/api/users/search?q=${encodeURIComponent(query)}`);
       setSearchResults(response.data);
     } catch (error) {
       console.error('Failed to search users:', error);
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -220,12 +215,12 @@ export default function MessagesPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex h-[calc(100vh-8rem)] rounded-2xl overflow-hidden border border-secondary shadow-lg glassmorphism-dashboard">
         {/* Conversations List */}
         <div className="w-80 border-r border-secondary flex flex-col bg-card">
           {/* Search Header */}
           <div className="p-4 border-b border-secondary">
-            <h2 className="text-lg font-semibold mb-4 text-primary">Messages</h2>
+            <h2 className="text-lg font-semibold text-primary" style={{ marginBottom: '1rem' }}>Messages</h2>
             <div className="relative">
               <Input
                 type="text"
@@ -243,12 +238,12 @@ export default function MessagesPage() {
 
             {/* Search Results */}
             {searchQuery && searchResults.length > 0 && (
-              <div className="absolute z-10 w-72 mt-2 bg-dropdown border border-dropdown rounded-md shadow-dropdown">
+              <div className="absolute z-[80] w-72 mt-2 bg-dropdown/95 backdrop-blur-xl border border-dropdown rounded-xl shadow-dropdown overflow-hidden">
                 {searchResults.map(user => (
                   <button
                     key={user.id}
                     onClick={() => createPrivateConversation(user.id)}
-                    className="w-full px-4 py-2 flex items-center space-x-3 hover:bg-dropdown-item-hover transition-colors"
+                    className="w-full px-4 py-3 flex items-center space-x-3 hover:bg-dropdown-item-hover transition-all duration-200"
                     data-testid={`user-search-result-${user.id}`}
                   >
                     <Avatar
@@ -272,8 +267,12 @@ export default function MessagesPage() {
             {isLoading ? (
               <div className="p-4 text-center text-muted">Loading conversations...</div>
             ) : conversations.length === 0 ? (
-              <div className="p-4 text-center text-muted">
-                No conversations yet. Search for users to start chatting!
+              <div className="flex-1 flex items-center justify-center p-4">
+                <div className="text-center">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-3 text-muted stroke-current" />
+                  <p className="text-sm text-muted">No conversations yet</p>
+                  <p className="text-xs text-muted mt-1">Search for users to start chatting!</p>
+                </div>
               </div>
             ) : (
               <div className="space-y-1 p-2">
@@ -286,16 +285,16 @@ export default function MessagesPage() {
                       key={conversation.id}
                       onClick={() => setSelectedConversation(conversation)}
                       className={cn(
-                        "w-full p-3 rounded-lg flex items-start space-x-3 transition-colors",
+                        "w-full p-3 rounded-xl flex items-start space-x-3 transition-all duration-200",
                         isSelected
-                          ? "bg-accent-10 border border-accent-30"
-                          : "hover:bg-interactive-secondary-hover"
+                          ? "bg-accent-10 border border-accent-30 shadow-sm"
+                          : "hover:bg-interactive-secondary-hover hover:shadow-sm"
                       )}
                       data-testid={`conversation-${conversation.id}`}
                     >
                       <Avatar
                         fallback={display.avatar}
-                        size="sm"
+                        size="default"
                         className="flex-shrink-0"
                       />
                       <div className="flex-1 text-left min-w-0">
@@ -342,7 +341,7 @@ export default function MessagesPage() {
                   <div className="flex items-center space-x-3">
                     <Avatar
                       fallback={getConversationDisplay(selectedConversation).avatar}
-                      size="sm"
+                      size="default"
                     />
                     <div>
                       <h3 className="font-semibold text-primary">
@@ -364,6 +363,14 @@ export default function MessagesPage() {
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-6">
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center min-h-[300px]">
+                    <div className="text-center p-6 rounded-2xl bg-card/30 backdrop-blur-sm border border-secondary/50">
+                      <MessageCircle className="h-10 w-10 mx-auto mb-3 text-muted stroke-current" />
+                      <p className="text-sm text-muted">No messages yet. Start the conversation!</p>
+                    </div>
+                  </div>
+                ) : (
                 <div className="space-y-4">
                   {messages.map(message => {
                     const isCurrentUser = message.sender_id === currentUser?.id;
@@ -408,6 +415,7 @@ export default function MessagesPage() {
                     );
                   })}
                 </div>
+                )}
               </ScrollArea>
 
               {/* Message Input */}
@@ -441,8 +449,8 @@ export default function MessagesPage() {
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageCircle className="h-12 w-12 text-muted mx-auto mb-4" />
+              <div className="text-center max-w-sm p-8 rounded-2xl bg-card/50 backdrop-blur-md border border-secondary">
+                <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted stroke-current" />
                 <h3 className="text-lg font-medium text-primary mb-2">No conversation selected</h3>
                 <p className="text-sm text-muted">
                   Choose a conversation from the list or search for users to start chatting

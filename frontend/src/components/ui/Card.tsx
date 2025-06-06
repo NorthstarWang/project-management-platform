@@ -10,12 +10,13 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-white/80 dark:bg-black/20 backdrop-blur-sm gradient-border shadow-card',
-        flat: 'bg-white/70 dark:bg-black/10 backdrop-blur-sm gradient-border',
+        default: 'bg-card backdrop-blur-md gradient-border shadow-card',
+        flat: 'bg-background-glass backdrop-blur-md gradient-border',
         ghost: 'bg-transparent gradient-border',
-        outline: 'bg-white/60 dark:bg-black/5 backdrop-blur-sm gradient-border',
-        elevated: 'bg-white/90 dark:bg-black/30 backdrop-blur-sm gradient-border shadow-lg hover:shadow-xl',
-        interactive: 'bg-white/80 dark:bg-black/20 backdrop-blur-sm gradient-border hover:bg-white/90 dark:hover:bg-black/30 cursor-pointer',
+        outline: 'bg-background-surface backdrop-blur-md gradient-border',
+        elevated: 'bg-card backdrop-blur-lg gradient-border shadow-lg hover:shadow-xl',
+        interactive: 'bg-card backdrop-blur-md gradient-border hover:bg-card-hover cursor-pointer',
+        glass: 'bg-background-glass backdrop-blur-xl gradient-border shadow-lg',
       },
       size: {
         sm: 'p-3',

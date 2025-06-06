@@ -143,7 +143,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-secondary" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-3 py-1 bg-white/60 dark:bg-black/60 backdrop-blur-md rounded-full text-muted gradient-border">Test Accounts</span>
+                <span className="px-3 py-1 bg-background-glass backdrop-blur-md rounded-full text-muted gradient-border">Test Accounts</span>
               </div>
             </div>
 

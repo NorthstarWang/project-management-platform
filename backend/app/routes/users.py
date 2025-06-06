@@ -146,39 +146,122 @@ def get_current_user_assigned_tasks(request: Request, current_user: dict = Depen
 @router.get("/users/{user_id}/assigned_tasks")
 def get_user_assigned_tasks(user_id: str, request: Request, current_user: dict = Depends(get_current_user)):
     """Get tasks assigned to a specific user"""
-    # Users can see their own tasks, admins/managers can see any user's tasks
-    if current_user["id"] != user_id and current_user["role"] not in ["admin", "manager"]:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    # Users can see their own tasks
+    if current_user["id"] == user_id:
+        # User is viewing their own tasks
+        pass
+    elif current_user["role"] == "admin":
+        # Admins can see any user's tasks
+        pass
+    else:
+        # Check if current user is a manager of any team where the target user is a member
+        is_team_manager_of_user = False
+        
+        # Get teams where current user is a manager
+        manager_teams = []
+        for membership in data_manager.team_memberships:
+            if membership["user_id"] == current_user["id"] and membership["role"] in ["manager", "admin"]:
+                manager_teams.append(membership["team_id"])
+        
+        # Check if target user is in any of those teams
+        if manager_teams:
+            for membership in data_manager.team_memberships:
+                if membership["user_id"] == user_id and membership["team_id"] in manager_teams:
+                    is_team_manager_of_user = True
+                    break
+        
+        if not is_team_manager_of_user:
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     try:
         tasks = data_manager.task_service.get_user_assigned_tasks(user_id)
+        
+        # Enhance tasks with board and project names
+        enhanced_tasks = []
+        for task in tasks:
+            enhanced_task = task.copy()
+            
+            # Get board info
+            board = next((b for b in data_manager.boards if b["id"] == task.get("board_id")), None)
+            if board:
+                enhanced_task["board_name"] = board["name"]
+                
+                # Get project info
+                project = next((p for p in data_manager.projects if p["id"] == board.get("project_id")), None)
+                if project:
+                    enhanced_task["project_name"] = project["name"]
+            
+            # Add assignee name
+            user = data_manager.user_repository.find_by_id(user_id)
+            if user:
+                enhanced_task["assignee_name"] = user["full_name"]
+            
+            enhanced_tasks.append(enhanced_task)
+        
         log_action(request, "USER_TASKS_GET", {
             "text": f"User {current_user['full_name']} viewed tasks assigned to user {user_id}",
             "userId": user_id,
             "requestedBy": current_user["id"]
         })
-        return tasks
+        return enhanced_tasks
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+@router.get("/users/me/teams")
+def get_my_teams_with_roles(request: Request, current_user: dict = Depends(get_current_user)):
+    """Get user's teams with their role in each team"""
+    try:
+        # Get user's teams
+        user_teams = data_manager.team_repository.get_user_teams(current_user["id"])
+        
+        # Enhance with user's role in each team
+        enhanced_teams = []
+        for team in user_teams:
+            # Find user's membership in this team
+            membership = next((m for m in data_manager.team_memberships 
+                             if m["user_id"] == current_user["id"] and m["team_id"] == team["id"]), None)
+            
+            if membership:
+                enhanced_teams.append({
+                    **team,
+                    "user_role": membership.get("role", "member")
+                })
+        
+        log_action(request, "USER_TEAMS_WITH_ROLES_GET", {
+            "userId": current_user["id"],
+            "teamsCount": len(enhanced_teams)
+        })
+        
+        return enhanced_teams
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/users/me/team-members")
 def get_my_team_members(request: Request, current_user: dict = Depends(get_current_user)):
-    """Get team members for the current user (managers only)"""
-    if current_user["role"] not in ["manager", "admin"]:
-        raise HTTPException(status_code=403, detail="Only managers and admins can view team members")
+    """Get team members for users who are team managers"""
     
     try:
-        # Get teams where the user is a manager
+        # Check if user is a manager in any team
+        is_team_manager = False
         user_teams = []
+        
         for membership in data_manager.team_memberships:
             if membership["user_id"] == current_user["id"] and membership["role"] in ["manager", "admin"]:
+                is_team_manager = True
                 team = next((t for t in data_manager.teams if t["id"] == membership["team_id"]), None)
                 if team:
                     user_teams.append(team)
         
+        # If user is not a team manager and not an admin, deny access
+        if not is_team_manager and current_user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Only team managers and admins can view team members")
+        
         # Get all members from user's teams
         team_members = []
         seen_user_ids = set()
+        
+        # Don't include the current user in the team members list
+        seen_user_ids.add(current_user["id"])
         
         for team in user_teams:
             members = data_manager.user_repository.find_by_team(data_manager.team_memberships, team["id"])
@@ -187,9 +270,10 @@ def get_my_team_members(request: Request, current_user: dict = Depends(get_curre
                     seen_user_ids.add(member["id"])
                     team_members.append(member)
         
-        # If admin, return all users
+        # If admin, return all users except the admin
         if current_user["role"] == "admin":
-            team_members = data_manager.user_repository.find_all()
+            all_users = data_manager.user_repository.find_all()
+            team_members = [u for u in all_users if u["id"] != current_user["id"]]
         
         log_action(request, "TEAM_MEMBERS_LIST", {
             "text": f"User {current_user['full_name']} viewed team members",

@@ -118,6 +118,7 @@ export default function NotificationsPage() {
     // Log refresh action
     track('NOTIFICATIONS_REFRESH', {
       text: 'User refreshed notifications',
+      text: 'User refreshed notifications',
       page: 'notifications',
       user_id: user?.id
     });

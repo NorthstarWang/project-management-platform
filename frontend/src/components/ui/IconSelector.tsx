@@ -196,7 +196,7 @@ export function IconSelector({ selectedIcon, onIconSelect, className, size = 'md
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="fixed z-[70] mt-2 w-80 rounded-lg border border-secondary bg-card shadow-lg"
+              className="fixed z-[70] mt-2 w-80 rounded-lg border border-secondary bg-dropdown-solid shadow-lg"
               style={{
                 top: position.top,
                 left: position.left

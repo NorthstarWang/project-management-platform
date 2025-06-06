@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useRef, useEffect } from 'react';
 import AnimatedGradientBackground from './AnimatedGradientBackground';
 
 interface BackgroundWrapperProps {
@@ -8,12 +8,26 @@ interface BackgroundWrapperProps {
   showBubbles?: boolean;
 }
 
-// This wrapper component isolates the background from parent re-renders
-const BackgroundWrapper = memo(({ children, showBubbles = true }: BackgroundWrapperProps) => {
+// Create a stable wrapper that prevents re-renders
+const BackgroundContainer = memo(({ showBubbles }: { showBubbles: boolean }) => (
+  <AnimatedGradientBackground className="z-0" showBubbles={showBubbles} />
+));
+
+BackgroundContainer.displayName = 'BackgroundContainer';
+
+const BackgroundWrapper = ({ children, showBubbles = true }: BackgroundWrapperProps) => {
+  // Use ref to track if bubbles prop has actually changed
+  const showBubblesRef = useRef(showBubbles);
+  const hasChanged = showBubblesRef.current !== showBubbles;
+  
+  useEffect(() => {
+    showBubblesRef.current = showBubbles;
+  }, [showBubbles]);
+
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background is isolated and won't re-render unless showBubbles changes */}
-      <AnimatedGradientBackground className="z-0" showBubbles={showBubbles} />
+      {/* Background is completely isolated from children re-renders */}
+      <BackgroundContainer key={hasChanged ? Date.now() : 'stable'} showBubbles={showBubbles} />
       
       {/* Content layer */}
       <div className="relative z-10">
@@ -21,11 +35,7 @@ const BackgroundWrapper = memo(({ children, showBubbles = true }: BackgroundWrap
       </div>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Only re-render if showBubbles changes or children identity changes
-  return prevProps.showBubbles === nextProps.showBubbles &&
-         prevProps.children === nextProps.children;
-});
+};
 
 BackgroundWrapper.displayName = 'BackgroundWrapper';
 

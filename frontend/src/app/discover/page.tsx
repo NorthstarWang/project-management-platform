@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
@@ -137,7 +137,7 @@ export default function DiscoverPage() {
     }
   }, [user, isAuthenticated]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user || !isAuthenticated) {
       console.log('❌ Cannot load data - user not authenticated');
       return;
@@ -192,7 +192,24 @@ export default function DiscoverPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isAuthenticated]);
+
+  // Load data when user is authenticated
+  useEffect(() => {
+    if (user && isAuthenticated) {
+      // Log page view
+      track('PAGE_VIEW', {
+        text: 'User viewed discover teams page',
+        page_name: 'discover',
+        page_url: '/discover',
+        user_id: user.id,
+        user_role: user.role
+      });
+      
+      // Load data
+      loadData();
+    }
+  }, [user, isAuthenticated, loadData]);
 
   const handleJoinRequest = async (teamId: string, message?: string) => {
     try {
@@ -639,7 +656,7 @@ export default function DiscoverPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h4 className="font-semibold text-primary flex items-center gap-2">
-                              <Crown className="h-4 w-4 text-yellow-500" />
+                              <Crown className="h-4 w-4 text-warning" />
                               {team.name}
                             </h4>
                             <p className="text-secondary text-sm mt-1">{team.description}</p>

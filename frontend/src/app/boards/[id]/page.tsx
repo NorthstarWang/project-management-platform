@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
@@ -58,7 +58,10 @@ const trackEvent = async (actionType: string, payload: any) => {
   if (typeof window !== 'undefined') {
     try {
       const { track } = await import('@/services/analyticsLogger');
-      track(actionType, payload);
+      track(actionType, {
+        text: payload.text || `User performed ${actionType} action`,
+        ...payload
+      });
     } catch (error) {
       console.warn('Analytics tracking failed:', error);
     }
@@ -107,82 +110,7 @@ export default function BoardPage() {
   const [tempColumnVisibility, setTempColumnVisibility] = useState(columnVisibility);
   const [tempStatusColors, setTempStatusColors] = useState(statusColors);
 
-  useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    
-    if (!userData) {
-      router.push('/login');
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    
-    // Log board page view
-    trackEvent('PAGE_VIEW', {
-      page_name: 'board',
-      page_url: `/boards/${boardId}`,
-      board_id: boardId,
-      user_id: parsedUser.id,
-      user_role: parsedUser.role
-    });
-    
-    // Load board data - pass the user data directly
-    loadBoardData(parsedUser);
-  }, [router, boardId]);
-
-  // Handle URL parameters for search navigation
-  useEffect(() => {
-    const taskId = searchParams.get('task');
-    const listId = searchParams.get('list');
-    const commentId = searchParams.get('comment');
-    
-    if (taskId && tasks.length > 0) {
-      // Find the task
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        // Delay to ensure the board is fully rendered
-        setTimeout(() => {
-          // First scroll to the list containing the task
-          if (listId) {
-            const listElement = document.getElementById(`list-${listId}`);
-            if (listElement) {
-              listElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }
-          
-          // Open the task modal with animation
-          handleTaskClick(task);
-          
-          // If there's a specific comment to scroll to, handle it after modal opens
-          if (commentId) {
-            setTimeout(() => {
-              const commentElement = document.getElementById(`comment-${commentId}`);
-              if (commentElement) {
-                commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
-                // Add highlight animation
-                commentElement.classList.add('animate-pulse', 'bg-accent/20');
-                setTimeout(() => {
-                  commentElement.classList.remove('animate-pulse', 'bg-accent/20');
-                }, 3000);
-              }
-            }, 500); // Wait for modal to open
-          }
-          
-          // Clean up URL params after navigation
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.delete('task');
-          newUrl.searchParams.delete('list');
-          newUrl.searchParams.delete('comment');
-          window.history.replaceState(null, '', newUrl.toString());
-        }, 500); // Delay to ensure board is rendered
-      }
-    }
-  }, [searchParams, tasks]);
-
-  const loadBoardData = async (currentUser?: User) => {
+  const loadBoardData = useCallback(async (currentUser?: User) => {
     // Use passed user or state user
     const userToUse = currentUser || user;
     if (!boardId || !userToUse) return;
@@ -247,7 +175,129 @@ export default function BoardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [boardId, user, users.length, statusColors]);
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setLoadingUsers(true);
+      
+      // If user is a manager or admin, load their team members
+      if (user && (user.role === 'manager' || user.role === 'admin')) {
+        const response = await apiClient.get('/api/users/me/team-members');
+        setUsers(response.data);
+      } else {
+        // For regular members, just load themselves
+        if (user) {
+          setUsers([user]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      // Fallback to current user only
+      if (user) {
+        setUsers([user]);
+      }
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [user]);
+
+  const handleTaskClick = useCallback((task: Task) => {
+    // Add enhanced task interaction tracking
+    trackEvent('TASK_INTERACTION', {
+      interaction_type: 'task_click',
+      task_id: task.id,
+      task_title: task.title,
+      task_priority: task.priority,
+      task_status: task.status,
+      board_id: boardId,
+      timestamp: new Date().toISOString()
+    });
+
+    setSelectedTask(task);
+    
+    // Load users if not already loaded, before showing task detail
+    if (users.length === 0 && !loadingUsers) {
+      loadUsers();
+    }
+    
+    setShowTaskDetail(true);
+  }, [boardId, users.length, loadingUsers, loadUsers]);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    
+    // Log board page view
+    trackEvent('PAGE_VIEW', {
+      page_name: 'board',
+      page_url: `/boards/${boardId}`,
+      board_id: boardId,
+      user_id: parsedUser.id,
+      user_role: parsedUser.role
+    });
+    
+    // Load board data - pass the user data directly
+    loadBoardData(parsedUser);
+  }, [router, boardId, loadBoardData]);
+
+  // Handle URL parameters for search navigation
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    const listId = searchParams.get('list');
+    const commentId = searchParams.get('comment');
+    
+    if (taskId && tasks.length > 0) {
+      // Find the task
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        // Delay to ensure the board is fully rendered
+        setTimeout(() => {
+          // First scroll to the list containing the task
+          if (listId) {
+            const listElement = document.getElementById(`list-${listId}`);
+            if (listElement) {
+              listElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+          
+          // Open the task modal with animation
+          handleTaskClick(task);
+          
+          // If there's a specific comment to scroll to, handle it after modal opens
+          if (commentId) {
+            setTimeout(() => {
+              const commentElement = document.getElementById(`comment-${commentId}`);
+              if (commentElement) {
+                commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Add highlight animation
+                commentElement.classList.add('animate-pulse', 'bg-accent/20');
+                setTimeout(() => {
+                  commentElement.classList.remove('animate-pulse', 'bg-accent/20');
+                }, 3000);
+              }
+            }, 500); // Wait for modal to open
+          }
+          
+          // Clean up URL params after navigation
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('task');
+          newUrl.searchParams.delete('list');
+          newUrl.searchParams.delete('comment');
+          window.history.replaceState(null, '', newUrl.toString());
+        }, 500); // Delay to ensure board is rendered
+      }
+    }
+  }, [searchParams, tasks, handleTaskClick]);
 
   // Handle task updates without full reload
   const handleTaskMoved = async (taskId?: string) => {
@@ -297,28 +347,6 @@ export default function BoardPage() {
     }
   };
 
-  const handleTaskClick = (task: Task) => {
-    // Add enhanced task interaction tracking
-    trackEvent('TASK_INTERACTION', {
-      interaction_type: 'task_click',
-      task_id: task.id,
-      task_title: task.title,
-      task_priority: task.priority,
-      task_status: task.status,
-      board_id: boardId,
-      timestamp: new Date().toISOString()
-    });
-
-    setSelectedTask(task);
-    
-    // Load users if not already loaded, before showing task detail
-    if (users.length === 0 && !loadingUsers) {
-      loadUsers();
-    }
-    
-    setShowTaskDetail(true);
-  };
-
   const handleAddTask = (listId: string) => {
     // Log add task click
     trackEvent('ADD_TASK_CLICK', {
@@ -338,31 +366,6 @@ export default function BoardPage() {
     
     setCreateTaskListId(listId);
     setShowCreateTask(true);
-  };
-
-  const loadUsers = async () => {
-    try {
-      setLoadingUsers(true);
-      
-      // If user is a manager or admin, load their team members
-      if (user && (user.role === 'manager' || user.role === 'admin')) {
-        const response = await apiClient.get('/api/users/me/team-members');
-        setUsers(response.data);
-      } else {
-        // For regular members, just load themselves
-        if (user) {
-          setUsers([user]);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load users:', error);
-      // Fallback to current user only
-      if (user) {
-        setUsers([user]);
-      }
-    } finally {
-      setLoadingUsers(false);
-    }
   };
 
   // Convert backend statuses to modal format

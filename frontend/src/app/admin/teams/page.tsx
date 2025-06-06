@@ -14,8 +14,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { toast } from '@/components/ui/CustomToast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { 
-  Users, Plus, Crown, UserPlus, UserMinus, Edit, Trash2, 
-  Search, Shield, Building, ChevronRight, AlertTriangle
+  Users, Plus, Crown, UserPlus, UserMinus, Trash2, 
+  Search, Shield, Building, ChevronRight
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { cn } from '@/lib/utils';
@@ -779,7 +779,7 @@ export default function AdminTeamsPage() {
           onClose={() => setShowDisbandConfirm(false)}
           title="Disband Team"
           description={`Are you sure you want to disband "${teamToDisband?.name}"? This action cannot be undone.`}
-          confirmText="Disband"
+          confirmText="Disband Team"
           type="danger"
           onConfirm={disbandTeam}
         />

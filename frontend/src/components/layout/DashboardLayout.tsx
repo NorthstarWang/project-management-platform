@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import DashboardGradientBackground from '@/components/ui/DashboardGradientBackground';
 
 interface User {
   id: string;
@@ -36,25 +37,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const openSidebar = () => setSidebarOpen(true);
 
   return (
-    <div className="min-h-screen bg-primary">
-      {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+    <div className="min-h-screen bg-primary relative">
+      {/* Subtle animated gradient background */}
+      <DashboardGradientBackground />
       
-      {/* Main content area */}
-      <div className="lg:pl-64">
-        {/* Header */}
-        <Header 
-          currentUser={currentUser}
-          onMenuClick={openSidebar}
-          showMenuButton={true}
-        />
+      {/* Main content with higher z-index */}
+      <div className="relative z-10">
+        {/* Sidebar */}
+        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
         
-        {/* Page content */}
-        <main className="py-6">
-          <div className="mx-auto px-4 sm:px-6 lg:px-8">
-            {children}
-          </div>
-        </main>
+        {/* Main content area */}
+        <div className="lg:pl-64">
+          {/* Header */}
+          <Header 
+            currentUser={currentUser}
+            onMenuClick={openSidebar}
+            showMenuButton={true}
+          />
+          
+          {/* Page content */}
+          <main className="py-6">
+            <div className="mx-auto px-4 sm:px-6 lg:px-8">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );
