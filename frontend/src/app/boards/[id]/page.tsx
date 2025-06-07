@@ -112,14 +112,16 @@ export default function BoardPage() {
   const [tempColumnVisibility, setTempColumnVisibility] = useState(columnVisibility);
   const [tempStatusColors, setTempStatusColors] = useState(statusColors);
 
-  const loadBoardData = useCallback(async (currentUser?: User) => {
+  const loadBoardData = useCallback(async (currentUser?: User, signal?: AbortSignal) => {
     if (!boardId || !currentUser) return;
 
     try {
       setLoading(true);
       
       // Fetch board details with lists and tasks
-      const boardResponse = await apiClient.get(`/api/boards/${boardId}`);
+      const boardResponse = await apiClient.get(`/api/boards/${boardId}`, { signal });
+      if (signal?.aborted) return;
+      
       const boardData = boardResponse.data;
       setBoard(boardData);
       setLists(boardData.lists || []);
@@ -127,10 +129,14 @@ export default function BoardPage() {
       // Fetch project details for permission checks
       if (boardData.project_id) {
         try {
-          const projectResponse = await apiClient.get(`/api/projects/${boardData.project_id}`);
-          setProjectDetails(projectResponse.data);
+          const projectResponse = await apiClient.get(`/api/projects/${boardData.project_id}`, { signal });
+          if (!signal?.aborted) {
+            setProjectDetails(projectResponse.data);
+          }
         } catch (error) {
-          console.error('Failed to load project details:', error);
+          if (!signal?.aborted) {
+            console.error('Failed to load project details:', error);
+          }
         }
       }
 
@@ -144,7 +150,9 @@ export default function BoardPage() {
       setTasks(allTasks);
 
       // Fetch board statuses
-      const statusesResponse = await apiClient.get(`/api/boards/${boardId}/statuses`);
+      const statusesResponse = await apiClient.get(`/api/boards/${boardId}/statuses`, { signal });
+      if (signal?.aborted) return;
+      
       setBoardStatuses(statusesResponse.data);
       
       // Update status colors from backend statuses
@@ -157,7 +165,9 @@ export default function BoardPage() {
       setStatusColors(newStatusColors);
 
       // Fetch task counts by status
-      const countsResponse = await apiClient.get(`/api/boards/${boardId}/task-counts`);
+      const countsResponse = await apiClient.get(`/api/boards/${boardId}/task-counts`, { signal });
+      if (signal?.aborted) return;
+      
       setTaskCountsByStatus(countsResponse.data);
 
       // Log board view
@@ -168,9 +178,11 @@ export default function BoardPage() {
         task_count: allTasks.length,
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
-      console.error('Failed to load board data:', error);
-      toast.error('Failed to load board data');
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Failed to load board data:', error);
+        toast.error('Failed to load board data');
+      }
     } finally {
       setLoading(false);
     }
@@ -224,29 +236,44 @@ export default function BoardPage() {
   }, [boardId, users.length, loadingUsers, loadUsers]);
   
   useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
+    const abortController = new AbortController();
     
-    if (!userData) {
-      router.push('/login');
-      return;
-    }
+    const initializeBoard = async () => {
+      // Check if user is logged in
+      const userData = localStorage.getItem('user');
+      
+      if (!userData) {
+        router.push('/login');
+        return;
+      }
 
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
+      const parsedUser = JSON.parse(userData);
+      
+      if (abortController.signal.aborted) return;
+      
+      setUser(parsedUser);
+      
+      // Log board page view
+      trackEvent('PAGE_VIEW', {
+        page_name: 'board',
+        page_url: `/boards/${boardId}`,
+        board_id: boardId,
+        user_id: parsedUser.id,
+        user_role: parsedUser.role
+      });
+      
+      // Load board data with abort signal
+      await loadBoardData(parsedUser, abortController.signal);
+    };
     
-    // Log board page view
-    trackEvent('PAGE_VIEW', {
-      page_name: 'board',
-      page_url: `/boards/${boardId}`,
-      board_id: boardId,
-      user_id: parsedUser.id,
-      user_role: parsedUser.role
-    });
+    initializeBoard();
     
-    // Load board data - pass the user data directly
-    loadBoardData(parsedUser);
-  }, [router, boardId, loadBoardData]);
+    // Cleanup function - abort any in-flight requests
+    return () => {
+      abortController.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, boardId]); // Removed loadBoardData from dependencies to prevent loops
 
   // Handle URL parameters for search navigation
   useEffect(() => {
