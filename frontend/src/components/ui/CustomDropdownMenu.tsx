@@ -79,11 +79,24 @@ export function CustomDropdownMenu({
   const updateDropdownPosition = () => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      });
+      const modalElement = triggerRef.current.closest('[role="dialog"]');
+      const modalRect = modalElement?.getBoundingClientRect();
+      
+      // If inside a modal, adjust position relative to modal
+      if (modalElement && modalRect) {
+        setDropdownPosition({
+          top: rect.bottom - modalRect.top + 4,
+          left: rect.left - modalRect.left,
+          width: rect.width
+        });
+      } else {
+        // Normal positioning for non-modal contexts
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY + 4,
+          left: rect.left + window.scrollX,
+          width: rect.width
+        });
+      }
     }
   };
 
@@ -116,7 +129,7 @@ export function CustomDropdownMenu({
           exit={{ opacity: 0, scale: 0.95, y: -8 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
           style={{
-            position: 'fixed',
+            position: 'absolute',
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,

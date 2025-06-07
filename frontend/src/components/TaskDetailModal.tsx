@@ -516,11 +516,15 @@ export default function TaskDetailModal({
         description: formData.description.trim(),
         assignee_id: formData.assignee_id || undefined,
         priority: formData.priority,
-        due_date: formData.due_date || undefined,
+        // due_date: formData.due_date || undefined,
+        due_date: formData.due_date ? new Date(formData.due_date).toISOString() : undefined,
         list_id: formData.list_id,
         status: formData.status,
         task_type: formData.task_type
       };
+
+      console.log('Sending updates:', updates, ' task.id', task.id);
+
 
       await apiClient.put(`/api/tasks/${task.id}`, updates);
       
@@ -539,6 +543,7 @@ export default function TaskDetailModal({
       
       toast.success('Task saved successfully!');
       onTaskUpdated();
+      onClose();
     } catch (error: any) {
       console.error('Failed to save task:', error);
       toast.error(error.response?.data?.detail || 'Failed to save task');
@@ -797,7 +802,7 @@ export default function TaskDetailModal({
               <Input
                 value={formData.title}
                 onChange={(e) => handleFieldChange('title', e.target.value)}
-                className={`text-xl font-semibold bg-transparent border-none p-0 focus:bg-input focus:border-input-border focus:p-2 focus:rounded transition-all ${
+                className={`text-xl font-semibold bg-transparent border-none p-0 focus:bg-input focus:border-input-border focus:p-2 focus:rounded transition-all w-full break-words ${
                   modifiedFields.has('title') ? 'text-accent font-semibold' : ''
                 }`}
                 placeholder="Task title..."

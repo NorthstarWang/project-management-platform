@@ -29,6 +29,16 @@ import { CustomizeStatusesModal } from '@/components/CustomizeStatusesModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getIconComponent } from '@/components/ui/IconSelector';
 
+const DEFAULT_STATUS_COLORS = {
+  backlog: '#6B7280',
+  todo: '#3B82F6',
+  in_progress: '#F59E0B',
+  review: '#8B5CF6',
+  done: '#10B981',
+  archived: '#9CA3AF',
+  deleted: '#EF4444'
+}
+
 interface User {
   id: string;
   username: string;
@@ -96,24 +106,14 @@ export default function BoardPage() {
   });
   const [boardStatuses, setBoardStatuses] = useState<any[]>([]);
   const [taskCountsByStatus, setTaskCountsByStatus] = useState<Record<string, number>>({});
-  const [statusColors, setStatusColors] = useState({
-    backlog: '#6B7280',
-    todo: '#3B82F6',
-    in_progress: '#F59E0B',
-    review: '#8B5CF6',
-    done: '#10B981',
-    archived: '#9CA3AF',
-    deleted: '#EF4444'
-  });
+  const [statusColors, setStatusColors] = useState(DEFAULT_STATUS_COLORS);
   
   // Temporary settings for board settings modal
   const [tempColumnVisibility, setTempColumnVisibility] = useState(columnVisibility);
   const [tempStatusColors, setTempStatusColors] = useState(statusColors);
 
   const loadBoardData = useCallback(async (currentUser?: User) => {
-    // Use passed user or state user
-    const userToUse = currentUser || user;
-    if (!boardId || !userToUse) return;
+    if (!boardId || !currentUser) return;
 
     try {
       setLoading(true);
@@ -148,7 +148,7 @@ export default function BoardPage() {
       setBoardStatuses(statusesResponse.data);
       
       // Update status colors from backend statuses
-      const newStatusColors = { ...statusColors };
+      const newStatusColors = { ...DEFAULT_STATUS_COLORS };
       statusesResponse.data.forEach((status: any) => {
         if (newStatusColors.hasOwnProperty(status.id)) {
           newStatusColors[status.id as keyof typeof newStatusColors] = status.color;
@@ -166,7 +166,6 @@ export default function BoardPage() {
         board_name: boardData.name,
         list_count: boardData.lists.length,
         task_count: allTasks.length,
-        member_count: users.length,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -175,7 +174,7 @@ export default function BoardPage() {
     } finally {
       setLoading(false);
     }
-  }, [boardId, user, users.length, statusColors]);
+  }, [boardId]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -223,7 +222,7 @@ export default function BoardPage() {
     
     setShowTaskDetail(true);
   }, [boardId, users.length, loadingUsers, loadUsers]);
-
+  
   useEffect(() => {
     // Check if user is logged in
     const userData = localStorage.getItem('user');
@@ -317,7 +316,9 @@ export default function BoardPage() {
       } catch (error) {
         console.error('Failed to fetch updated task:', error);
         // Only do full reload on error
-        loadBoardData();
+        if (user) {
+          loadBoardData(user);
+        }
       }
     } else {
       // If no specific task ID, do a background refresh without loading state
@@ -402,7 +403,9 @@ export default function BoardPage() {
       setStatusColors(newStatusColors);
 
       // Reload board data to get updated tasks
-      await loadBoardData();
+      if (user) {
+        await loadBoardData(user);
+      }
 
       // Log status customization
       trackEvent('BOARD_STATUSES_CUSTOMIZED', {
@@ -630,7 +633,9 @@ export default function BoardPage() {
               users={users}
               loadingUsers={loadingUsers}
               onClose={() => setShowCreateTask(false)}
-              onTaskCreated={loadBoardData}
+              onTaskCreated={async () => {
+                await loadBoardData(user)
+              }}
               onLoadUsers={loadUsers}
             />
           </DialogContent>
@@ -646,7 +651,9 @@ export default function BoardPage() {
                 users={users}
                 currentUser={user!}
                 onClose={() => setShowTaskDetail(false)}
-                onTaskUpdated={loadBoardData}
+                onTaskUpdated={async () => {
+                  await loadBoardData(user)
+                }}
               />
             )}
           </DialogContent>
