@@ -117,8 +117,8 @@ export default function BoardPage() {
 
     try {
       setLoading(true);
-      
       // Fetch board details with lists and tasks
+      //@ts-expect-error signal as string
       const boardResponse = await apiClient.get(`/api/boards/${boardId}`, { signal });
       if (signal?.aborted) return;
       
@@ -129,6 +129,7 @@ export default function BoardPage() {
       // Fetch project details for permission checks
       if (boardData.project_id) {
         try {
+        //@ts-expect-error signal as string
           const projectResponse = await apiClient.get(`/api/projects/${boardData.project_id}`, { signal });
           if (!signal?.aborted) {
             setProjectDetails(projectResponse.data);
@@ -150,6 +151,7 @@ export default function BoardPage() {
       setTasks(allTasks);
 
       // Fetch board statuses
+      //@ts-expect-error signal as string
       const statusesResponse = await apiClient.get(`/api/boards/${boardId}/statuses`, { signal });
       if (signal?.aborted) return;
       
@@ -165,6 +167,7 @@ export default function BoardPage() {
       setStatusColors(newStatusColors);
 
       // Fetch task counts by status
+      //@ts-expect-error signal as string
       const countsResponse = await apiClient.get(`/api/boards/${boardId}/task-counts`, { signal });
       if (signal?.aborted) return;
       
