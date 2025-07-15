@@ -68,6 +68,26 @@ class APIRoutes:
     NOTIFICATIONS_MARK_READ = f"{API_BASE}/notifications/{{notification_id}}/mark_read"
     NOTIFICATIONS_MARK_ALL_READ = f"{API_BASE}/notifications/mark_all_read"
     
+    # Custom fields routes
+    CUSTOM_FIELDS_CREATE = f"{API_BASE}/custom-fields"
+    CUSTOM_FIELDS_LIST = f"{API_BASE}/custom-fields"
+    CUSTOM_FIELDS_DETAIL = f"{API_BASE}/custom-fields/{{field_id}}"
+    CUSTOM_FIELDS_UPDATE = f"{API_BASE}/custom-fields/{{field_id}}"
+    CUSTOM_FIELDS_DELETE = f"{API_BASE}/custom-fields/{{field_id}}"
+    CUSTOM_FIELDS_BULK_UPDATE = f"{API_BASE}/custom-fields/bulk-update"
+    CUSTOM_FIELDS_VALUES = f"{API_BASE}/custom-fields/values"
+    CUSTOM_FIELDS_VALUES_BULK = f"{API_BASE}/custom-fields/values/bulk"
+    CUSTOM_FIELDS_IMPORT = f"{API_BASE}/custom-fields/import"
+    CUSTOM_FIELDS_EXPORT = f"{API_BASE}/custom-fields/export"
+    CUSTOM_FIELDS_TEMPLATES = f"{API_BASE}/custom-fields/templates"
+    CUSTOM_FIELDS_TEMPLATES_DETAIL = f"{API_BASE}/custom-fields/templates/{{template_id}}"
+    CUSTOM_FIELDS_TEMPLATES_APPLY = f"{API_BASE}/custom-fields/templates/{{template_id}}/apply"
+    CUSTOM_FIELDS_FILTERS = f"{API_BASE}/custom-fields/filters"
+    CUSTOM_FIELDS_FILTERS_DETAIL = f"{API_BASE}/custom-fields/filters/{{filter_id}}"
+    CUSTOM_FIELDS_FILTERS_APPLY = f"{API_BASE}/custom-fields/filters/{{filter_id}}/apply"
+    CUSTOM_FIELDS_STATS = f"{API_BASE}/custom-fields/{{field_id}}/stats"
+    CUSTOM_FIELDS_HISTORY = f"{API_BASE}/custom-fields/{{field_id}}/history"
+    
     # Synthetic API routes (for testing and environment control)
     SYNTHETIC_NEW_SESSION = f"{SYNTHETIC_BASE}/new_session"
     SYNTHETIC_STATE = f"{SYNTHETIC_BASE}/state"
