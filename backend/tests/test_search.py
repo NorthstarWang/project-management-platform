@@ -5,7 +5,7 @@ Tests search functionality across boards and projects
 """
 
 from base_test import BaseAPITest
-from test_config import APIRoutes, get_search_route
+from test_config import get_search_route
 
 
 class SearchTest(BaseAPITest):

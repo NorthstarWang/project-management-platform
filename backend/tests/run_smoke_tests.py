@@ -7,7 +7,6 @@ Runs only critical ones for quick validation
 import sys
 import os
 import time
-from typing import List, Dict
 
 # Import modular test suites
 from test_synthetic_api import SyntheticAPITest

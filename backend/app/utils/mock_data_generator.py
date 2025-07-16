@@ -1,8 +1,8 @@
 import uuid
 import random
 import time
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+from datetime import datetime, timedelta, time, date
+from typing import Optional
 
 def generate_mock_data(data_manager, seed: Optional[str] = None):
     """Generate comprehensive mock data for the project management platform"""
@@ -702,4 +702,509 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
                     data_manager.message_repository.mark_message_read(message["id"], user2["id"])
     
     print(f"Generated {len(data_manager.message_repository.conversations)} conversations")
-    print(f"Generated {len(data_manager.message_repository.messages)} messages") 
+    print(f"Generated {len(data_manager.message_repository.messages)} messages")
+    
+    # Generate custom fields
+    generate_custom_fields(data_manager, user_map, project_map, task_ids)
+    
+    # Generate time tracking data
+    generate_time_tracking_data(data_manager, user_map, project_map, task_ids)
+
+def generate_custom_fields(data_manager, user_map, project_map, task_ids):
+    """Generate mock custom fields for various entities"""
+    from ..models.custom_field_models import EntityType, FieldType
+    
+    # Create custom fields for projects
+    project_fields = [
+        {
+            "name": "Project Budget",
+            "field_type": FieldType.CURRENCY,
+            "entity_type": EntityType.PROJECT,
+            "description": "Total budget allocated for the project",
+            "required": False,
+            "configuration": {"prefix": "$", "decimal_places": 2}
+        },
+        {
+            "name": "Project Status",
+            "field_type": FieldType.SELECT,
+            "entity_type": EntityType.PROJECT,
+            "description": "Current project status",
+            "required": True,
+            "configuration": {
+                "options": [
+                    {"value": "planning", "label": "Planning", "color": "#3B82F6"},
+                    {"value": "active", "label": "Active", "color": "#10B981"},
+                    {"value": "on_hold", "label": "On Hold", "color": "#F59E0B"},
+                    {"value": "completed", "label": "Completed", "color": "#6B7280"}
+                ]
+            }
+        },
+        {
+            "name": "Client Name",
+            "field_type": FieldType.TEXT,
+            "entity_type": EntityType.PROJECT,
+            "description": "Name of the client",
+            "required": False,
+            "configuration": {"max_length": 100}
+        },
+        {
+            "name": "Project Tags",
+            "field_type": FieldType.TAGS,
+            "entity_type": EntityType.PROJECT,
+            "description": "Tags for categorizing the project",
+            "required": False,
+            "configuration": {}
+        }
+    ]
+    
+    # Create custom fields for tasks
+    task_fields = [
+        {
+            "name": "Story Points",
+            "field_type": FieldType.NUMBER,
+            "entity_type": EntityType.TASK,
+            "description": "Estimated story points for the task",
+            "required": False,
+            "configuration": {"min_value": 1, "max_value": 21}
+        },
+        {
+            "name": "Sprint",
+            "field_type": FieldType.SELECT,
+            "entity_type": EntityType.TASK,
+            "description": "Sprint assignment",
+            "required": False,
+            "configuration": {
+                "options": [
+                    {"value": "sprint_1", "label": "Sprint 1", "color": "#8B5CF6"},
+                    {"value": "sprint_2", "label": "Sprint 2", "color": "#EC4899"},
+                    {"value": "sprint_3", "label": "Sprint 3", "color": "#14B8A6"},
+                    {"value": "backlog", "label": "Backlog", "color": "#6B7280"}
+                ]
+            }
+        },
+        {
+            "name": "Complexity",
+            "field_type": FieldType.RATING,
+            "entity_type": EntityType.TASK,
+            "description": "Task complexity rating",
+            "required": False,
+            "configuration": {"max_value": 5}
+        },
+        {
+            "name": "Blocked",
+            "field_type": FieldType.CHECKBOX,
+            "entity_type": EntityType.TASK,
+            "description": "Is this task blocked?",
+            "required": False,
+            "configuration": {}
+        },
+        {
+            "name": "Blocker Description",
+            "field_type": FieldType.TEXT,
+            "entity_type": EntityType.TASK,
+            "description": "Description of what's blocking the task",
+            "required": False,
+            "configuration": {"max_length": 500}
+        }
+    ]
+    
+    # Create custom fields for boards
+    board_fields = [
+        {
+            "name": "Board Type",
+            "field_type": FieldType.SELECT,
+            "entity_type": EntityType.BOARD,
+            "description": "Type of board",
+            "required": True,
+            "configuration": {
+                "options": [
+                    {"value": "kanban", "label": "Kanban", "color": "#3B82F6"},
+                    {"value": "scrum", "label": "Scrum", "color": "#10B981"},
+                    {"value": "custom", "label": "Custom", "color": "#6B7280"}
+                ]
+            }
+        },
+        {
+            "name": "Sprint Duration",
+            "field_type": FieldType.NUMBER,
+            "entity_type": EntityType.BOARD,
+            "description": "Sprint duration in days",
+            "required": False,
+            "configuration": {"min_value": 7, "max_value": 30, "suffix": " days"}
+        }
+    ]
+    
+    # Create field definitions
+    admin_id = user_map["admin_alice"]
+    
+    # Project fields
+    for field_data in project_fields:
+        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+        
+        # Set values for some projects
+        for project_name, project_id in project_map.items():
+            if field.name == "Project Budget" and random.random() < 0.7:
+                value = random.randint(10000, 500000)
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.PROJECT, project_id, value, admin_id
+                )
+            elif field.name == "Project Status":
+                value = random.choice(["planning", "active", "on_hold", "completed"])
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.PROJECT, project_id, value, admin_id
+                )
+            elif field.name == "Client Name" and random.random() < 0.5:
+                clients = ["Acme Corp", "TechStart Inc", "Global Systems", "Digital Solutions"]
+                value = random.choice(clients)
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.PROJECT, project_id, value, admin_id
+                )
+            elif field.name == "Project Tags" and random.random() < 0.8:
+                all_tags = ["urgent", "high-priority", "client-facing", "internal", "research", "maintenance"]
+                value = random.sample(all_tags, random.randint(1, 3))
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.PROJECT, project_id, value, admin_id
+                )
+    
+    # Task fields
+    for field_data in task_fields:
+        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+        
+        # Set values for some tasks
+        for task_id in random.sample(task_ids, min(len(task_ids) // 2, 50)):
+            if field.name == "Story Points" and random.random() < 0.6:
+                value = random.choice([1, 2, 3, 5, 8, 13])
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.TASK, task_id, value, admin_id
+                )
+            elif field.name == "Sprint" and random.random() < 0.7:
+                value = random.choice(["sprint_1", "sprint_2", "sprint_3", "backlog"])
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.TASK, task_id, value, admin_id
+                )
+            elif field.name == "Complexity" and random.random() < 0.5:
+                value = random.randint(1, 5)
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.TASK, task_id, value, admin_id
+                )
+            elif field.name == "Blocked" and random.random() < 0.1:
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.TASK, task_id, True, admin_id
+                )
+            elif field.name == "Blocker Description":
+                # Only set if task is blocked
+                blocked_field = next((f for f in data_manager.custom_field_repository.custom_field_definitions.values() 
+                                    if f.name == "Blocked"), None)
+                if blocked_field:
+                    blocked_value = data_manager.custom_field_repository.get_field_value(
+                        blocked_field.id, EntityType.TASK, task_id
+                    )
+                    if blocked_value and blocked_value.value:
+                        blockers = [
+                            "Waiting for API documentation",
+                            "Dependency on another team",
+                            "Requires design approval",
+                            "Technical limitation discovered"
+                        ]
+                        data_manager.custom_field_service.set_field_value(
+                            field.id, EntityType.TASK, task_id, random.choice(blockers), admin_id
+                        )
+    
+    # Board fields
+    for field_data in board_fields:
+        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+        
+        # Set values for all boards
+        for board in data_manager.boards:
+            if field.name == "Board Type":
+                value = random.choice(["kanban", "scrum", "custom"])
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.BOARD, board["id"], value, admin_id
+                )
+            elif field.name == "Sprint Duration" and random.random() < 0.6:
+                value = random.choice([7, 14, 21, 30])
+                data_manager.custom_field_service.set_field_value(
+                    field.id, EntityType.BOARD, board["id"], value, admin_id
+                )
+    
+    # Create a template
+    template_fields = [
+        {
+            "name": "Department",
+            "field_type": "select",
+            "entity_type": "task",
+            "required": True,
+            "configuration": {
+                "options": [
+                    {"value": "engineering", "label": "Engineering", "color": "#3B82F6"},
+                    {"value": "design", "label": "Design", "color": "#EC4899"},
+                    {"value": "qa", "label": "QA", "color": "#10B981"}
+                ]
+            }
+        },
+        {
+            "name": "Estimated Hours",
+            "field_type": "number",
+            "entity_type": "task",
+            "required": False,
+            "configuration": {"min_value": 0, "max_value": 100, "suffix": " hours"}
+        }
+    ]
+    
+    template = data_manager.custom_field_service.create_template({
+        "name": "Software Development Template",
+        "description": "Standard fields for software development tasks",
+        "entity_type": EntityType.TASK,
+        "category": "it",
+        "fields": template_fields,
+        "is_public": True
+    }, admin_id)
+    
+    print(f"Generated {len(list(data_manager.custom_field_repository.custom_field_definitions.values()))} custom field definitions")
+    print(f"Generated {len(list(data_manager.custom_field_repository.custom_field_values.values()))} custom field values")
+    print(f"Generated {len(list(data_manager.custom_field_repository.field_templates.values()))} field templates")
+
+
+def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
+    """Generate mock time tracking data for various entities"""
+    from datetime import datetime, timedelta
+    from ..models.time_tracking_models import (
+        TimeEntry, TaskEstimate, TaskProgress, WorkPattern,
+        SprintBurndown, TeamVelocity, TimeTrackingAlert, TimeSheet,
+        ProjectTimebudget, TimeTrackingSettings,
+        TimeEntryStatus, ProgressMetricType, EstimateUnit,
+        WorkPatternType, TimeTrackingMode, AlertType
+    )
+    
+    print("\nGenerating time tracking data...")
+    
+    # Create work patterns for users
+    work_patterns = [
+        ("admin_alice", WorkPatternType.FLEXIBLE, 8, 18, [1,2,3,4,5]),
+        ("david_rodriguez", WorkPatternType.STANDARD, 9, 17, [1,2,3,4,5]),
+        ("sarah_johnson", WorkPatternType.STANDARD, 9, 17, [1,2,3,4,5]),
+        ("frontend_emma", WorkPatternType.FLEXIBLE, 10, 18, [1,2,3,4,5]),
+        ("backend_mike", WorkPatternType.STANDARD, 9, 17, [1,2,3,4,5]),
+        ("mobile_carlos", WorkPatternType.SHIFT, 14, 22, [1,2,3,4,5])
+    ]
+    
+    for username, pattern_type, start_hour, end_hour, working_days in work_patterns:
+        if username in user_map:
+            pattern = WorkPattern(
+                user_id=user_map[username],
+                pattern_type=pattern_type,
+                timezone="UTC",
+                working_days=working_days,
+                start_time=time(start_hour, 0),
+                end_time=time(end_hour, 0),
+                break_duration_minutes=60
+            )
+            data_manager.time_tracking_repository.create_work_pattern(pattern)
+    
+    # Create time entries for the past 30 days
+    end_date = datetime.utcnow()
+    start_date = end_date - timedelta(days=30)
+    
+    # Sample users and tasks
+    active_users = ["frontend_emma", "backend_mike", "mobile_carlos", "sarah_johnson"]
+    active_user_ids = [user_map[u] for u in active_users if u in user_map]
+    sample_tasks = random.sample(task_ids, min(len(task_ids), 20))
+    
+    # Generate time entries
+    for day_offset in range(30):
+        current_date = start_date + timedelta(days=day_offset)
+        
+        # Skip weekends
+        if current_date.weekday() >= 5:
+            continue
+        
+        # Each user logs 2-4 entries per day
+        for user_id in active_user_ids:
+            num_entries = random.randint(2, 4)
+            
+            for _ in range(num_entries):
+                # Random start time between 8 AM and 4 PM
+                hour = random.randint(8, 16)
+                minute = random.choice([0, 15, 30, 45])
+                start_time = current_date.replace(hour=hour, minute=minute)
+                
+                # Duration between 30 minutes and 3 hours
+                duration = random.randint(30, 180)
+                end_time = start_time + timedelta(minutes=duration)
+                
+                # Create time entry
+                task_id = random.choice(sample_tasks) if random.random() < 0.8 else None
+                project_id = random.choice(list(project_map.values())) if random.random() < 0.9 else None
+                
+                descriptions = [
+                    "Code review and feedback",
+                    "Feature implementation",
+                    "Bug fixing",
+                    "Documentation update",
+                    "Team meeting",
+                    "Sprint planning",
+                    "Testing and QA",
+                    "Deployment preparation",
+                    "Research and investigation",
+                    "Client communication"
+                ]
+                
+                entry = TimeEntry(
+                    user_id=user_id,
+                    task_id=task_id,
+                    project_id=project_id,
+                    description=random.choice(descriptions),
+                    start_time=start_time,
+                    end_time=end_time,
+                    billable=random.random() < 0.7,
+                    status=TimeEntryStatus.APPROVED if day_offset > 7 else TimeEntryStatus.SUBMITTED,
+                    tags=["development"] if task_id else ["meeting"],
+                    rate_per_hour=random.choice([50, 75, 100, 125]) if random.random() < 0.5 else None
+                )
+                
+                data_manager.time_tracking_repository.create_time_entry(entry)
+    
+    # Create task estimates
+    estimate_units = [EstimateUnit.HOURS, EstimateUnit.DAYS, EstimateUnit.STORY_POINTS]
+    
+    for task_id in random.sample(task_ids, min(len(task_ids) // 3, 30)):
+        estimate = TaskEstimate(
+            task_id=task_id,
+            estimated_value=random.choice([2, 4, 8, 16, 24, 40]) if random.random() < 0.5 else random.randint(1, 8),
+            estimate_unit=random.choice(estimate_units),
+            confidence_level=random.randint(60, 95),
+            estimated_by=random.choice(active_user_ids),
+            notes="Initial estimate based on requirements"
+        )
+        data_manager.time_tracking_repository.create_task_estimate(estimate)
+    
+    # Create task progress entries
+    for task_id in random.sample(task_ids, min(len(task_ids) // 4, 20)):
+        progress = TaskProgress(
+            task_id=task_id,
+            metric_type=ProgressMetricType.PERCENTAGE,
+            current_value=random.randint(0, 100),
+            target_value=100,
+            updated_by=random.choice(active_user_ids),
+            notes="Progress update"
+        )
+        data_manager.time_tracking_repository.create_task_progress(progress)
+    
+    # Create project budgets
+    for project_name, project_id in project_map.items():
+        if random.random() < 0.7:
+            budget = ProjectTimebudget(
+                project_id=project_id,
+                total_hours_budget=random.choice([100, 200, 500, 1000, 2000]),
+                billable_hours_budget=random.choice([80, 160, 400, 800, 1600]),
+                hours_used=random.randint(0, 200),
+                billable_hours_used=random.randint(0, 150),
+                budget_alert_threshold=80.0,
+                cost_budget=random.choice([10000, 25000, 50000, 100000]) if random.random() < 0.5 else None
+            )
+            data_manager.time_tracking_repository.create_project_timebudget(budget)
+    
+    # Create time tracking settings for some users
+    for username in ["admin_alice", "david_rodriguez"]:
+        if username in user_map:
+            settings = TimeTrackingSettings(
+                entity_type="user",
+                entity_id=user_map[username],
+                tracking_mode=TimeTrackingMode.MANUAL,
+                require_task_association=True,
+                require_description=True,
+                minimum_entry_duration=15,
+                rounding_interval=15,
+                reminder_enabled=True,
+                reminder_interval=120
+            )
+            data_manager.time_tracking_repository.create_settings(settings)
+    
+    # Create some alerts
+    alert_types = [
+        (AlertType.OVERTIME, "You've exceeded 8 hours today", "high"),
+        (AlertType.DEADLINE_APPROACHING, "Sprint deadline in 2 days", "medium"),
+        (AlertType.BUDGET_EXCEEDED, "Project budget at 85%", "high")
+    ]
+    
+    for alert_type, message, severity in alert_types:
+        if random.random() < 0.5:
+            alert = TimeTrackingAlert(
+                alert_type=alert_type,
+                severity=severity,
+                user_id=random.choice(active_user_ids) if alert_type == AlertType.OVERTIME else None,
+                project_id=random.choice(list(project_map.values())) if alert_type == AlertType.BUDGET_EXCEEDED else None,
+                title=f"{alert_type.value.replace('_', ' ').title()} Alert",
+                message=message
+            )
+            data_manager.time_tracking_repository.create_alert(alert)
+    
+    # Create a sample sprint burndown
+    if project_map:
+        project_id = random.choice(list(project_map.values()))
+        burndown = SprintBurndown(
+            sprint_id=f"sprint_{random.randint(1, 5)}",
+            project_id=project_id,
+            burndown_type="sprint",
+            start_date=date.today() - timedelta(days=14),
+            end_date=date.today() + timedelta(days=7),
+            total_points=100.0
+        )
+        
+        # Add some data points
+        for i in range(5):
+            burndown.add_data_point(
+                date.today() - timedelta(days=14-i*3),
+                100 - (i * 20),
+                i * 20
+            )
+        
+        data_manager.time_tracking_repository.create_sprint_burndown(burndown)
+    
+    # Create team velocity entries
+    team_ids = [team["id"] for team in data_manager.teams[:2]]
+    for team_id in team_ids:
+        for i in range(3):
+            velocity = TeamVelocity(
+                team_id=team_id,
+                period="sprint",
+                period_start=date.today() - timedelta(days=30*(i+1)),
+                period_end=date.today() - timedelta(days=30*i),
+                planned_points=random.randint(80, 120),
+                completed_points=random.randint(60, 100),
+                team_size=random.randint(4, 8),
+                available_hours=random.randint(500, 800)
+            )
+            data_manager.time_tracking_repository.create_team_velocity(velocity)
+    
+    # Create a few timesheets
+    for user_id in active_user_ids[:2]:
+        # Current period
+        timesheet = TimeSheet(
+            user_id=user_id,
+            period_start=date.today() - timedelta(days=7),
+            period_end=date.today(),
+            status=TimeEntryStatus.DRAFT
+        )
+        
+        # Calculate totals from actual entries
+        entries = data_manager.time_tracking_repository.get_user_time_entries(
+            user_id, timesheet.period_start, timesheet.period_end
+        )
+        
+        total_hours = sum(e.duration_minutes or 0 for e in entries) / 60
+        billable_hours = sum((e.duration_minutes or 0) for e in entries if e.billable) / 60
+        
+        timesheet.total_hours = total_hours
+        timesheet.billable_hours = billable_hours
+        timesheet.non_billable_hours = total_hours - billable_hours
+        timesheet.entries = [e.id for e in entries]
+        
+        data_manager.time_tracking_repository.create_timesheet(timesheet)
+    
+    print(f"Generated {len(data_manager.time_tracking_repository.time_entries)} time entries")
+    print(f"Generated {len(data_manager.time_tracking_repository.task_estimates)} task estimates")
+    print(f"Generated {len(data_manager.time_tracking_repository.task_progress)} task progress entries")
+    print(f"Generated {len(data_manager.time_tracking_repository.work_patterns)} work patterns")
+    print(f"Generated {len(data_manager.time_tracking_repository.project_timebudgets)} project budgets")
+    print(f"Generated {len(data_manager.time_tracking_repository.time_tracking_alerts)} alerts") 

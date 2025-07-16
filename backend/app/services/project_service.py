@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from ..repositories.project_repository import ProjectRepository
 from ..repositories.user_repository import UserRepository
 

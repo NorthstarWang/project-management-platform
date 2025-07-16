@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from .base_repository import BaseRepository
 
 class BoardRepository(BaseRepository):
@@ -17,7 +17,7 @@ class BoardRepository(BaseRepository):
     
     def find_board_lists(self, board_id: str) -> List[Dict[str, Any]]:
         """Find lists in a board, sorted by position"""
-        lists = [l for l in self.lists_store if l["board_id"] == board_id]
+        lists = [lst for lst in self.lists_store if lst["board_id"] == board_id]
         return sorted(lists, key=lambda x: x.get("position", 0))
     
     def find_user_boards(self, user_id: str) -> List[Dict[str, Any]]:
@@ -109,5 +109,5 @@ class BoardRepository(BaseRepository):
     def delete_list(self, list_id: str) -> bool:
         """Delete a list"""
         original_length = len(self.lists_store)
-        self.lists_store[:] = [l for l in self.lists_store if l["id"] != list_id]
+        self.lists_store[:] = [lst for lst in self.lists_store if lst["id"] != list_id]
         return len(self.lists_store) < original_length 

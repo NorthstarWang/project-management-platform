@@ -137,7 +137,7 @@ class CommentService:
             "task_id": comment["task_id"],
             "user_id": author_id,
             "activity_type": "updated",
-            "description": f"Edited a comment"
+            "description": "Edited a comment"
         })
         
         return updated_comment
@@ -166,7 +166,7 @@ class CommentService:
                 "task_id": comment["task_id"],
                 "user_id": user_id,
                 "activity_type": "updated",
-                "description": f"Deleted a comment"
+                "description": "Deleted a comment"
             })
         
         return success 

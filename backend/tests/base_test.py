@@ -96,7 +96,7 @@ class BaseAPITest:
         passed = sum(1 for r in self.test_results if r['success'])
         failed = total - passed
         
-        print(f"\n📊 Test Summary:")
+        print("\n📊 Test Summary:")
         print(f"   ✅ Passed: {passed}")
         print(f"   ❌ Failed: {failed}")
         print(f"   📈 Success Rate: {(passed/total*100):.1f}%")

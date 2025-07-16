@@ -3,10 +3,14 @@ from .repositories import (
     UserRepository, ProjectRepository, BoardRepository, 
     TaskRepository, NotificationRepository, CommentRepository, TeamRepository, MessageRepository
 )
+from .repositories.custom_field_repository import CustomFieldRepository
+from .repositories.time_tracking_repository import TimeTrackingRepository
 from .services import (
     UserService, ProjectService, BoardService,
     TaskService, NotificationService, CommentService, TeamService, MessageService
 )
+from .services.custom_field_service import CustomFieldService
+from .services.time_tracking_service import TimeTrackingService
 
 class DataManager:
     """Centralized data manager with repositories and services"""
@@ -45,6 +49,8 @@ class DataManager:
             self.teams, self.team_memberships, self.team_join_requests, self.team_invitations
         )
         self.message_repository = MessageRepository()
+        self.custom_field_repository = CustomFieldRepository()
+        self.time_tracking_repository = TimeTrackingRepository()
         
         # Initialize services
         self.user_service = UserService(self.user_repository, self.team_repository)
@@ -70,6 +76,13 @@ class DataManager:
             self.user_service,
             self.team_service,
             self.notification_service
+        )
+        self.custom_field_service = CustomFieldService()
+        self.time_tracking_service = TimeTrackingService(
+            self.time_tracking_repository,
+            self.user_repository,
+            self.task_repository,
+            self.project_repository
         )
     
     def reset(self, seed: Optional[str] = None):
@@ -102,7 +115,25 @@ class DataManager:
             "board_statuses": self.board_statuses,
             "team_join_requests": self.team_join_requests,
             "team_invitations": self.team_invitations,
-            "team_creation_requests": self.team_creation_requests
+            "team_creation_requests": self.team_creation_requests,
+            "custom_field_definitions": list(self.custom_field_repository.custom_field_definitions.values()),
+            "custom_field_values": list(self.custom_field_repository.custom_field_values.values()),
+            "field_templates": list(self.custom_field_repository.field_templates.values()),
+            "custom_field_filters": list(self.custom_field_repository.custom_field_filters.values()),
+            "custom_field_history": self.custom_field_repository.custom_field_history,
+            "time_entries": list(self.time_tracking_repository.time_entries.values()),
+            "timers": list(self.time_tracking_repository.timers.values()),
+            "task_estimates": list(self.time_tracking_repository.task_estimates.values()),
+            "task_progress": list(self.time_tracking_repository.task_progress.values()),
+            "work_patterns": list(self.time_tracking_repository.work_patterns.values()),
+            "sprint_burndowns": list(self.time_tracking_repository.sprint_burndowns.values()),
+            "team_velocities": list(self.time_tracking_repository.team_velocities.values()),
+            "time_tracking_alerts": list(self.time_tracking_repository.time_tracking_alerts.values()),
+            "timesheets": list(self.time_tracking_repository.timesheets.values()),
+            "project_timebudgets": list(self.time_tracking_repository.project_timebudgets.values()),
+            "capacity_plans": list(self.time_tracking_repository.capacity_plans.values()),
+            "time_tracking_reports": list(self.time_tracking_repository.time_tracking_reports.values()),
+            "time_tracking_settings": list(self.time_tracking_repository.time_tracking_settings.values())
         }
     
     def augment_state(self, data: Dict[str, Any]):

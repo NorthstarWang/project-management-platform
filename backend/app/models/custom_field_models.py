@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any
 from enum import Enum
-from datetime import datetime
 
 class FieldType(str, Enum):
     """Supported custom field types"""

@@ -5,7 +5,6 @@ from ..models.custom_field_models import (
     CustomFieldFilter, CustomFieldHistory, EntityType, FieldType
 )
 import time
-import json
 
 class CustomFieldRepository(BaseRepository):
     """Repository for custom field operations"""

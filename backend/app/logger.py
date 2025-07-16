@@ -16,7 +16,7 @@ class Logger:
 
     def get_logs(self, session_id: str = None) -> List[Dict[str, Any]]:
         if session_id:
-            return [l for l in self.logs if l["session_id"] == session_id]
+            return [log for log in self.logs if log["session_id"] == session_id]
         return self.logs
 
     def clear_logs(self):

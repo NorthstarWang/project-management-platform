@@ -1,5 +1,7 @@
 # Import all models from the modular structure for backward compatibility
 from .models import * 
+from typing import List, Dict, Optional
+from pydantic import BaseModel
 
 # Add these new models at the end of the file
 class BoardStatusIn(BaseModel):

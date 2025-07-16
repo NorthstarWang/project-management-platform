@@ -79,7 +79,7 @@ class UserService:
                     enhanced_teams.append(enhanced_team)
                 
                 profile["teams"] = enhanced_teams
-            except Exception as e:
+            except Exception:
                 # If there's an error getting teams, just set empty list
                 profile["teams"] = []
         else:
