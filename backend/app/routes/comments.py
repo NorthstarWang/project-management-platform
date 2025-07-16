@@ -14,7 +14,7 @@ def create_comment(comment_in: CommentIn, request: Request, current_user: dict =
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
         
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="Task list not found")
         
@@ -77,7 +77,7 @@ def list_task_comments(task_id: str, request: Request, current_user: dict = Depe
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
         
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list or not data_manager.board_service.check_user_board_access(current_user["id"], task_list["board_id"], current_user["role"]):
             raise HTTPException(status_code=403, detail="Access denied")
         

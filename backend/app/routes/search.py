@@ -85,8 +85,8 @@ def global_search(q: str, request: Request, current_user: dict = Depends(get_cur
         
         # Search tasks (only in accessible boards)
         accessible_board_ids = [b["id"] for b in accessible_boards]
-        accessible_list_ids = [l["id"] for l in data_manager.lists 
-                              if l["board_id"] in accessible_board_ids]
+        accessible_list_ids = [lst["id"] for lst in data_manager.lists 
+                              if lst["board_id"] in accessible_board_ids]
         
         for task in data_manager.tasks:
             if (task["list_id"] in accessible_list_ids and
@@ -96,7 +96,7 @@ def global_search(q: str, request: Request, current_user: dict = Depends(get_cur
                 if (query in task.get("title", "").lower() or 
                     query in task.get("description", "").lower()):
                     # Get board and project info
-                    task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+                    task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
                     board = next((b for b in data_manager.boards if b["id"] == task_list["board_id"]), None) if task_list else None
                     project = next((p for p in data_manager.projects if p["id"] == board["project_id"]), None) if board else None
                     
