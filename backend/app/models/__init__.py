@@ -16,6 +16,17 @@ from .notification_models import NotificationIn, NotificationType
 from .comment_models import CommentIn
 from .search_models import SearchQuery
 from .message_models import MessageIn, ConversationIn, MessageUpdate, ConversationType
+from .custom_field_models import (
+    FieldType, TextSubtype, NumberSubtype, DateSubtype, EntityType,
+    FieldValidationRule, FieldOption, FieldConfiguration, FieldDisplayOptions,
+    CustomFieldIn, CustomFieldUpdate, CustomFieldValue, BulkFieldValueUpdate,
+    CustomFieldDefinition, CustomFieldValueRecord, FieldTemplate, FieldTemplateIn,
+    CustomFieldFilter, FilterCondition, FilterConfig, CustomFieldFilterIn,
+    FieldDependency, FieldInheritance, CustomFieldHistory, ImportMapping,
+    ImportOptions, ImportRequest, ExportOptions, ExportRequest,
+    BulkFieldOperation, FieldSearchQuery, FieldValueSearchQuery,
+    CustomFieldStats, CustomFieldResponse
+)
 
 # Export all models
 __all__ = [
@@ -35,5 +46,15 @@ __all__ = [
     # Search models
     "SearchQuery",
     # Message models
-    "MessageIn", "ConversationIn", "MessageUpdate", "ConversationType"
+    "MessageIn", "ConversationIn", "MessageUpdate", "ConversationType",
+    # Custom field models
+    "FieldType", "TextSubtype", "NumberSubtype", "DateSubtype", "EntityType",
+    "FieldValidationRule", "FieldOption", "FieldConfiguration", "FieldDisplayOptions",
+    "CustomFieldIn", "CustomFieldUpdate", "CustomFieldValue", "BulkFieldValueUpdate",
+    "CustomFieldDefinition", "CustomFieldValueRecord", "FieldTemplate", "FieldTemplateIn",
+    "CustomFieldFilter", "FilterCondition", "FilterConfig", "CustomFieldFilterIn",
+    "FieldDependency", "FieldInheritance", "CustomFieldHistory", "ImportMapping",
+    "ImportOptions", "ImportRequest", "ExportOptions", "ExportRequest",
+    "BulkFieldOperation", "FieldSearchQuery", "FieldValueSearchQuery",
+    "CustomFieldStats", "CustomFieldResponse"
 ] 
