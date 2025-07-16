@@ -195,7 +195,7 @@ def delete_project(project_id: str, request: Request, current_user: dict = Depen
                 data_manager.tasks[:] = [t for t in data_manager.tasks if t.get("list_id") != list_item["id"]]
             
             # 2. Delete all lists in the board
-            data_manager.lists[:] = [l for l in data_manager.lists if l.get("board_id") != board_id]
+            data_manager.lists[:] = [lst for lst in data_manager.lists if lst.get("board_id") != board_id]
             
             # 3. Delete board memberships
             data_manager.board_memberships[:] = [bm for bm in data_manager.board_memberships 

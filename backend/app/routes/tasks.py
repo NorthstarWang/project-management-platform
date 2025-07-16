@@ -10,7 +10,7 @@ def create_task(task_in: TaskIn, request: Request, current_user: dict = Depends(
     """Create a new task"""
     try:
         # Check board access via list
-        task_list = next((l for l in data_manager.lists if l["id"] == task_in.list_id), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task_in.list_id), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="List not found")
         
@@ -65,7 +65,7 @@ def update_task(task_id: str, task_update: TaskUpdate, request: Request,
             raise HTTPException(status_code=404, detail="Task not found")
         
         # Check board access
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="List not found")
         
@@ -104,7 +104,7 @@ def delete_task(task_id: str, request: Request, current_user: dict = Depends(get
             raise HTTPException(status_code=404, detail="Task not found")
         
         # Check board access
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="List not found")
         
@@ -177,7 +177,7 @@ def archive_task(task_id: str, request: Request, current_user: dict = Depends(ge
             raise HTTPException(status_code=404, detail="Task not found")
         
         # Check board access
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="List not found")
         
@@ -205,7 +205,7 @@ def unarchive_task(task_id: str, request: Request, current_user: dict = Depends(
             raise HTTPException(status_code=404, detail="Task not found")
         
         # Check board access
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="List not found")
         
@@ -233,7 +233,7 @@ def get_task_full_details(task_id: str, request: Request, current_user: dict = D
             raise HTTPException(status_code=404, detail="Task not found")
         
         # Check board access
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="List not found")
         
@@ -268,7 +268,7 @@ def get_task_details(task_id: str, request: Request, current_user: dict = Depend
             raise HTTPException(status_code=404, detail="Task not found")
         
         # Check board access
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="List not found")
         
@@ -294,7 +294,7 @@ def get_task_activities(task_id: str, request: Request, current_user: dict = Dep
             raise HTTPException(status_code=404, detail="Task not found")
         
         # Check board access
-        task_list = next((l for l in data_manager.lists if l["id"] == task["list_id"]), None)
+        task_list = next((lst for lst in data_manager.lists if lst["id"] == task["list_id"]), None)
         if not task_list:
             raise HTTPException(status_code=404, detail="List not found")
         

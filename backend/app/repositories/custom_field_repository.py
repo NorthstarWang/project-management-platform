@@ -531,22 +531,22 @@ class CustomFieldRepository(BaseRepository):
         elif operator == "greater_than":
             try:
                 return float(value) > float(search_value)
-            except:
+            except (ValueError, TypeError):
                 return False
         elif operator == "less_than":
             try:
                 return float(value) < float(search_value)
-            except:
+            except (ValueError, TypeError):
                 return False
         elif operator == "greater_or_equal":
             try:
                 return float(value) >= float(search_value)
-            except:
+            except (ValueError, TypeError):
                 return False
         elif operator == "less_or_equal":
             try:
                 return float(value) <= float(search_value)
-            except:
+            except (ValueError, TypeError):
                 return False
         elif operator == "is_null":
             return False  # Already handled above

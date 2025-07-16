@@ -490,7 +490,7 @@ def delete_board(board_id: str, request: Request, current_user: dict = Depends(g
             data_manager.tasks[:] = [t for t in data_manager.tasks if t.get("list_id") != list_item["id"]]
         
         # Delete all lists in the board
-        data_manager.lists[:] = [l for l in data_manager.lists if l.get("board_id") != board_id]
+        data_manager.lists[:] = [lst for lst in data_manager.lists if lst.get("board_id") != board_id]
         
         # Delete board memberships
         data_manager.board_memberships[:] = [bm for bm in data_manager.board_memberships 
