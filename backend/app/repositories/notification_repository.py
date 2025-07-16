@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from .base_repository import BaseRepository
 
 class NotificationRepository(BaseRepository):

@@ -1,7 +1,6 @@
 from typing import Dict, Any, List, Optional
 from .base_repository import BaseRepository
 import time
-import uuid
 
 class TeamRepository(BaseRepository):
     """Repository for team-related data operations"""

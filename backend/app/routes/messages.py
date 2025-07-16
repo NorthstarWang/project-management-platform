@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Depends, Request
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional
 import logging
 from app.models.message_models import MessageIn, ConversationIn, MessageUpdate

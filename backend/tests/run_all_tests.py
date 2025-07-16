@@ -7,7 +7,7 @@ Runs all route-specific test suites or individual test categories
 import sys
 import os
 import argparse
-from typing import List, Dict, Any
+from typing import List
 
 # Import all test suites
 from test_synthetic_api import SyntheticAPITest

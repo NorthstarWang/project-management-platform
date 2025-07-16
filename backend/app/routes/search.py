@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
-from typing import List, Dict, Any
 from ..data_manager import data_manager
 from .dependencies import get_current_user, log_action
 

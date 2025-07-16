@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from ..data_manager import data_manager
-from .dependencies import get_current_user, get_current_user_id, log_action
+from .dependencies import get_current_user, log_action
 from ..models.user_models import UserProfileUpdate, UserProfile
 
 router = APIRouter(prefix="/api", tags=["users"])

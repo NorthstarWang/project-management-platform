@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Optional
 from ..data_manager import data_manager
 from ..models.team_models import (
     TeamJoinRequest, TeamJoinRequestResponse, TeamInvitation, TeamInvitationResponse,
