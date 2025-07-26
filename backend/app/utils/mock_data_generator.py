@@ -417,9 +417,9 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
             activity_type = random.choice(activity_types[1:])  # Skip "created"
             
             # Get team users for this task's board
-            task_list = next(l for l in data_manager.lists if l["id"] == task["list_id"])
-            board = next(b for b in data_manager.boards if b["id"] == task_list["board_id"])
-            board_memberships = [m for m in data_manager.board_memberships if m["board_id"] == board["id"]]
+            task_list = next(lst for lst in data_manager.lists if lst["id"] == task["list_id"])
+            board = next(brd for brd in data_manager.boards if brd["id"] == task_list["board_id"])
+            board_memberships = [mem for mem in data_manager.board_memberships if mem["board_id"] == board["id"]]
             possible_users = [m["user_id"] for m in board_memberships]
             
             data_manager.task_activities.append({
@@ -450,9 +450,9 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
     comment_ids = []
     for task in data_manager.tasks[:30]:  # Add comments to first 30 tasks
         # Get team users for this task's board
-        task_list = next(l for l in data_manager.lists if l["id"] == task["list_id"])
-        board = next(b for b in data_manager.boards if b["id"] == task_list["board_id"])
-        board_memberships = [m for m in data_manager.board_memberships if m["board_id"] == board["id"]]
+        task_list = next(lst for lst in data_manager.lists if lst["id"] == task["list_id"])
+        board = next(brd for brd in data_manager.boards if brd["id"] == task_list["board_id"])
+        board_memberships = [mem for mem in data_manager.board_memberships if mem["board_id"] == board["id"]]
         possible_users = [m["user_id"] for m in board_memberships]
         
         # Add 1-3 comments per task
@@ -504,9 +504,9 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
         
         # Get tasks from boards the user is enrolled in
         user_accessible_tasks = [t for t in data_manager.tasks 
-                               if any(l["board_id"] in user_board_ids 
-                                    for l in data_manager.lists 
-                                    if l["id"] == t["list_id"])]
+                               if any(lst["board_id"] in user_board_ids 
+                                    for lst in data_manager.lists 
+                                    if lst["id"] == t["list_id"])]
         
         # Get boards the user is enrolled in
         user_accessible_boards = [b for b in data_manager.boards if b["id"] in user_board_ids]
@@ -703,6 +703,9 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
     
     print(f"Generated {len(data_manager.message_repository.conversations)} conversations")
     print(f"Generated {len(data_manager.message_repository.messages)} messages")
+    
+    # Create project_map
+    project_map = {project["id"]: project for project in data_manager.projects}
     
     # Generate custom fields
     generate_custom_fields(data_manager, user_map, project_map, task_ids)
@@ -951,7 +954,7 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
         }
     ]
     
-    template = data_manager.custom_field_service.create_template({
+    data_manager.custom_field_service.create_template({
         "name": "Software Development Template",
         "description": "Standard fields for software development tasks",
         "entity_type": EntityType.TASK,

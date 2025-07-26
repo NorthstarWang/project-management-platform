@@ -11,6 +11,7 @@
   "dependencies": {
     "@dnd-kit/helpers": "^0.1.18",
     "@dnd-kit/react": "^0.1.18",
+    "@hello-pangea/dnd": "^18.0.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",

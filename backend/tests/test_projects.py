@@ -80,7 +80,7 @@ class ProjectManagementTest(BaseAPITest):
             return
         
         # Get a manager user ID
-        manager_headers = self.get_manager_headers()
+        self.get_manager_headers()
         if "manager" not in self.test_users:
             self.log_test("POST /api/projects/{id}/assign_manager", False, "No manager user available")
             return

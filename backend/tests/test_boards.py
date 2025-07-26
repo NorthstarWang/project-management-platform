@@ -110,7 +110,7 @@ class BoardManagementTest(BaseAPITest):
             return
         
         # Get a member user
-        member_headers = self.get_member_headers()
+        self.get_member_headers()  # This populates self.test_users["member"]
         if "member" not in self.test_users:
             self.log_test("POST /api/boards/{id}/enroll_member", False, "No member user available")
             return
@@ -140,7 +140,7 @@ class BoardManagementTest(BaseAPITest):
             return
         
         # Get member headers (this will populate self.test_users["member"])
-        member_headers = self.get_member_headers()
+        self.get_member_headers()
         if "member" not in self.test_users:
             self.log_test("DELETE /api/boards/{id}/members/{user_id}", False, "No member user available")
             return

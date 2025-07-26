@@ -28,6 +28,9 @@ import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
 import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
 import CreateBoardModal from '@/components/CreateBoardModal';
+import { CustomFieldsSection } from '@/components/custom-fields';
+import { ProjectTimeBudget, BurndownChart, VelocityChart } from '@/components/time-tracking';
+import timeTrackingService from '@/services/timeTrackingService';
 
 interface User {
   id: string;
@@ -99,6 +102,8 @@ export default function ProjectPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
+  const [sprintBurndown, setSprintBurndown] = useState<any>(null);
+  const [teamVelocity, setTeamVelocity] = useState<any>(null);
 
   const loadProjectData = useCallback(async () => {
     try {
@@ -189,6 +194,33 @@ export default function ProjectPage() {
         setProjectManagers(managerIds);
       } catch (error) {
         console.error('Failed to load project managers:', error);
+      }
+
+      // Load time tracking data
+      try {
+        // Try to load sprint burndown if available
+        const burndownsResponse = await apiClient.get('/api/time-tracking/reports/burndown');
+        if (burndownsResponse.data && burndownsResponse.data.length > 0) {
+          // Find a burndown for this project's sprint
+          const projectBurndown = burndownsResponse.data.find((b: any) => 
+            b.project_id === projectId || b.sprint_name.includes(projectData.name)
+          );
+          if (projectBurndown) {
+            setSprintBurndown(projectBurndown);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load burndown data:', error);
+      }
+
+      // Load team velocity if team exists
+      if (projectData.team_id) {
+        try {
+          const velocityResponse = await apiClient.get(`/api/time-tracking/reports/velocity/${projectData.team_id}`);
+          setTeamVelocity(velocityResponse.data);
+        } catch (error) {
+          console.error('Failed to load velocity data:', error);
+        }
       }
 
       // Log successful data load
@@ -616,6 +648,59 @@ export default function ProjectPage() {
                     <p className="text-sm text-secondary">{team.description}</p>
                   </div>
                 </div>
+              </Card>
+            )}
+
+            {/* Custom Fields */}
+            {project && (
+              <CustomFieldsSection
+                entityType="project"
+                entityId={projectId}
+                canEdit={canDeleteProject()} // Using same permission check
+                compact={false}
+                className="mt-6"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Time Tracking Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Project Budget */}
+          <div className="lg:col-span-1">
+            {project && (
+              <ProjectTimeBudget
+                projectId={projectId}
+                projectName={project.name}
+                canManage={canDeleteProject()}
+              />
+            )}
+          </div>
+
+          {/* Sprint Burndown */}
+          <div className="lg:col-span-1">
+            {sprintBurndown ? (
+              <BurndownChart burndown={sprintBurndown} />
+            ) : (
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-primary mb-4">Sprint Burndown</h3>
+                <p className="text-sm text-secondary">
+                  No active sprint burndown data available for this project.
+                </p>
+              </Card>
+            )}
+          </div>
+
+          {/* Team Velocity */}
+          <div className="lg:col-span-1">
+            {teamVelocity ? (
+              <VelocityChart velocities={[teamVelocity]} />
+            ) : (
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-primary mb-4">Team Velocity</h3>
+                <p className="text-sm text-secondary">
+                  No team velocity data available. Velocity is calculated after completing sprints.
+                </p>
               </Card>
             )}
           </div>

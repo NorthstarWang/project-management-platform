@@ -4,7 +4,6 @@ Synthetic API Test Suite
 Tests core synthetic endpoints for session management, state control, and logging
 """
 
-import json
 from base_test import BaseAPITest
 from test_config import APIRoutes
 
@@ -153,7 +152,7 @@ class SyntheticAPITest(BaseAPITest):
         response = self.make_request("GET", APIRoutes.SYNTHETIC_VERIFY_TASK, params={"task_name": "test_task"})
         if response and response.status_code == 200:
             data = response.json()
-            success = data.get("success") == True
+            success = data.get("success") is True
             self.log_test("GET /_synthetic/verify_task", success, f"Task verification: {data.get('success')}")
         else:
             self.log_test("GET /_synthetic/verify_task", False, "Failed to verify task", response)
