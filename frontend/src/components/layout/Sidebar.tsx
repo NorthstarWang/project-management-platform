@@ -18,7 +18,8 @@ import {
   ArrowRight,
   Search,
   Shield,
-  MessageCircle
+  MessageCircle,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,7 @@ const getNavigationItems = (userRole: string) => {
   const baseNavigation = [
     { name: 'Home', href: '/dashboard', icon: Home },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Time Tracking', href: '/time-tracking', icon: Timer },
     { name: 'Messages', href: '/messages', icon: MessageCircle },
     { name: 'Notifications', href: '/notifications', icon: Bell },
     { name: 'Discover', href: '/discover', icon: Search },
