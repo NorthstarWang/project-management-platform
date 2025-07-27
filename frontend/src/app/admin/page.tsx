@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building, Shield, ArrowRight, Activity } from 'lucide-react';
+import apiClient from '@/services/apiClient';
 
 interface TeamCreationRequest {
   id: string;
@@ -106,40 +107,16 @@ export default function AdminPage() {
       setLoading(true);
       
       // Fetch team creation requests
-      const requestsResponse = await fetch('/api/teams/creation-requests', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (requestsResponse.ok) {
-        const requestsData = await requestsResponse.json();
-        setTeamCreationRequests(requestsData);
-      }
+      const requestsResponse = await apiClient.get('/api/teams/creation-requests');
+      setTeamCreationRequests(requestsResponse.data);
 
       // Fetch all teams
-      const teamsResponse = await fetch('/api/teams', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (teamsResponse.ok) {
-        const teamsData = await teamsResponse.json();
-        setTeams(teamsData);
-      }
+      const teamsResponse = await apiClient.get('/api/teams');
+      setTeams(teamsResponse.data);
 
       // Fetch all users for manager assignment
-      const usersResponse = await fetch('/api/users', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        setUsers(usersData.filter((u: User) => u.role !== 'admin')); // Exclude admins from manager selection
-      }
+      const usersResponse = await apiClient.get('/api/users');
+      setUsers(usersResponse.data.filter((u: User) => u.role !== 'admin')); // Exclude admins from manager selection
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -151,26 +128,17 @@ export default function AdminPage() {
     if (!selectedRequest) return;
 
     try {
-      const response = await fetch(`/api/teams/creation-requests/${selectedRequest.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          action: requestAction,
-          assigned_manager_id: requestAction === 'approve' ? (assignedManagerId || selectedRequest.requester.id) : undefined,
-          message: requestResponse
-        })
+      await apiClient.put(`/api/teams/creation-requests/${selectedRequest.id}`, {
+        action: requestAction,
+        assigned_manager_id: requestAction === 'approve' ? (assignedManagerId || selectedRequest.requester.id) : undefined,
+        message: requestResponse
       });
 
-      if (response.ok) {
-        await fetchData();
-        setShowRequestDialog(false);
-        setSelectedRequest(null);
-        setRequestResponse('');
-        setAssignedManagerId('');
-      }
+      await fetchData();
+      setShowRequestDialog(false);
+      setSelectedRequest(null);
+      setRequestResponse('');
+      setAssignedManagerId('');
     } catch (error) {
       console.error('Error handling request:', error);
     }
@@ -180,25 +148,16 @@ export default function AdminPage() {
     if (!newTeamName.trim() || !selectedManagerId) return;
 
     try {
-      const response = await fetch('/api/teams', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          name: newTeamName,
-          description: newTeamDescription,
-          manager_id: selectedManagerId
-        })
+      await apiClient.post('/api/teams', {
+        name: newTeamName,
+        description: newTeamDescription,
+        manager_id: selectedManagerId
       });
 
-      if (response.ok) {
-        await fetchData();
-        setNewTeamName('');
-        setNewTeamDescription('');
-        setSelectedManagerId('');
-      }
+      await fetchData();
+      setNewTeamName('');
+      setNewTeamDescription('');
+      setSelectedManagerId('');
     } catch (error) {
       console.error('Error creating team:', error);
     }

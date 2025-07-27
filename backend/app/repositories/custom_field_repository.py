@@ -10,7 +10,6 @@ class CustomFieldRepository(BaseRepository):
     """Repository for custom field operations"""
     
     def __init__(self):
-        super().__init__()
         # Initialize custom field tables
         self.custom_field_definitions: Dict[str, CustomFieldDefinition] = {}
         self.custom_field_values: Dict[str, CustomFieldValueRecord] = {}
@@ -19,6 +18,11 @@ class CustomFieldRepository(BaseRepository):
         self.custom_field_history: List[CustomFieldHistory] = []
         self.field_dependencies: Dict[str, List[Dict[str, Any]]] = {}
         self.field_inheritance: Dict[str, List[Dict[str, Any]]] = {}
+        
+    def generate_id(self, prefix: str) -> str:
+        """Generate a unique ID with prefix"""
+        import uuid
+        return f"{prefix}_{uuid.uuid4()}"
         
     # Field Definition Methods
     

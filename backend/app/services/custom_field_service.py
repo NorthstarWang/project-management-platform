@@ -254,8 +254,8 @@ class CustomFieldService:
         self,
         template_id: str,
         entity_type: EntityType,
-        entity_id: Optional[str] = None,
-        user_id: str
+        user_id: str,
+        entity_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Apply a template to create fields"""
         template = self.repository.get_template(template_id)
@@ -650,9 +650,11 @@ class CustomFieldService:
                 raise ValueError("Option values must be unique")
         
         elif field.field_type == FieldType.NUMBER:
-            if config.min_value is not None and config.max_value is not None:
-                if config.min_value > config.max_value:
-                    raise ValueError("min_value cannot be greater than max_value")
+            if field.validation_rules:
+                rules = field.validation_rules
+                if rules.min_value is not None and rules.max_value is not None:
+                    if rules.min_value > rules.max_value:
+                        raise ValueError("min_value cannot be greater than max_value")
         
         elif field.field_type == FieldType.FORMULA:
             if not config.formula:

@@ -48,12 +48,12 @@ class TimeTrackingService:
         
         # Validate task/project exists
         if request.task_id and self.task_repo:
-            task = self.task_repo.get_task(request.task_id)
+            task = self.task_repo.find_by_id(request.task_id)
             if not task:
                 raise ValueError(f"Task {request.task_id} not found")
         
         if request.project_id and self.project_repo:
-            project = self.project_repo.get_project(request.project_id)
+            project = self.project_repo.find_by_id(request.project_id)
             if not project:
                 raise ValueError(f"Project {request.project_id} not found")
         
@@ -220,12 +220,12 @@ class TimeTrackingService:
         
         # Validate task/project
         if request.task_id and self.task_repo:
-            task = self.task_repo.get_task(request.task_id)
+            task = self.task_repo.find_by_id(request.task_id)
             if not task:
                 raise ValueError(f"Task {request.task_id} not found")
         
         if request.project_id and self.project_repo:
-            project = self.project_repo.get_project(request.project_id)
+            project = self.project_repo.find_by_id(request.project_id)
             if not project:
                 raise ValueError(f"Project {request.project_id} not found")
         
@@ -331,7 +331,7 @@ class TimeTrackingService:
         """Create a task estimate"""
         # Validate task exists
         if self.task_repo:
-            task = self.task_repo.get_task(task_id)
+            task = self.task_repo.find_by_id(task_id)
             if not task:
                 raise ValueError(f"Task {task_id} not found")
         
@@ -344,7 +344,7 @@ class TimeTrackingService:
         """Update task progress"""
         # Validate task exists
         if self.task_repo:
-            task = self.task_repo.get_task(request.task_id)
+            task = self.task_repo.find_by_id(request.task_id)
             if not task:
                 raise ValueError(f"Task {request.task_id} not found")
         
@@ -1186,3 +1186,214 @@ class TimeTrackingService:
         
         user = self.user_repo.get_user(user_id)
         return user and user.get("role") in ["manager", "admin"]
+    
+    def get_burndown_chart_data(self, project_id: str, sprint_id: Optional[str] = None,
+                               start_date: Optional[date] = None, end_date: Optional[date] = None) -> Dict[str, Any]:
+        """Get burndown chart data for a project or sprint"""
+        # Validate project exists
+        project = self.project_repo.find_by_id(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+        
+        # Determine date range
+        if not start_date or not end_date:
+            # Use last 30 days as default
+            end_date = date.today()
+            start_date = end_date - timedelta(days=30)
+        
+        # Get all tasks for the project
+        from ..data_manager import data_manager
+        all_tasks = []
+        for board in data_manager.boards:
+            if board.get("project_id") == project_id:
+                for task in data_manager.tasks:
+                    if task.get("board_id") == board["id"]:
+                        all_tasks.append(task)
+        
+        # Calculate burndown data
+        burndown_data = []
+        current_date = start_date
+        
+        while current_date <= end_date:
+            # Count remaining tasks on this date
+            remaining_tasks = 0
+            remaining_points = 0
+            
+            for task in all_tasks:
+                # Check if task was created before this date
+                task_created = datetime.fromtimestamp(task.get("created_at", 0)).date()
+                if task_created <= current_date:
+                    # Check if task was completed after this date or not completed
+                    if task.get("status") != "done":
+                        remaining_tasks += 1
+                        remaining_points += task.get("story_points", 1)
+                    else:
+                        # Check completion date
+                        if "completed_at" in task:
+                            completed_date = datetime.fromtimestamp(task["completed_at"]).date()
+                            if completed_date > current_date:
+                                remaining_tasks += 1
+                                remaining_points += task.get("story_points", 1)
+            
+            burndown_data.append({
+                "date": current_date.isoformat(),
+                "remaining_tasks": remaining_tasks,
+                "remaining_points": remaining_points
+            })
+            
+            current_date += timedelta(days=1)
+        
+        # Calculate ideal burndown line
+        if burndown_data:
+            initial_points = burndown_data[0]["remaining_points"]
+            days_in_sprint = len(burndown_data)
+            ideal_burndown = []
+            
+            for i in range(days_in_sprint):
+                ideal_points = initial_points * (1 - i / (days_in_sprint - 1))
+                ideal_burndown.append({
+                    "date": burndown_data[i]["date"],
+                    "ideal_points": round(ideal_points, 1)
+                })
+        else:
+            ideal_burndown = []
+        
+        return {
+            "project_id": project_id,
+            "sprint_id": sprint_id,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "actual_burndown": burndown_data,
+            "ideal_burndown": ideal_burndown,
+            "summary": {
+                "total_tasks": len(all_tasks),
+                "completed_tasks": len([t for t in all_tasks if t.get("status") == "done"]),
+                "remaining_tasks": len([t for t in all_tasks if t.get("status") != "done"])
+            }
+        }
+    
+    def get_velocity_chart_data(self, team_id: str, sprint_count: int = 6) -> Dict[str, Any]:
+        """Get velocity chart data for a team"""
+        # Get team's projects
+        from ..data_manager import data_manager
+        team_projects = []
+        for project in data_manager.projects:
+            for assignment in data_manager.project_assignments:
+                if assignment["team_id"] == team_id and assignment["project_id"] == project["id"]:
+                    team_projects.append(project)
+                    break
+        
+        # Simulate sprint data (in a real system, this would come from sprint entities)
+        velocity_data = []
+        end_date = date.today()
+        
+        for i in range(sprint_count):
+            sprint_end = end_date - timedelta(days=i * 14)  # 2-week sprints
+            sprint_start = sprint_end - timedelta(days=14)
+            
+            # Count completed story points in this sprint
+            completed_points = 0
+            completed_tasks = 0
+            
+            for project in team_projects:
+                for board in data_manager.boards:
+                    if board.get("project_id") == project["id"]:
+                        for task in data_manager.tasks:
+                            if task.get("board_id") == board["id"] and task.get("status") == "done":
+                                if "completed_at" in task:
+                                    completed_date = datetime.fromtimestamp(task["completed_at"]).date()
+                                    if sprint_start <= completed_date <= sprint_end:
+                                        completed_points += task.get("story_points", 1)
+                                        completed_tasks += 1
+            
+            velocity_data.insert(0, {
+                "sprint_name": f"Sprint {sprint_count - i}",
+                "start_date": sprint_start.isoformat(),
+                "end_date": sprint_end.isoformat(),
+                "completed_points": completed_points,
+                "completed_tasks": completed_tasks
+            })
+        
+        # Calculate average velocity
+        total_points = sum(sprint["completed_points"] for sprint in velocity_data)
+        avg_velocity = total_points / sprint_count if sprint_count > 0 else 0
+        
+        return {
+            "team_id": team_id,
+            "sprint_count": sprint_count,
+            "velocity_data": velocity_data,
+            "average_velocity": round(avg_velocity, 1),
+            "trend": self._calculate_velocity_trend(velocity_data)
+        }
+    
+    def get_project_velocity_chart_data(self, project_id: str, sprint_count: int = 6) -> Dict[str, Any]:
+        """Get velocity chart data for a project"""
+        # Validate project exists
+        project = self.project_repo.find_by_id(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+        
+        # Simulate sprint data
+        from ..data_manager import data_manager
+        velocity_data = []
+        end_date = date.today()
+        
+        for i in range(sprint_count):
+            sprint_end = end_date - timedelta(days=i * 14)  # 2-week sprints
+            sprint_start = sprint_end - timedelta(days=14)
+            
+            # Count completed story points in this sprint for this project
+            completed_points = 0
+            completed_tasks = 0
+            
+            for board in data_manager.boards:
+                if board.get("project_id") == project_id:
+                    for task in data_manager.tasks:
+                        if task.get("board_id") == board["id"] and task.get("status") == "done":
+                            if "completed_at" in task:
+                                completed_date = datetime.fromtimestamp(task["completed_at"]).date()
+                                if sprint_start <= completed_date <= sprint_end:
+                                    completed_points += task.get("story_points", 1)
+                                    completed_tasks += 1
+            
+            velocity_data.insert(0, {
+                "sprint_name": f"Sprint {sprint_count - i}",
+                "start_date": sprint_start.isoformat(),
+                "end_date": sprint_end.isoformat(),
+                "completed_points": completed_points,
+                "completed_tasks": completed_tasks
+            })
+        
+        # Calculate average velocity
+        total_points = sum(sprint["completed_points"] for sprint in velocity_data)
+        avg_velocity = total_points / sprint_count if sprint_count > 0 else 0
+        
+        return {
+            "project_id": project_id,
+            "project_name": project.get("name", "Unknown"),
+            "sprint_count": sprint_count,
+            "velocity_data": velocity_data,
+            "average_velocity": round(avg_velocity, 1),
+            "trend": self._calculate_velocity_trend(velocity_data)
+        }
+    
+    def _calculate_velocity_trend(self, velocity_data: List[Dict[str, Any]]) -> str:
+        """Calculate velocity trend (improving, stable, declining)"""
+        if len(velocity_data) < 3:
+            return "insufficient_data"
+        
+        # Compare average of last 2 sprints with previous 2
+        recent_avg = sum(s["completed_points"] for s in velocity_data[-2:]) / 2
+        previous_avg = sum(s["completed_points"] for s in velocity_data[-4:-2]) / 2
+        
+        if previous_avg == 0:
+            return "stable"
+        
+        change_percentage = (recent_avg - previous_avg) / previous_avg * 100
+        
+        if change_percentage > 10:
+            return "improving"
+        elif change_percentage < -10:
+            return "declining"
+        else:
+            return "stable"

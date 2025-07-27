@@ -8,7 +8,7 @@ and advanced analytics in the project management platform.
 from typing import Dict, Any, List, Optional
 from datetime import datetime, date, time
 from enum import Enum
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, model_validator
 import uuid
 
 
@@ -126,7 +126,7 @@ class TimeEntry(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
-    @root_validator
+    @model_validator(mode='before')
     def calculate_duration_and_cost(cls, values):
         start_time = values.get('start_time')
         end_time = values.get('end_time')
@@ -196,7 +196,7 @@ class TaskProgress(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
-    @root_validator
+    @model_validator(mode='before')
     def calculate_percentage(cls, values):
         current = values.get('current_value', 0)
         target = values.get('target_value', 1)
@@ -267,7 +267,7 @@ class TeamVelocity(BaseModel):
     available_hours: float
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    @root_validator
+    @model_validator(mode='before')
     def calculate_velocity(cls, values):
         completed = values.get('completed_points', 0)
         team_size = values.get('team_size', 1)
@@ -352,7 +352,7 @@ class CapacityPlan(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
-    @root_validator
+    @model_validator(mode='before')
     def calculate_available_hours(cls, values):
         total = values.get('total_capacity_hours', 0)
         allocated = values.get('allocated_hours', 0)

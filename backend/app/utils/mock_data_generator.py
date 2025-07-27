@@ -1,7 +1,7 @@
 import uuid
 import random
 import time
-from datetime import datetime, timedelta, time, date
+from datetime import datetime, timedelta, date
 from typing import Optional
 
 def generate_mock_data(data_manager, seed: Optional[str] = None):
@@ -715,7 +715,7 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
 
 def generate_custom_fields(data_manager, user_map, project_map, task_ids):
     """Generate mock custom fields for various entities"""
-    from ..models.custom_field_models import EntityType, FieldType
+    from ..models.custom_field_models import EntityType, FieldType, CustomFieldIn, FieldConfiguration, FieldOption
     
     # Create custom fields for projects
     project_fields = [
@@ -768,7 +768,8 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
             "entity_type": EntityType.TASK,
             "description": "Estimated story points for the task",
             "required": False,
-            "configuration": {"min_value": 1, "max_value": 21}
+            "configuration": {},
+            "validation_rules": {"min_value": 1, "max_value": 21}
         },
         {
             "name": "Sprint",
@@ -791,7 +792,8 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
             "entity_type": EntityType.TASK,
             "description": "Task complexity rating",
             "required": False,
-            "configuration": {"max_value": 5}
+            "configuration": {},
+            "validation_rules": {"max_value": 5}
         },
         {
             "name": "Blocked",
@@ -833,7 +835,8 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
             "entity_type": EntityType.BOARD,
             "description": "Sprint duration in days",
             "required": False,
-            "configuration": {"min_value": 7, "max_value": 30, "suffix": " days"}
+            "configuration": {"suffix": " days"},
+            "validation_rules": {"min_value": 7, "max_value": 30}
         }
     ]
     
@@ -841,11 +844,28 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
     admin_id = user_map["admin_alice"]
     
     # Project fields
-    for field_data in project_fields:
-        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+    for field_data_orig in project_fields:
+        field_data = field_data_orig.copy()
+        # Convert configuration dict to FieldConfiguration object
+        config_data = field_data.pop("configuration", {})
+        if "options" in config_data:
+            config_data["options"] = [FieldOption(**opt) for opt in config_data["options"]]
+        configuration = FieldConfiguration(**config_data)
+        
+        # Extract validation rules if present
+        validation_rules = field_data.pop("validation_rules", {})
+        
+        # Create CustomFieldIn object
+        field_in = CustomFieldIn(
+            **field_data,
+            configuration=configuration,
+            validation_rules=validation_rules
+        )
+        
+        field = data_manager.custom_field_service.create_field(field_in, admin_id)
         
         # Set values for some projects
-        for project_name, project_id in project_map.items():
+        for project_id, project in project_map.items():
             if field.name == "Project Budget" and random.random() < 0.7:
                 value = random.randint(10000, 500000)
                 data_manager.custom_field_service.set_field_value(
@@ -870,8 +890,25 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
                 )
     
     # Task fields
-    for field_data in task_fields:
-        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+    for field_data_orig in task_fields:
+        field_data = field_data_orig.copy()
+        # Convert configuration dict to FieldConfiguration object
+        config_data = field_data.pop("configuration", {})
+        if "options" in config_data:
+            config_data["options"] = [FieldOption(**opt) for opt in config_data["options"]]
+        configuration = FieldConfiguration(**config_data)
+        
+        # Extract validation rules if present
+        validation_rules = field_data.pop("validation_rules", {})
+        
+        # Create CustomFieldIn object
+        field_in = CustomFieldIn(
+            **field_data,
+            configuration=configuration,
+            validation_rules=validation_rules
+        )
+        
+        field = data_manager.custom_field_service.create_field(field_in, admin_id)
         
         # Set values for some tasks
         for task_id in random.sample(task_ids, min(len(task_ids) // 2, 50)):
@@ -914,8 +951,25 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
                         )
     
     # Board fields
-    for field_data in board_fields:
-        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+    for field_data_orig in board_fields:
+        field_data = field_data_orig.copy()
+        # Convert configuration dict to FieldConfiguration object
+        config_data = field_data.pop("configuration", {})
+        if "options" in config_data:
+            config_data["options"] = [FieldOption(**opt) for opt in config_data["options"]]
+        configuration = FieldConfiguration(**config_data)
+        
+        # Extract validation rules if present
+        validation_rules = field_data.pop("validation_rules", {})
+        
+        # Create CustomFieldIn object
+        field_in = CustomFieldIn(
+            **field_data,
+            configuration=configuration,
+            validation_rules=validation_rules
+        )
+        
+        field = data_manager.custom_field_service.create_field(field_in, admin_id)
         
         # Set values for all boards
         for board in data_manager.boards:
@@ -950,18 +1004,23 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
             "field_type": "number",
             "entity_type": "task",
             "required": False,
-            "configuration": {"min_value": 0, "max_value": 100, "suffix": " hours"}
+            "configuration": {"suffix": " hours"},
+            "validation_rules": {"min_value": 0, "max_value": 100}
         }
     ]
     
-    data_manager.custom_field_service.create_template({
-        "name": "Software Development Template",
-        "description": "Standard fields for software development tasks",
-        "entity_type": EntityType.TASK,
-        "category": "it",
-        "fields": template_fields,
-        "is_public": True
-    }, admin_id)
+    from ..models.custom_field_models import FieldTemplateIn
+    
+    template_in = FieldTemplateIn(
+        name="Software Development Template",
+        description="Standard fields for software development tasks",
+        entity_type=EntityType.TASK,
+        category="it",
+        fields=template_fields,
+        is_public=True
+    )
+    
+    data_manager.custom_field_service.create_template(template_in, admin_id)
     
     print(f"Generated {len(list(data_manager.custom_field_repository.custom_field_definitions.values()))} custom field definitions")
     print(f"Generated {len(list(data_manager.custom_field_repository.custom_field_values.values()))} custom field values")
@@ -970,7 +1029,7 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
 
 def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
     """Generate mock time tracking data for various entities"""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, time
     from ..models.time_tracking_models import (
         TimeEntry, TaskEstimate, TaskProgress, WorkPattern,
         SprintBurndown, TeamVelocity, TimeTrackingAlert, TimeSheet,
@@ -1037,7 +1096,7 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
                 
                 # Create time entry
                 task_id = random.choice(sample_tasks) if random.random() < 0.8 else None
-                project_id = random.choice(list(project_map.values())) if random.random() < 0.9 else None
+                project_id = random.choice(list(project_map.keys())) if random.random() < 0.9 else None
                 
                 descriptions = [
                     "Code review and feedback",
@@ -1094,7 +1153,7 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
         data_manager.time_tracking_repository.create_task_progress(progress)
     
     # Create project budgets
-    for project_name, project_id in project_map.items():
+    for project_id, project in project_map.items():
         if random.random() < 0.7:
             budget = ProjectTimebudget(
                 project_id=project_id,
@@ -1136,7 +1195,7 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
                 alert_type=alert_type,
                 severity=severity,
                 user_id=random.choice(active_user_ids) if alert_type == AlertType.OVERTIME else None,
-                project_id=random.choice(list(project_map.values())) if alert_type == AlertType.BUDGET_EXCEEDED else None,
+                project_id=random.choice(list(project_map.keys())) if alert_type == AlertType.BUDGET_EXCEEDED else None,
                 title=f"{alert_type.value.replace('_', ' ').title()} Alert",
                 message=message
             )
@@ -1144,7 +1203,7 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
     
     # Create a sample sprint burndown
     if project_map:
-        project_id = random.choice(list(project_map.values()))
+        project_id = random.choice(list(project_map.keys()))
         burndown = SprintBurndown(
             sprint_id=f"sprint_{random.randint(1, 5)}",
             project_id=project_id,

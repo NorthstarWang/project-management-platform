@@ -9,13 +9,12 @@ from ..models.custom_field_models import (
     EntityType
 )
 from ..services.custom_field_service import CustomFieldService
-from ..services.user_service import UserService
 from ..logger import logger
 from .dependencies import get_current_user
+from ..data_manager import data_manager
 
 router = APIRouter(prefix="/api/custom-fields", tags=["custom-fields"])
-custom_field_service = CustomFieldService()
-user_service = UserService()
+custom_field_service = data_manager.custom_field_service
 
 # Field Definition Endpoints
 
@@ -207,8 +206,8 @@ async def set_field_values(
 
 @router.get("/values", response_model=Dict[str, Any])
 async def get_field_values(
-    entity_type: EntityType,
-    entity_id: str,
+    entity_type: EntityType = Query(...),
+    entity_id: str = Query(...),
     current_user: dict = Depends(get_current_user)
 ):
     """Get all custom field values for an entity"""
