@@ -5,12 +5,14 @@ from .repositories import (
 )
 from .repositories.custom_field_repository import CustomFieldRepository
 from .repositories.time_tracking_repository import TimeTrackingRepository
+from .repositories.dependency_repository import DependencyRepository
 from .services import (
     UserService, ProjectService, BoardService,
     TaskService, NotificationService, CommentService, TeamService, MessageService
 )
 from .services.custom_field_service import CustomFieldService
 from .services.time_tracking_service import TimeTrackingService
+from .services.dependency_service import DependencyService
 
 class DataManager:
     """Centralized data manager with repositories and services"""
@@ -51,6 +53,7 @@ class DataManager:
         self.message_repository = MessageRepository()
         self.custom_field_repository = CustomFieldRepository()
         self.time_tracking_repository = TimeTrackingRepository()
+        self.dependency_repository = DependencyRepository()
         
         # Initialize services
         self.user_service = UserService(self.user_repository, self.team_repository)
@@ -83,6 +86,12 @@ class DataManager:
             self.user_repository,
             self.task_repository,
             self.project_repository
+        )
+        self.dependency_service = DependencyService(
+            self.dependency_repository,
+            self.task_repository,
+            self.project_repository,
+            self.board_repository
         )
     
     def reset(self, seed: Optional[str] = None):

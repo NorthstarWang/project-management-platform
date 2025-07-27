@@ -83,6 +83,25 @@ async def get_custom_fields(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Move /values endpoint before /{field_id} to prevent route matching issues
+@router.get("/values", response_model=Dict[str, Any])
+async def get_field_values(
+    entity_type: EntityType = Query(...),
+    entity_id: str = Query(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all custom field values for an entity"""
+    try:
+        values = custom_field_service.get_entity_field_values(entity_type, entity_id)
+        
+        return {
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "values": values
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{field_id}", response_model=CustomFieldDefinition)
 async def get_custom_field(
     field_id: str,
@@ -204,23 +223,7 @@ async def set_field_values(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/values", response_model=Dict[str, Any])
-async def get_field_values(
-    entity_type: EntityType = Query(...),
-    entity_id: str = Query(...),
-    current_user: dict = Depends(get_current_user)
-):
-    """Get all custom field values for an entity"""
-    try:
-        values = custom_field_service.get_entity_field_values(entity_type, entity_id)
-        
-        return {
-            "entity_type": entity_type,
-            "entity_id": entity_id,
-            "values": values
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# This endpoint has been moved before /{field_id} to fix route matching
 
 @router.post("/values/bulk", response_model=Dict[str, Any])
 async def bulk_field_operation(

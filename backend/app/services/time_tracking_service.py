@@ -568,10 +568,10 @@ class TimeTrackingService:
         
         # Calculate trend
         velocity_values = [v.velocity for v in velocities]
-        average_velocity = statistics.mean(velocity_values)
+        average_velocity = statistics.mean(velocity_values) if velocity_values else 0
         
         # Simple trend detection
-        if len(velocity_values) >= 3:
+        if len(velocity_values) >= 6:
             recent_avg = statistics.mean(velocity_values[:3])
             older_avg = statistics.mean(velocity_values[3:])
             
@@ -703,7 +703,7 @@ class TimeTrackingService:
             }
         
         hours_remaining = budget.total_hours_budget - budget.hours_used
-        cost_remaining = (budget.cost_budget - budget.cost_used) if budget.cost_budget else None
+        cost_remaining = (budget.cost_budget - budget.cost_used) if budget.cost_budget and budget.cost_used is not None else None
         usage_percentage = budget.get_budget_usage_percentage()
         
         # Determine alert status

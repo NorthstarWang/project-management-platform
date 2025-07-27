@@ -160,7 +160,9 @@ class CustomFieldService:
         entity_id: str
     ) -> List[Dict[str, Any]]:
         """Get all field values for an entity"""
-        return self.repository.get_entity_field_values(entity_type, entity_id)
+        values = self.repository.get_entity_field_values(entity_type, entity_id)
+        # Always return a list, even if empty
+        return values if values is not None else []
     
     def bulk_update_field_values(
         self,

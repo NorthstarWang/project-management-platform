@@ -1269,4 +1269,150 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
     print(f"Generated {len(data_manager.time_tracking_repository.task_progress)} task progress entries")
     print(f"Generated {len(data_manager.time_tracking_repository.work_patterns)} work patterns")
     print(f"Generated {len(data_manager.time_tracking_repository.project_timebudgets)} project budgets")
-    print(f"Generated {len(data_manager.time_tracking_repository.time_tracking_alerts)} alerts") 
+    print(f"Generated {len(data_manager.time_tracking_repository.time_tracking_alerts)} alerts")
+    
+    # Create board_map and task_map for dependency generation
+    board_map = {board["id"]: board for board in data_manager.boards}
+    task_map = {task["id"]: task for task in data_manager.tasks}
+    
+    # Generate dependency data
+    generate_dependency_data(data_manager, user_map, board_map, task_map)
+
+
+def generate_dependency_data(data_manager, users, board_map, task_map):
+    """Generate sample dependency and workflow data"""
+    from ..models.dependency_models import DependencyType, ActionType
+    import uuid
+    
+    # Create task dependencies for some tasks
+    task_ids = list(task_map.keys())
+    if len(task_ids) >= 10:
+        # Create a few dependency chains
+        for i in range(5):
+            # Create a chain of 3-4 dependent tasks
+            chain_length = random.randint(3, 4)
+            chain_tasks = random.sample(task_ids, chain_length)
+            
+            for j in range(chain_length - 1):
+                # Get tasks to ensure they're in same project
+                task1 = task_map[chain_tasks[j]]
+                task2 = task_map[chain_tasks[j+1]]
+                
+                # Only create dependency if tasks are in same project
+                if task1.get("project_id") == task2.get("project_id"):
+                    dependency_data = {
+                        "task_id": chain_tasks[j+1],
+                        "depends_on_id": chain_tasks[j],
+                        "dependency_type": random.choice([
+                            DependencyType.FINISH_TO_START.value,
+                            DependencyType.START_TO_START.value
+                        ]),
+                        "lag_time": random.randint(0, 48)  # 0-48 hours
+                    }
+                    data_manager.dependency_repository.create_dependency(dependency_data)
+    
+    # Create workflow templates for some boards
+    board_ids = list(board_map.keys())
+    for board_id in board_ids[:2]:  # Create workflows for first 2 boards
+        # Create a simple workflow template
+        template_data = {
+            "name": f"Standard Development Workflow for {board_map[board_id]['name']}",
+            "description": "Automated workflow for standard development tasks",
+            "board_id": board_id,
+            "triggers": ["task_completed", "task_moved"]
+        }
+        template = data_manager.dependency_repository.create_workflow_template(template_data)
+        
+        # Add workflow steps
+        steps = [
+            {
+                "template_id": template["id"],
+                "name": "Assign to Developer",
+                "description": "Automatically assign task to available developer",
+                "order": 0,
+                "action_type": ActionType.ASSIGN_TASK.value,
+                "action_config": {
+                    "assignment_method": "round_robin",
+                    "user_role": "developer"
+                },
+                "conditions": [
+                    {
+                        "condition_type": "task_has_no_assignee",
+                        "condition_config": {}
+                    }
+                ]
+            },
+            {
+                "template_id": template["id"],
+                "name": "Create Review Task",
+                "description": "Create code review task when development is complete",
+                "order": 1,
+                "action_type": ActionType.CREATE_TASK.value,
+                "action_config": {
+                    "task_template": {
+                        "title": "Code Review: ${parent.title}",
+                        "description": "Review code for task: ${parent.title}",
+                        "status": "pending",
+                        "priority": "high"
+                    }
+                },
+                "conditions": [
+                    {
+                        "condition_type": "task_status_equals",
+                        "condition_config": {"status": "in_progress"}
+                    }
+                ]
+            },
+            {
+                "template_id": template["id"],
+                "name": "Notify QA Team",
+                "description": "Notify QA team when ready for testing",
+                "order": 2,
+                "action_type": ActionType.SEND_NOTIFICATION.value,
+                "action_config": {
+                    "team_role": "qa",
+                    "message_template": "Task '${task.title}' is ready for testing"
+                },
+                "conditions": [
+                    {
+                        "condition_type": "task_status_equals",
+                        "condition_config": {"status": "completed"}
+                    }
+                ]
+            }
+        ]
+        
+        # Create workflow steps
+        for step_data in steps:
+            data_manager.dependency_repository.create_workflow_step(step_data)
+        
+        # Create a workflow instance for demonstration
+        if task_ids:
+            instance_data = {
+                "template_id": template["id"],
+                "trigger_task_id": random.choice(task_ids),
+                "triggered_by": users["admin_alice"],
+                "status": "in_progress",
+                "variables": {
+                    "assigned_developer": users["frontend_emma"],
+                    "priority": "high"
+                }
+            }
+            
+            instance = data_manager.dependency_repository.create_workflow_instance(instance_data)
+            
+            # Create step executions
+            if steps:
+                # First step is completed
+                execution_data = {
+                    "instance_id": instance["id"],
+                    "step_id": str(uuid.uuid4()),
+                    "step_name": steps[0]["name"],
+                    "status": "completed",
+                    "result": {"assigned_to": users["frontend_emma"]}
+                }
+                data_manager.dependency_repository.create_step_execution(execution_data)
+    
+    print(f"Generated {len(data_manager.dependency_repository.task_dependencies)} task dependencies")
+    print(f"Generated {len(data_manager.dependency_repository.workflow_templates)} workflow templates")
+    print(f"Generated {len(data_manager.dependency_repository.workflow_instances)} workflow instances") 
