@@ -98,7 +98,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleRegister = async (_data: RegisterData) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
@@ -136,13 +135,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleInitializeSession = async (_seed?: string) => {
     // This would need to be implemented in authService if needed
     throw new Error('Session initialization not implemented in authService yet');
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleResetEnvironment = async (_seed?: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
