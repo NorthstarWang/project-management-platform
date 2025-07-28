@@ -10,6 +10,13 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from '@/components/ui/CustomToast';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
+import {
   Clock,
   Calendar,
   DollarSign,
@@ -189,21 +196,24 @@ export const TimeEntryList: React.FC<TimeEntryListProps> = ({
             />
           </div>
           <div>
-            <select
-              value={filter.status?.[0] || ''}
-              onChange={(e) => setFilter({ 
+            <Select
+              value={filter.status?.[0] || undefined}
+              onValueChange={(value) => setFilter({ 
                 ...filter, 
-                status: e.target.value ? [e.target.value as TimeEntryStatus] : undefined 
+                status: value ? [value as TimeEntryStatus] : undefined 
               })}
-              className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-input text-input cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
-              <option value="">All statuses</option>
-              {Object.values(TimeEntryStatus).map(status => (
-                <option key={status} value={status}>
-                  {status.replace('_', ' ')}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(TimeEntryStatus).map(status => (
+                  <SelectItem key={status} value={status}>
+                    {status.replace('_', ' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </Card>

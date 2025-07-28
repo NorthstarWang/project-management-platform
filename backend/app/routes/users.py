@@ -27,6 +27,27 @@ def get_current_user_info(request: Request, current_user: dict = Depends(get_cur
     })
     return current_user
 
+@router.get("/users/{user_id}")
+def get_user_by_id(
+    user_id: str,
+    request: Request, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Get user by ID (admin/manager only)"""
+    if current_user["role"] not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    user = data_manager.user_service.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    log_action(request, "USER_GET", {
+        "text": f"User {current_user['full_name']} viewed user {user['full_name']}",
+        "userId": user_id,
+        "requestedBy": current_user["id"]
+    })
+    return user
+
 @router.get("/users/me/profile", response_model=UserProfile)
 def get_current_user_profile(request: Request, current_user: dict = Depends(get_current_user)):
     """Get current user's detailed profile"""

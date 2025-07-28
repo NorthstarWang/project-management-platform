@@ -1,4 +1,5 @@
 // Core UI Components
+export * from './Alert';
 export * from './Button';
 export * from './Card';
 export * from './Input';
@@ -24,6 +25,7 @@ export * from './RadioGroup';
 export * from './Select';
 export * from './Switch';
 export * from './Slider';
+export * from './Textarea';
 
 // Overlay Components
 export * from './Dialog';

@@ -66,13 +66,19 @@ export const CustomFieldsSection: React.FC<CustomFieldsSectionProps> = ({
       
       // Convert values array to object
       const valuesMap: Record<string, any> = {};
-      valuesResponse.values?.forEach((v: any) => {
-        valuesMap[v.field_id] = v.value;
-      });
+      if (valuesResponse && valuesResponse.values && Array.isArray(valuesResponse.values)) {
+        valuesResponse.values.forEach((v: any) => {
+          valuesMap[v.field_id] = v.value;
+        });
+      }
       setValues(valuesMap);
       setEditedValues(valuesMap);
     } catch (error) {
-      toast.error('Failed to load custom fields');
+      console.error('Failed to load custom fields:', error);
+      // Don't show error toast for expected 404s when no custom fields exist
+      if (error instanceof Error && !error.message.includes('404')) {
+        toast.error('Failed to load custom fields');
+      }
     } finally {
       setLoading(false);
     }

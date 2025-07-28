@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 import { Avatar } from '@/components/ui/Avatar';
+import { Textarea } from '@/components/ui/Textarea';
 import { toast } from '@/components/ui/CustomToast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { 
@@ -559,13 +560,12 @@ export default function AdminTeamsPage() {
               
               <div>
                 <Label htmlFor="teamDescription">Description</Label>
-                <textarea
+                <Textarea
                   id="teamDescription"
                   value={newTeamDescription}
                   onChange={(e) => setNewTeamDescription(e.target.value)}
                   placeholder="Enter team description"
                   rows={3}
-                  className="w-full p-2 border border-input rounded-md bg-input text-input resize-none"
                 />
               </div>
               

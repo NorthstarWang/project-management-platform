@@ -33,6 +33,7 @@ import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
 import { CustomFieldsSection } from '@/components/custom-fields';
 import { TaskTimeTracking } from '@/components/time-tracking';
+import { TaskDependencies } from '@/components/dependencies/TaskDependencies';
 
 interface Task {
   id: string;
@@ -1056,6 +1057,16 @@ export default function TaskDetailModal({
             taskTitle={task.title}
             projectId={task.project_id}
             canEdit={true}
+          />
+        </div>
+
+        {/* Dependencies Section */}
+        <div className="border-t border-secondary pt-6">
+          <TaskDependencies
+            taskId={task.id}
+            projectId={task.project_id || ''}
+            currentTaskStatus={task.status}
+            onDependenciesChange={onTaskUpdated}
           />
         </div>
 

@@ -357,7 +357,7 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <Avatar size="lg" name={user.full_name} />
+              <Avatar size="lg" name={user.full_name} className="relative -z-10" />
               <div>
                 <p className="text-sm font-medium text-primary">{user.full_name}</p>
                 <p className="text-xs text-muted capitalize">{user.role}</p>

@@ -29,6 +29,7 @@ import { CustomizeStatusesModal } from '@/components/CustomizeStatusesModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getIconComponent } from '@/components/ui/IconSelector';
 import { CustomFieldsSection } from '@/components/custom-fields';
+import { WorkflowBuilder } from '@/components/dependencies/WorkflowBuilder';
 
 const DEFAULT_STATUS_COLORS = {
   backlog: '#6B7280',
@@ -800,6 +801,17 @@ export default function BoardPage() {
                     entityId={boardId}
                     canEdit={true}
                     compact={false}
+                  />
+                </div>
+
+                {/* Workflow Automation Section */}
+                <div className="border-t border-muted pt-6">
+                  <h3 className="text-sm font-medium text-primary mb-4">Workflow Automation</h3>
+                  <WorkflowBuilder
+                    boardId={boardId}
+                    onWorkflowCreated={() => {
+                      toast.success('Workflow created successfully!');
+                    }}
                   />
                 </div>
                 

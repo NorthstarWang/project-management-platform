@@ -18,6 +18,10 @@ export const VelocityChart: React.FC<VelocityChartProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // Handle missing or invalid velocities data inside useEffect
+    if (!velocities || !Array.isArray(velocities)) {
+      return;
+    }
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -146,7 +150,7 @@ export const VelocityChart: React.FC<VelocityChartProps> = ({
     });
 
     // Draw average line
-    const avgVelocity = velocities.reduce((sum, v) => sum + v.velocity, 0) / velocities.length;
+    const avgVelocity = velocities.reduce((sum, v) => sum + (v.velocity || 0), 0) / velocities.length;
     if (avgVelocity > 0) {
       const avgY = canvas.height - padding - (avgVelocity * yScale);
       
@@ -278,12 +282,22 @@ export const VelocityChart: React.FC<VelocityChartProps> = ({
 
   const trend = getVelocityTrend();
   const avgVelocity = velocities.length > 0 
-    ? velocities.reduce((sum, v) => sum + v.velocity, 0) / velocities.length 
+    ? velocities.reduce((sum, v) => sum + (v.velocity || 0), 0) / velocities.length 
     : 0;
-  const completionRatio = velocities.length > 0
-    ? (velocities.reduce((sum, v) => sum + v.completed_points, 0) /
-       velocities.reduce((sum, v) => sum + v.planned_points, 0) * 100)
-    : 0;
+  const totalCompleted = velocities.reduce((sum, v) => sum + (v.completed_points || 0), 0);
+  const totalPlanned = velocities.reduce((sum, v) => sum + (v.planned_points || 0), 0);
+  const completionRatio = totalPlanned > 0 ? (totalCompleted / totalPlanned * 100) : 0;
+
+  // Handle missing or invalid velocities data
+  if (!velocities || !Array.isArray(velocities)) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          No velocity data available
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-6">
@@ -315,7 +329,9 @@ export const VelocityChart: React.FC<VelocityChartProps> = ({
         <div>
           <p className="text-muted">Latest Period</p>
           <p className="text-lg font-semibold text-primary">
-            {velocities.length > 0 ? velocities[velocities.length - 1].velocity.toFixed(1) : '0'} points
+            {velocities.length > 0 && velocities[velocities.length - 1].velocity != null 
+              ? velocities[velocities.length - 1].velocity.toFixed(1) 
+              : '0'} points
           </p>
         </div>
         <div>

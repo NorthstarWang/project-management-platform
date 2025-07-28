@@ -51,7 +51,8 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
     if (timer && timer.state === TimerState.RUNNING) {
       intervalRef.current = setInterval(() => {
         const elapsed = timeTrackingService.calculateDuration(timer.start_time);
-        setElapsedTime(elapsed - timer.total_pause_duration);
+        const newElapsedTime = Math.max(0, elapsed - timer.total_pause_duration);
+        setElapsedTime(newElapsedTime);
       }, 1000);
     } else {
       if (intervalRef.current) {
@@ -77,7 +78,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
         
         // Calculate elapsed time
         const elapsed = timeTrackingService.calculateDuration(activeTimer.start_time);
-        setElapsedTime(elapsed - activeTimer.total_pause_duration);
+        setElapsedTime(Math.max(0, elapsed - activeTimer.total_pause_duration));
       }
     } catch (error) {
       console.error('Failed to load active timer:', error);
@@ -172,10 +173,10 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
     setTags(tags.filter(t => t !== tag));
   };
 
-  const formatElapsedTime = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    const secs = Math.floor((minutes % 1) * 60);
+  const formatElapsedTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
     
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
@@ -263,40 +264,45 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
           </div>
         )}
 
-        <div className="space-y-3">
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="lg:col-span-2">
             <Label htmlFor="description">Description</Label>
             <div className="flex space-x-2">
-              <Input
+              <textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="What are you working on?"
                 disabled={timer !== null}
-                leftIcon={<FileText className="h-4 w-4" />}
+                className="flex-1 px-3 py-2 border border-secondary rounded-md bg-background text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed min-h-[80px] resize-y"
+                rows={3}
               />
             </div>
           </div>
 
-          <div>
+          <div className="lg:col-span-2">
             <Label htmlFor="tags">Tags</Label>
-            <div className="flex space-x-2 mb-2">
-              <Input
-                id="tags"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                placeholder="Add tag"
-                disabled={timer !== null}
-                leftIcon={<Tag className="h-4 w-4" />}
-              />
-              <Button
-                variant="outline"
-                onClick={handleAddTag}
-                disabled={!tagInput.trim() || timer !== null}
-              >
-                Add
-              </Button>
+            <div className="flex flex-wrap gap-2 mb-2">
+              <div className="flex-1 min-w-[200px]">
+                <div className="flex space-x-2">
+                  <Input
+                    id="tags"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                    placeholder="Add tag"
+                    disabled={timer !== null}
+                    leftIcon={<Tag className="h-4 w-4" />}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={handleAddTag}
+                    disabled={!tagInput.trim() || timer !== null}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
             </div>
             
             {tags.length > 0 && (

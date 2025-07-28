@@ -174,6 +174,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   }
 
   const navigation = getNavigationItems(user.role);
+  console.log('Sidebar - User role:', user.role, 'Navigation items:', navigation.map(n => n.name));
 
   const sidebarContent = (
     <div className="flex h-full flex-col">

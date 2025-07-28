@@ -198,16 +198,10 @@ export default function ProjectPage() {
 
       // Load time tracking data
       try {
-        // Try to load sprint burndown if available
-        const burndownsResponse = await apiClient.get('/api/time-tracking/reports/burndown');
-        if (burndownsResponse.data && burndownsResponse.data.length > 0) {
-          // Find a burndown for this project's sprint
-          const projectBurndown = burndownsResponse.data.find((b: any) => 
-            b.project_id === projectId || b.sprint_name.includes(projectData.name)
-          );
-          if (projectBurndown) {
-            setSprintBurndown(projectBurndown);
-          }
+        // Try to load project burndown
+        const burndownResponse = await apiClient.get(`/api/time-tracking/projects/${projectId}/burndown`);
+        if (burndownResponse.data) {
+          setSprintBurndown(burndownResponse.data);
         }
       } catch (error) {
         console.error('Failed to load burndown data:', error);
@@ -216,7 +210,7 @@ export default function ProjectPage() {
       // Load team velocity if team exists
       if (projectData.team_id) {
         try {
-          const velocityResponse = await apiClient.get(`/api/time-tracking/reports/velocity/${projectData.team_id}`);
+          const velocityResponse = await apiClient.get(`/api/time-tracking/teams/${projectData.team_id}/velocity`);
           setTeamVelocity(velocityResponse.data);
         } catch (error) {
           console.error('Failed to load velocity data:', error);
@@ -291,7 +285,7 @@ export default function ProjectPage() {
       project_id: projectId,
       timestamp: new Date().toISOString(),
       navigation_source: 'project_detail_page',
-      total_boards_in_project: boards.length
+      total_boards_in_project: boards?.length || 0
     });
     
     router.push(`/boards/${boardId}`);
@@ -307,10 +301,10 @@ export default function ProjectPage() {
     
     // Add enhanced board creation tracking
     trackEvent('PROJECT_BOARD_CREATION_ATTEMPT', {
-      text: `User attempted to create a new board in project ${project?.name || projectId} (currently ${boards.length} boards)`,
+      text: `User attempted to create a new board in project ${project?.name || projectId} (currently ${boards?.length || 0} boards)`,
       interaction_type: 'create_board_button',
       project_id: projectId,
-      current_boards_count: boards.length,
+      current_boards_count: boards?.length || 0,
       user_role: user?.role,
       timestamp: new Date().toISOString(),
       project_name: project?.name,
@@ -387,11 +381,11 @@ export default function ProjectPage() {
 
   const handleDeleteClick = () => {
     trackEvent('PROJECT_DELETE_ATTEMPT', {
-      text: `User attempted to delete project "${project?.name}" with ${boards.length} boards and ${boards.reduce((total, board) => total + (board.tasks_count || 0), 0)} tasks`,
+      text: `User attempted to delete project "${project?.name}" with ${boards?.length || 0} boards and ${boards?.reduce((total, board) => total + (board.tasks_count || 0), 0) || 0} tasks`,
       project_id: projectId,
       project_name: project?.name,
-      boards_count: boards.length,
-      tasks_count: boards.reduce((total, board) => total + (board.tasks_count || 0), 0),
+      boards_count: boards?.length || 0,
+      tasks_count: boards?.reduce((total, board) => total + (board.tasks_count || 0), 0) || 0,
       timestamp: new Date().toISOString()
     });
     
@@ -471,7 +465,7 @@ export default function ProjectPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted">Boards</p>
-                <p className="text-2xl font-semibold text-primary">{boards.length}</p>
+                <p className="text-2xl font-semibold text-primary">{boards?.length || 0}</p>
               </div>
             </div>
           </Card>
@@ -496,7 +490,7 @@ export default function ProjectPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted">Total Tasks</p>
                 <p className="text-2xl font-semibold text-primary">
-                  {boards.reduce((total, board) => total + (board.tasks_count || 0), 0)}
+                  {boards?.reduce((total, board) => total + (board.tasks_count || 0), 0) || 0}
                 </p>
               </div>
             </div>
@@ -520,9 +514,9 @@ export default function ProjectPage() {
                     <Skeleton key={i} height="8rem" />
                   ))}
                 </div>
-              ) : boards.length > 0 ? (
+              ) : boards && boards.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {boards.map((board) => (
+                  {boards?.map((board) => (
                     <button
                       key={board.id}
                       onClick={() => handleBoardClick(board.id)}
@@ -725,7 +719,7 @@ export default function ProjectPage() {
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDeleteProject}
         title="Delete Project"
-        description={`Are you sure you want to delete "${project?.name}"? This will permanently delete ${boards.length} board${boards.length !== 1 ? 's' : ''}, ${boards.reduce((total, board) => total + (board.tasks_count || 0), 0)} task${boards.reduce((total, board) => total + (board.tasks_count || 0), 0) !== 1 ? 's' : ''}, and all associated comments and activities. This action cannot be undone.`}
+        description={`Are you sure you want to delete "${project?.name}"? This will permanently delete ${boards?.length || 0} board${(boards?.length || 0) !== 1 ? 's' : ''}, ${boards?.reduce((total, board) => total + (board.tasks_count || 0), 0) || 0} task${(boards?.reduce((total, board) => total + (board.tasks_count || 0), 0) || 0) !== 1 ? 's' : ''}, and all associated comments and activities. This action cannot be undone.`}
         confirmText="Delete Project"
         type="danger"
         loading={isDeleting}

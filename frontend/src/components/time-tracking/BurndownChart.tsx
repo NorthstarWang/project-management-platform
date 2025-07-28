@@ -18,6 +18,10 @@ export const BurndownChart: React.FC<BurndownChartProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // Handle missing or invalid burndown data inside useEffect
+    if (!burndown || !burndown.data_points || !burndown.ideal_line) {
+      return;
+    }
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -47,7 +51,8 @@ export const BurndownChart: React.FC<BurndownChartProps> = ({
     ctx.stroke();
 
     // Calculate data points
-    const maxPoints = burndown.total_points;
+    const maxPoints = burndown.total_points || 0;
+    if (!burndown.data_points || burndown.data_points.length === 0) return;
     const dataPoints = burndown.data_points;
     const idealLine = burndown.ideal_line;
 
@@ -175,13 +180,14 @@ export const BurndownChart: React.FC<BurndownChartProps> = ({
   }, [burndown, height, showIdealLine]);
 
   const getProgress = () => {
-    if (burndown.data_points.length === 0) return 0;
+    if (!burndown?.data_points || burndown.data_points.length === 0) return 0;
     const lastPoint = burndown.data_points[burndown.data_points.length - 1];
     return ((burndown.total_points - lastPoint.remaining) / burndown.total_points) * 100;
   };
 
   const isOnTrack = () => {
-    if (burndown.data_points.length === 0 || burndown.ideal_line.length === 0) return true;
+    if (!burndown?.data_points || burndown.data_points.length === 0 || 
+        !burndown?.ideal_line || burndown.ideal_line.length === 0) return true;
     
     const lastDataPoint = burndown.data_points[burndown.data_points.length - 1];
     const idealPoint = burndown.ideal_line.find(p => p.date === lastDataPoint.date);
@@ -190,6 +196,17 @@ export const BurndownChart: React.FC<BurndownChartProps> = ({
     
     return lastDataPoint.remaining <= idealPoint.remaining * 1.1; // 10% tolerance
   };
+
+  // Handle missing or invalid burndown data
+  if (!burndown || !burndown.data_points || !burndown.ideal_line) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          No burndown data available
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-6">

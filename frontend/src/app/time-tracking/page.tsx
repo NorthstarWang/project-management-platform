@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/CustomToast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import {
   Clock,
   Calendar,
@@ -23,7 +24,6 @@ import {
   Users
 } from 'lucide-react';
 import timeTrackingService from '@/services/timeTrackingService';
-import { TimeTracker } from '@/components/time-tracking/TimeTracker';
 import { TimeEntryList } from '@/components/time-tracking/TimeEntryList';
 import {
   TimeTrackingAnalytics,
@@ -42,7 +42,7 @@ interface User {
 export default function TimeTrackingDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'entries' | 'reports' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'entries' | 'reports'>('overview');
   const [dateRange, setDateRange] = useState(() => {
     const { start, end } = timeTrackingService.getWeekRange();
     return { start, end };
@@ -130,8 +130,22 @@ export default function TimeTrackingDashboard() {
         format: 'json'
       });
       
-      toast.success('Report generated successfully');
-      // In a real app, you might download or display the report
+      // Create a blob from the report data
+      const blob = new Blob([JSON.stringify(report.data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary link element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${report.name.replace(/\s+/g, '_')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Report downloaded successfully');
       console.log('Generated report:', report);
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to generate report');
@@ -222,8 +236,6 @@ export default function TimeTrackingDashboard() {
           </Card>
         </div>
 
-        {/* Current Timer */}
-        <TimeTracker compact={false} onTimeEntryCreated={() => loadDashboardData(user!.id)} />
 
         {/* Alerts */}
         {alerts.length > 0 && (
@@ -387,23 +399,25 @@ export default function TimeTrackingDashboard() {
                 <Timer className="h-8 w-8 mr-3" />
                 Time Tracking
               </h1>
-              <p className="text-secondary mt-1">Track your time and monitor productivity</p>
+              <p className="text-secondary mt-1 mb-4">Track your time and monitor productivity</p>
             </div>
             
             <div className="flex items-center space-x-3">
-              <select
+              <Select
                 value=""
-                onChange={(e) => {
-                  const value = e.target.value;
+                onValueChange={(value) => {
                   if (value === 'week') handleDateRangeChange('week');
                   else if (value === 'month') handleDateRangeChange('month');
                 }}
-                className="w-40 h-10 px-3 py-2 text-sm rounded-md border border-input bg-input text-input cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2"
               >
-                <option value="">Custom Range</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-              </select>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Custom Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
               
               <div className="flex items-center space-x-2">
                 <DatePicker
@@ -455,17 +469,6 @@ export default function TimeTrackingDashboard() {
                 <BarChart3 className="h-4 w-4 inline mr-2" />
                 Reports
               </button>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`pb-3 px-1 border-b-2 transition-colors ${
-                  activeTab === 'settings'
-                    ? 'border-accent text-accent font-medium'
-                    : 'border-transparent text-secondary hover:text-primary'
-                }`}
-              >
-                <Settings className="h-4 w-4 inline mr-2" />
-                Settings
-              </button>
             </div>
           </div>
         </div>
@@ -482,12 +485,6 @@ export default function TimeTrackingDashboard() {
             />
           )}
           {activeTab === 'reports' && renderReportsTab()}
-          {activeTab === 'settings' && (
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-primary mb-4">Time Tracking Settings</h3>
-              <p className="text-secondary">Settings configuration coming soon...</p>
-            </Card>
-          )}
         </div>
       </div>
     </DashboardLayout>

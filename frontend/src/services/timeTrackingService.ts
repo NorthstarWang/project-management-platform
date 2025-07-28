@@ -388,9 +388,14 @@ class TimeTrackingService {
   }
 
   calculateDuration(startTime: string, endTime?: string): number {
+    // Simply parse the dates as ISO strings - the backend sends proper ISO format
     const start = new Date(startTime).getTime();
     const end = endTime ? new Date(endTime).getTime() : Date.now();
-    return Math.floor((end - start) / (1000 * 60)); // minutes
+    
+    const durationMs = end - start;
+    const durationSeconds = Math.max(0, Math.floor(durationMs / 1000));
+    
+    return durationSeconds;
   }
 
   getWeekRange(date: Date = new Date()): { start: Date; end: Date } {
