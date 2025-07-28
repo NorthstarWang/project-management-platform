@@ -28,6 +28,8 @@ import { DragAndDrop } from '@/components/dnd/DragAndDrop';
 import { CustomizeStatusesModal } from '@/components/CustomizeStatusesModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getIconComponent } from '@/components/ui/IconSelector';
+import { CustomFieldsSection } from '@/components/custom-fields';
+import { WorkflowBuilder } from '@/components/dependencies/WorkflowBuilder';
 
 const DEFAULT_STATUS_COLORS = {
   backlog: '#6B7280',
@@ -710,7 +712,7 @@ export default function BoardPage() {
             }
             setShowSettings(open);
           }}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-semibold text-primary">Board Settings</h2>
@@ -789,6 +791,28 @@ export default function BoardPage() {
                       but their header colors can be customized. All other statuses are fully customizable.
                     </p>
                   </div>
+                </div>
+
+                {/* Custom Fields Section */}
+                <div className="border-t border-muted pt-6">
+                  <h3 className="text-sm font-medium text-primary mb-4">Custom Fields</h3>
+                  <CustomFieldsSection
+                    entityType="board"
+                    entityId={boardId}
+                    canEdit={true}
+                    compact={false}
+                  />
+                </div>
+
+                {/* Workflow Automation Section */}
+                <div className="border-t border-muted pt-6">
+                  <h3 className="text-sm font-medium text-primary mb-4">Workflow Automation</h3>
+                  <WorkflowBuilder
+                    boardId={boardId}
+                    onWorkflowCreated={() => {
+                      toast.success('Workflow created successfully!');
+                    }}
+                  />
                 </div>
                 
                 <div className="flex justify-end space-x-3">

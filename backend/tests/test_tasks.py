@@ -164,7 +164,7 @@ class TaskManagementTest(BaseAPITest):
             # Check if the task has been archived - the API might return different field names
             # Let's be more flexible about what constitutes success
             success = (
-                archived_task.get("archived") == True or 
+                archived_task.get("archived") is True or 
                 archived_task.get("status") == "archived" or
                 "archived" in str(archived_task).lower()
             )
@@ -201,7 +201,7 @@ class TaskManagementTest(BaseAPITest):
             unarchived_task = response.json()
             # Check if the task has been unarchived - be flexible about the response format
             success = (
-                unarchived_task.get("archived") == False or 
+                unarchived_task.get("archived") is False or 
                 unarchived_task.get("archived") is None or
                 unarchived_task.get("status") != "archived" or
                 "unarchived" in str(unarchived_task).lower()

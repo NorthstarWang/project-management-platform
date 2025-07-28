@@ -12,7 +12,9 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
-import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building, Shield, ArrowRight, Activity } from 'lucide-react';
+import { Textarea } from '@/components/ui/Textarea';
+import { AlertCircle, CheckCircle, Clock, Users, Plus, Crown, Building, Shield, ArrowRight, Activity, Key, FileText } from 'lucide-react';
+import apiClient from '@/services/apiClient';
 
 interface TeamCreationRequest {
   id: string;
@@ -86,18 +88,24 @@ export default function AdminPage() {
   const [assignedManagerId, setAssignedManagerId] = useState('');
 
   useEffect(() => {
+    console.log('Admin page - Auth loading:', authLoading, 'User:', user);
+    
     if (authLoading) return;
     
     if (!user) {
+      console.log('Admin page - No user found, redirecting to login');
       router.push('/login');
       return;
     }
     
+    console.log('Admin page - User role:', user.role);
     if (user.role !== 'admin') {
+      console.log('Admin page - User is not admin, redirecting to dashboard');
       router.push('/dashboard');
       return;
     }
 
+    console.log('Admin page - User is admin, fetching data');
     fetchData();
   }, [user, router, authLoading]);
 
@@ -106,40 +114,16 @@ export default function AdminPage() {
       setLoading(true);
       
       // Fetch team creation requests
-      const requestsResponse = await fetch('/api/teams/creation-requests', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (requestsResponse.ok) {
-        const requestsData = await requestsResponse.json();
-        setTeamCreationRequests(requestsData);
-      }
+      const requestsResponse = await apiClient.get('/api/teams/creation-requests');
+      setTeamCreationRequests(requestsResponse.data);
 
       // Fetch all teams
-      const teamsResponse = await fetch('/api/teams', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (teamsResponse.ok) {
-        const teamsData = await teamsResponse.json();
-        setTeams(teamsData);
-      }
+      const teamsResponse = await apiClient.get('/api/teams');
+      setTeams(teamsResponse.data);
 
       // Fetch all users for manager assignment
-      const usersResponse = await fetch('/api/users', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        setUsers(usersData.filter((u: User) => u.role !== 'admin')); // Exclude admins from manager selection
-      }
+      const usersResponse = await apiClient.get('/api/users');
+      setUsers(usersResponse.data.filter((u: User) => u.role !== 'admin')); // Exclude admins from manager selection
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -151,26 +135,17 @@ export default function AdminPage() {
     if (!selectedRequest) return;
 
     try {
-      const response = await fetch(`/api/teams/creation-requests/${selectedRequest.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          action: requestAction,
-          assigned_manager_id: requestAction === 'approve' ? (assignedManagerId || selectedRequest.requester.id) : undefined,
-          message: requestResponse
-        })
+      await apiClient.put(`/api/teams/creation-requests/${selectedRequest.id}`, {
+        action: requestAction,
+        assigned_manager_id: requestAction === 'approve' ? (assignedManagerId || selectedRequest.requester.id) : undefined,
+        message: requestResponse
       });
 
-      if (response.ok) {
-        await fetchData();
-        setShowRequestDialog(false);
-        setSelectedRequest(null);
-        setRequestResponse('');
-        setAssignedManagerId('');
-      }
+      await fetchData();
+      setShowRequestDialog(false);
+      setSelectedRequest(null);
+      setRequestResponse('');
+      setAssignedManagerId('');
     } catch (error) {
       console.error('Error handling request:', error);
     }
@@ -180,25 +155,16 @@ export default function AdminPage() {
     if (!newTeamName.trim() || !selectedManagerId) return;
 
     try {
-      const response = await fetch('/api/teams', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          name: newTeamName,
-          description: newTeamDescription,
-          manager_id: selectedManagerId
-        })
+      await apiClient.post('/api/teams', {
+        name: newTeamName,
+        description: newTeamDescription,
+        manager_id: selectedManagerId
       });
 
-      if (response.ok) {
-        await fetchData();
-        setNewTeamName('');
-        setNewTeamDescription('');
-        setSelectedManagerId('');
-      }
+      await fetchData();
+      setNewTeamName('');
+      setNewTeamDescription('');
+      setSelectedManagerId('');
     } catch (error) {
       console.error('Error creating team:', error);
     }
@@ -282,7 +248,7 @@ export default function AdminPage() {
       </div>
 
       {/* Admin Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/teams')}>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -298,6 +264,42 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted">Create teams, assign managers, add/remove members, and disband teams</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/permissions')}>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Permissions Management
+              </span>
+              <ArrowRight className="h-5 w-5 text-muted" />
+            </CardTitle>
+            <CardDescription>
+              Manage roles and access controls
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted">Configure role-based permissions, manage user access, and define security policies</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/audit')}>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Audit & Compliance
+              </span>
+              <ArrowRight className="h-5 w-5 text-muted" />
+            </CardTitle>
+            <CardDescription>
+              Monitor system activity and compliance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted">View audit logs, track security events, and manage compliance requirements</p>
           </CardContent>
         </Card>
         
@@ -341,7 +343,7 @@ export default function AdminPage() {
 
         <TabsContent value="requests" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Team Creation Requests</h2>
+            <h2 className="text-2xl font-semibold text-primary">Team Creation Requests</h2>
           </div>
 
           {teamCreationRequests.length === 0 ? (
@@ -383,7 +385,7 @@ export default function AdminPage() {
                   <CardContent>
                     <p className="text-secondary mb-4">{request.team_description}</p>
                     {request.message && (
-                      <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                      <div className="bg-card-content p-3 rounded-lg mb-4">
                         <p className="text-sm text-muted mb-1">Message from requester:</p>
                         <p className="text-primary">{request.message}</p>
                       </div>
@@ -395,7 +397,7 @@ export default function AdminPage() {
                       )}
                     </div>
                     {request.response_message && (
-                      <div className="mt-3 bg-blue-50 p-3 rounded-lg">
+                      <div className="mt-3 bg-info/10 p-3 rounded-lg">
                         <p className="text-sm text-info mb-1">Admin response:</p>
                         <p className="text-info">{request.response_message}</p>
                       </div>
@@ -409,7 +411,7 @@ export default function AdminPage() {
 
         <TabsContent value="teams" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Teams Management</h2>
+            <h2 className="text-2xl font-semibold text-primary">Teams Management</h2>
             <p className="text-muted">{teams.length} teams total</p>
           </div>
 
@@ -464,13 +466,12 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="teamDescription">Description</Label>
-                <textarea
+                <Textarea
                   id="teamDescription"
                   value={newTeamDescription}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewTeamDescription(e.target.value)}
+                  onChange={(e) => setNewTeamDescription(e.target.value)}
                   placeholder="Enter team description"
                   rows={3}
-                  className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -549,13 +550,12 @@ export default function AdminPage() {
 
             <div>
               <Label htmlFor="response">Response Message (Optional)</Label>
-              <textarea
+              <Textarea
                 id="response"
                 value={requestResponse}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRequestResponse(e.target.value)}
+                onChange={(e) => setRequestResponse(e.target.value)}
                 placeholder="Add a message to the requester..."
                 rows={3}
-                className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
               />
             </div>
           </div>

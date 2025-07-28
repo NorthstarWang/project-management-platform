@@ -1,7 +1,7 @@
 import uuid
 import random
 import time
-from datetime import datetime, timedelta, time, date
+from datetime import datetime, timedelta, date
 from typing import Optional
 
 def generate_mock_data(data_manager, seed: Optional[str] = None):
@@ -417,9 +417,9 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
             activity_type = random.choice(activity_types[1:])  # Skip "created"
             
             # Get team users for this task's board
-            task_list = next(l for l in data_manager.lists if l["id"] == task["list_id"])
-            board = next(b for b in data_manager.boards if b["id"] == task_list["board_id"])
-            board_memberships = [m for m in data_manager.board_memberships if m["board_id"] == board["id"]]
+            task_list = next(lst for lst in data_manager.lists if lst["id"] == task["list_id"])
+            board = next(brd for brd in data_manager.boards if brd["id"] == task_list["board_id"])
+            board_memberships = [mem for mem in data_manager.board_memberships if mem["board_id"] == board["id"]]
             possible_users = [m["user_id"] for m in board_memberships]
             
             data_manager.task_activities.append({
@@ -450,9 +450,9 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
     comment_ids = []
     for task in data_manager.tasks[:30]:  # Add comments to first 30 tasks
         # Get team users for this task's board
-        task_list = next(l for l in data_manager.lists if l["id"] == task["list_id"])
-        board = next(b for b in data_manager.boards if b["id"] == task_list["board_id"])
-        board_memberships = [m for m in data_manager.board_memberships if m["board_id"] == board["id"]]
+        task_list = next(lst for lst in data_manager.lists if lst["id"] == task["list_id"])
+        board = next(brd for brd in data_manager.boards if brd["id"] == task_list["board_id"])
+        board_memberships = [mem for mem in data_manager.board_memberships if mem["board_id"] == board["id"]]
         possible_users = [m["user_id"] for m in board_memberships]
         
         # Add 1-3 comments per task
@@ -504,9 +504,9 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
         
         # Get tasks from boards the user is enrolled in
         user_accessible_tasks = [t for t in data_manager.tasks 
-                               if any(l["board_id"] in user_board_ids 
-                                    for l in data_manager.lists 
-                                    if l["id"] == t["list_id"])]
+                               if any(lst["board_id"] in user_board_ids 
+                                    for lst in data_manager.lists 
+                                    if lst["id"] == t["list_id"])]
         
         # Get boards the user is enrolled in
         user_accessible_boards = [b for b in data_manager.boards if b["id"] in user_board_ids]
@@ -704,6 +704,9 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
     print(f"Generated {len(data_manager.message_repository.conversations)} conversations")
     print(f"Generated {len(data_manager.message_repository.messages)} messages")
     
+    # Create project_map
+    project_map = {project["id"]: project for project in data_manager.projects}
+    
     # Generate custom fields
     generate_custom_fields(data_manager, user_map, project_map, task_ids)
     
@@ -712,7 +715,7 @@ def generate_mock_data(data_manager, seed: Optional[str] = None):
 
 def generate_custom_fields(data_manager, user_map, project_map, task_ids):
     """Generate mock custom fields for various entities"""
-    from ..models.custom_field_models import EntityType, FieldType
+    from ..models.custom_field_models import EntityType, FieldType, CustomFieldIn, FieldConfiguration, FieldOption
     
     # Create custom fields for projects
     project_fields = [
@@ -765,7 +768,8 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
             "entity_type": EntityType.TASK,
             "description": "Estimated story points for the task",
             "required": False,
-            "configuration": {"min_value": 1, "max_value": 21}
+            "configuration": {},
+            "validation_rules": {"min_value": 1, "max_value": 21}
         },
         {
             "name": "Sprint",
@@ -788,7 +792,8 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
             "entity_type": EntityType.TASK,
             "description": "Task complexity rating",
             "required": False,
-            "configuration": {"max_value": 5}
+            "configuration": {},
+            "validation_rules": {"max_value": 5}
         },
         {
             "name": "Blocked",
@@ -830,7 +835,8 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
             "entity_type": EntityType.BOARD,
             "description": "Sprint duration in days",
             "required": False,
-            "configuration": {"min_value": 7, "max_value": 30, "suffix": " days"}
+            "configuration": {"suffix": " days"},
+            "validation_rules": {"min_value": 7, "max_value": 30}
         }
     ]
     
@@ -838,11 +844,28 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
     admin_id = user_map["admin_alice"]
     
     # Project fields
-    for field_data in project_fields:
-        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+    for field_data_orig in project_fields:
+        field_data = field_data_orig.copy()
+        # Convert configuration dict to FieldConfiguration object
+        config_data = field_data.pop("configuration", {})
+        if "options" in config_data:
+            config_data["options"] = [FieldOption(**opt) for opt in config_data["options"]]
+        configuration = FieldConfiguration(**config_data)
+        
+        # Extract validation rules if present
+        validation_rules = field_data.pop("validation_rules", {})
+        
+        # Create CustomFieldIn object
+        field_in = CustomFieldIn(
+            **field_data,
+            configuration=configuration,
+            validation_rules=validation_rules
+        )
+        
+        field = data_manager.custom_field_service.create_field(field_in, admin_id)
         
         # Set values for some projects
-        for project_name, project_id in project_map.items():
+        for project_id, project in project_map.items():
             if field.name == "Project Budget" and random.random() < 0.7:
                 value = random.randint(10000, 500000)
                 data_manager.custom_field_service.set_field_value(
@@ -867,8 +890,25 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
                 )
     
     # Task fields
-    for field_data in task_fields:
-        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+    for field_data_orig in task_fields:
+        field_data = field_data_orig.copy()
+        # Convert configuration dict to FieldConfiguration object
+        config_data = field_data.pop("configuration", {})
+        if "options" in config_data:
+            config_data["options"] = [FieldOption(**opt) for opt in config_data["options"]]
+        configuration = FieldConfiguration(**config_data)
+        
+        # Extract validation rules if present
+        validation_rules = field_data.pop("validation_rules", {})
+        
+        # Create CustomFieldIn object
+        field_in = CustomFieldIn(
+            **field_data,
+            configuration=configuration,
+            validation_rules=validation_rules
+        )
+        
+        field = data_manager.custom_field_service.create_field(field_in, admin_id)
         
         # Set values for some tasks
         for task_id in random.sample(task_ids, min(len(task_ids) // 2, 50)):
@@ -911,8 +951,25 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
                         )
     
     # Board fields
-    for field_data in board_fields:
-        field = data_manager.custom_field_service.create_field(field_data, admin_id)
+    for field_data_orig in board_fields:
+        field_data = field_data_orig.copy()
+        # Convert configuration dict to FieldConfiguration object
+        config_data = field_data.pop("configuration", {})
+        if "options" in config_data:
+            config_data["options"] = [FieldOption(**opt) for opt in config_data["options"]]
+        configuration = FieldConfiguration(**config_data)
+        
+        # Extract validation rules if present
+        validation_rules = field_data.pop("validation_rules", {})
+        
+        # Create CustomFieldIn object
+        field_in = CustomFieldIn(
+            **field_data,
+            configuration=configuration,
+            validation_rules=validation_rules
+        )
+        
+        field = data_manager.custom_field_service.create_field(field_in, admin_id)
         
         # Set values for all boards
         for board in data_manager.boards:
@@ -947,18 +1004,23 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
             "field_type": "number",
             "entity_type": "task",
             "required": False,
-            "configuration": {"min_value": 0, "max_value": 100, "suffix": " hours"}
+            "configuration": {"suffix": " hours"},
+            "validation_rules": {"min_value": 0, "max_value": 100}
         }
     ]
     
-    template = data_manager.custom_field_service.create_template({
-        "name": "Software Development Template",
-        "description": "Standard fields for software development tasks",
-        "entity_type": EntityType.TASK,
-        "category": "it",
-        "fields": template_fields,
-        "is_public": True
-    }, admin_id)
+    from ..models.custom_field_models import FieldTemplateIn
+    
+    template_in = FieldTemplateIn(
+        name="Software Development Template",
+        description="Standard fields for software development tasks",
+        entity_type=EntityType.TASK,
+        category="it",
+        fields=template_fields,
+        is_public=True
+    )
+    
+    data_manager.custom_field_service.create_template(template_in, admin_id)
     
     print(f"Generated {len(list(data_manager.custom_field_repository.custom_field_definitions.values()))} custom field definitions")
     print(f"Generated {len(list(data_manager.custom_field_repository.custom_field_values.values()))} custom field values")
@@ -967,7 +1029,7 @@ def generate_custom_fields(data_manager, user_map, project_map, task_ids):
 
 def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
     """Generate mock time tracking data for various entities"""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, time
     from ..models.time_tracking_models import (
         TimeEntry, TaskEstimate, TaskProgress, WorkPattern,
         SprintBurndown, TeamVelocity, TimeTrackingAlert, TimeSheet,
@@ -1034,7 +1096,7 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
                 
                 # Create time entry
                 task_id = random.choice(sample_tasks) if random.random() < 0.8 else None
-                project_id = random.choice(list(project_map.values())) if random.random() < 0.9 else None
+                project_id = random.choice(list(project_map.keys())) if random.random() < 0.9 else None
                 
                 descriptions = [
                     "Code review and feedback",
@@ -1091,7 +1153,7 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
         data_manager.time_tracking_repository.create_task_progress(progress)
     
     # Create project budgets
-    for project_name, project_id in project_map.items():
+    for project_id, project in project_map.items():
         if random.random() < 0.7:
             budget = ProjectTimebudget(
                 project_id=project_id,
@@ -1133,7 +1195,7 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
                 alert_type=alert_type,
                 severity=severity,
                 user_id=random.choice(active_user_ids) if alert_type == AlertType.OVERTIME else None,
-                project_id=random.choice(list(project_map.values())) if alert_type == AlertType.BUDGET_EXCEEDED else None,
+                project_id=random.choice(list(project_map.keys())) if alert_type == AlertType.BUDGET_EXCEEDED else None,
                 title=f"{alert_type.value.replace('_', ' ').title()} Alert",
                 message=message
             )
@@ -1141,7 +1203,7 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
     
     # Create a sample sprint burndown
     if project_map:
-        project_id = random.choice(list(project_map.values()))
+        project_id = random.choice(list(project_map.keys()))
         burndown = SprintBurndown(
             sprint_id=f"sprint_{random.randint(1, 5)}",
             project_id=project_id,
@@ -1207,4 +1269,470 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
     print(f"Generated {len(data_manager.time_tracking_repository.task_progress)} task progress entries")
     print(f"Generated {len(data_manager.time_tracking_repository.work_patterns)} work patterns")
     print(f"Generated {len(data_manager.time_tracking_repository.project_timebudgets)} project budgets")
-    print(f"Generated {len(data_manager.time_tracking_repository.time_tracking_alerts)} alerts") 
+    print(f"Generated {len(data_manager.time_tracking_repository.time_tracking_alerts)} alerts")
+    
+    # Create board_map and task_map for dependency generation
+    board_map = {board["id"]: board for board in data_manager.boards}
+    task_map = {task["id"]: task for task in data_manager.tasks}
+    
+    # Generate dependency data
+    generate_dependency_data(data_manager, user_map, board_map, task_map)
+    
+    # Generate permissions and audit data
+    generate_permissions_and_audit_data(data_manager, user_map, data_manager.teams)
+
+
+def generate_dependency_data(data_manager, users, board_map, task_map):
+    """Generate sample dependency and workflow data"""
+    from ..models.dependency_models import DependencyType, ActionType
+    import uuid
+    
+    # Create task dependencies for some tasks
+    task_ids = list(task_map.keys())
+    if len(task_ids) >= 10:
+        # Create a few dependency chains
+        for i in range(5):
+            # Create a chain of 3-4 dependent tasks
+            chain_length = random.randint(3, 4)
+            chain_tasks = random.sample(task_ids, chain_length)
+            
+            for j in range(chain_length - 1):
+                # Get tasks to ensure they're in same project
+                task1 = task_map[chain_tasks[j]]
+                task2 = task_map[chain_tasks[j+1]]
+                
+                # Only create dependency if tasks are in same project
+                if task1.get("project_id") == task2.get("project_id"):
+                    dependency_data = {
+                        "task_id": chain_tasks[j+1],
+                        "depends_on_id": chain_tasks[j],
+                        "dependency_type": random.choice([
+                            DependencyType.FINISH_TO_START.value,
+                            DependencyType.START_TO_START.value
+                        ]),
+                        "lag_time": random.randint(0, 48)  # 0-48 hours
+                    }
+                    data_manager.dependency_repository.create_dependency(dependency_data)
+    
+    # Create workflow templates for some boards
+    board_ids = list(board_map.keys())
+    for board_id in board_ids[:2]:  # Create workflows for first 2 boards
+        # Create a simple workflow template
+        template_data = {
+            "name": f"Standard Development Workflow for {board_map[board_id]['name']}",
+            "description": "Automated workflow for standard development tasks",
+            "board_id": board_id,
+            "triggers": ["task_completed", "task_moved"]
+        }
+        template = data_manager.dependency_repository.create_workflow_template(template_data)
+        
+        # Add workflow steps
+        steps = [
+            {
+                "template_id": template["id"],
+                "name": "Assign to Developer",
+                "description": "Automatically assign task to available developer",
+                "order": 0,
+                "action_type": ActionType.ASSIGN_TASK.value,
+                "action_config": {
+                    "assignment_method": "round_robin",
+                    "user_role": "developer"
+                },
+                "conditions": [
+                    {
+                        "condition_type": "task_has_no_assignee",
+                        "condition_config": {}
+                    }
+                ]
+            },
+            {
+                "template_id": template["id"],
+                "name": "Create Review Task",
+                "description": "Create code review task when development is complete",
+                "order": 1,
+                "action_type": ActionType.CREATE_TASK.value,
+                "action_config": {
+                    "task_template": {
+                        "title": "Code Review: ${parent.title}",
+                        "description": "Review code for task: ${parent.title}",
+                        "status": "pending",
+                        "priority": "high"
+                    }
+                },
+                "conditions": [
+                    {
+                        "condition_type": "task_status_equals",
+                        "condition_config": {"status": "in_progress"}
+                    }
+                ]
+            },
+            {
+                "template_id": template["id"],
+                "name": "Notify QA Team",
+                "description": "Notify QA team when ready for testing",
+                "order": 2,
+                "action_type": ActionType.SEND_NOTIFICATION.value,
+                "action_config": {
+                    "team_role": "qa",
+                    "message_template": "Task '${task.title}' is ready for testing"
+                },
+                "conditions": [
+                    {
+                        "condition_type": "task_status_equals",
+                        "condition_config": {"status": "completed"}
+                    }
+                ]
+            }
+        ]
+        
+        # Create workflow steps
+        for step_data in steps:
+            data_manager.dependency_repository.create_workflow_step(step_data)
+        
+        # Create a workflow instance for demonstration
+        if task_ids:
+            instance_data = {
+                "template_id": template["id"],
+                "trigger_task_id": random.choice(task_ids),
+                "triggered_by": users["admin_alice"],
+                "status": "in_progress",
+                "variables": {
+                    "assigned_developer": users["frontend_emma"],
+                    "priority": "high"
+                }
+            }
+            
+            instance = data_manager.dependency_repository.create_workflow_instance(instance_data)
+            
+            # Create step executions
+            if steps:
+                # First step is completed
+                execution_data = {
+                    "instance_id": instance["id"],
+                    "step_id": str(uuid.uuid4()),
+                    "step_name": steps[0]["name"],
+                    "status": "completed",
+                    "result": {"assigned_to": users["frontend_emma"]}
+                }
+                data_manager.dependency_repository.create_step_execution(execution_data)
+    
+    print(f"Generated {len(data_manager.dependency_repository.task_dependencies)} task dependencies")
+    print(f"Generated {len(data_manager.dependency_repository.workflow_templates)} workflow templates")
+    print(f"Generated {len(data_manager.dependency_repository.workflow_instances)} workflow instances")
+
+
+def generate_permissions_and_audit_data(data_manager, users, teams):
+    """Generate permissions and audit data"""
+    from ..models.permission_models import RoleCreateRequest, RoleAssignRequest, PermissionGrantRequest, ResourceType, PermissionAction
+    from ..models.audit_models import AuditEventType, AuditSeverity, ComplianceRequirement, AuditPolicy
+    import uuid
+    from datetime import datetime, timedelta
+    
+    print("\nGenerating permissions and audit data...")
+    
+    # Get admin user ID
+    admin_id = users["admin_alice"]
+    
+    # Create custom roles for teams
+    team_roles = []
+    for team in teams[:3]:  # Create roles for first 3 teams
+        # Team-specific developer role
+        dev_role_request = RoleCreateRequest(
+            name=f"{team['name']} Developer",
+            description=f"Developer role for {team['name']} team members",
+            permission_ids=[
+                "task_create", "task_read", "task_update",
+                "project_read", "board_read",
+                "time_track"
+            ],
+            scope_type="team",
+            scope_id=team["id"]
+        )
+        dev_role = data_manager.permission_service.create_role(dev_role_request, admin_id)
+        team_roles.append(dev_role)
+        
+        # Team-specific lead role
+        lead_role_request = RoleCreateRequest(
+            name=f"{team['name']} Lead",
+            description=f"Lead role for {team['name']} team",
+            permission_ids=[
+                "task_create", "task_read", "task_update", "task_delete", "task_assign",
+                "project_read", "project_update", "project_manage_members",
+                "time_track", "time_approve", "time_reports",
+                "board_create", "board_read", "board_update", "board_manage_workflows"
+            ],
+            permission_rule_ids=[],
+            scope_type="team",
+            scope_id=team["id"]
+        )
+        lead_role = data_manager.permission_service.create_role(lead_role_request, admin_id)
+        team_roles.append(lead_role)
+    
+    # Assign team roles to users
+    # Frontend team assignments
+    if "Frontend" in [t["name"] for t in teams]:
+        frontend_team = next(t for t in teams if t["name"] == "Frontend")
+        
+        # Assign team lead role
+        if "david_rodriguez" in users:
+            lead_role = next(r for r in team_roles if r.name == "Frontend Lead")
+            assign_request = RoleAssignRequest(
+                role_id=lead_role.id,
+                user_ids=[users["david_rodriguez"]],
+                scope_type="team",
+                scope_id=frontend_team["id"],
+                notes="Frontend team lead assignment"
+            )
+            data_manager.permission_service.assign_roles(assign_request, admin_id)
+        
+        # Assign developer roles
+        frontend_devs = ["frontend_emma", "frontend_alex", "frontend_maya", "frontend_lucas"]
+        dev_role = next(r for r in team_roles if r.name == "Frontend Developer")
+        dev_ids = [users[u] for u in frontend_devs if u in users]
+        if dev_ids:
+            assign_request = RoleAssignRequest(
+                role_id=dev_role.id,
+                user_ids=dev_ids,
+                scope_type="team",
+                scope_id=frontend_team["id"],
+                notes="Frontend team developer assignments"
+            )
+            data_manager.permission_service.assign_roles(assign_request, admin_id)
+    
+    # Create some direct permission grants
+    if "sarah_johnson" in users:
+        # Grant Sarah special permissions for reporting
+        grant_request = PermissionGrantRequest(
+            user_id=users["sarah_johnson"],
+            permission_id="time_reports",
+            resource_type=ResourceType.SYSTEM,
+            reason="Special access for quarterly reporting",
+            expires_at=datetime.now() + timedelta(days=90)
+        )
+        data_manager.permission_service.grant_permission(grant_request, admin_id)
+    
+    # Initialize audit sessions for active users
+    active_users = ["admin_alice", "david_rodriguez", "sarah_johnson", "frontend_emma", "backend_mike"]
+    for username in active_users:
+        if username in users:
+            session = data_manager.audit_service.start_session(
+                user_id=users[username],
+                ip_address=f"192.168.1.{random.randint(10, 250)}",
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                location={"country": "US", "city": "San Francisco"}
+            )
+    
+    # Log some authentication events
+    for username in ["admin_alice", "backend_mike"]:
+        if username in users:
+            # Successful login
+            data_manager.audit_service.log_authentication(
+                user_id=users[username],
+                success=True,
+                ip_address=f"192.168.1.{random.randint(10, 250)}",
+                user_agent="Mozilla/5.0"
+            )
+            
+            # Failed login attempt (before successful)
+            if random.random() < 0.3:
+                data_manager.audit_service.log_authentication(
+                    user_id=users[username],
+                    success=False,
+                    ip_address=f"192.168.1.{random.randint(10, 250)}",
+                    user_agent="Mozilla/5.0",
+                    error_reason="Invalid password"
+                )
+    
+    # Log some resource access events
+    if data_manager.tasks:
+        sample_tasks = random.sample(data_manager.tasks, min(10, len(data_manager.tasks)))
+        for task in sample_tasks:
+            user_id = random.choice([users[u] for u in active_users if u in users])
+            data_manager.audit_service.log_resource_access(
+                user_id=user_id,
+                resource_type="task",
+                resource_id=task["id"],
+                action="read",
+                granted=True
+            )
+    
+    # Log some data changes
+    if data_manager.projects and "sarah_johnson" in users:
+        project = random.choice(data_manager.projects)
+        data_manager.audit_service.log_data_change(
+            user_id=users["sarah_johnson"],
+            resource_type="project",
+            resource_id=project["id"],
+            resource_name=project["name"],
+            action="update",
+            changes={
+                "description": {"old": "Old description", "new": "Updated project description"},
+                "updated_at": {"old": str(datetime.now() - timedelta(days=1)), "new": str(datetime.now())}
+            }
+        )
+    
+    # Create compliance requirements
+    compliance_standards = [
+        ("SOC2", "SOC 2 Type II Compliance"),
+        ("GDPR", "General Data Protection Regulation"),
+        ("ISO27001", "Information Security Management")
+    ]
+    
+    for standard, desc in compliance_standards:
+        requirements = [
+            ComplianceRequirement(
+                id=str(uuid.uuid4()),
+                requirement_id=f"{standard}-AC-001",
+                standard=standard,
+                name=f"{standard} - Access Control",
+                description=f"Implement proper access controls for {desc}",
+                required_events=[
+                    AuditEventType.LOGIN_SUCCESS,
+                    AuditEventType.LOGIN_FAILURE,
+                    AuditEventType.PERMISSION_GRANTED,
+                    AuditEventType.PERMISSION_REVOKED,
+                    AuditEventType.PERMISSION_CHECK_DENIED
+                ],
+                retention_days=2555,  # 7 years
+                validation_rules=[
+                    {"rule": "multi_factor_auth", "required": True},
+                    {"rule": "password_complexity", "min_length": 12},
+                    {"rule": "session_timeout", "max_minutes": 30}
+                ],
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            ),
+            ComplianceRequirement(
+                id=str(uuid.uuid4()),
+                requirement_id=f"{standard}-AL-001",
+                standard=standard,
+                name=f"{standard} - Audit Logging",
+                description=f"Comprehensive audit logging for {desc}",
+                required_events=[
+                    AuditEventType.DATA_ACCESSED,
+                    AuditEventType.DATA_EXPORTED,
+                    AuditEventType.RESOURCE_CREATED,
+                    AuditEventType.RESOURCE_UPDATED,
+                    AuditEventType.RESOURCE_DELETED,
+                    AuditEventType.SETTINGS_CHANGED
+                ],
+                retention_days=2555,  # 7 years
+                validation_rules=[
+                    {"rule": "log_encryption", "required": True},
+                    {"rule": "log_integrity", "checksum": "sha256"},
+                    {"rule": "log_access_control", "restricted": True}
+                ],
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+        ]
+        
+        for req in requirements:
+            data_manager.audit_repository.create_compliance_requirement(req)
+    
+    # Create audit policies
+    policies = [
+        AuditPolicy(
+            id=str(uuid.uuid4()),
+            name="Failed Login Monitoring",
+            description="Monitor and alert on multiple failed login attempts",
+            is_active=True,
+            enabled_events=[AuditEventType.LOGIN_FAILURE],
+            event_details_level="full",
+            rules=[
+                {
+                    "event_type": "login_failure",
+                    "threshold": 3,
+                    "window_minutes": 5,
+                    "action": "alert",
+                    "severity": "high"
+                }
+            ],
+            retention_rules={
+                "default": 365,
+                "security_events": 2555,
+                "routine_events": 90
+            },
+            alert_rules=[
+                {
+                    "name": "Multiple Failed Logins",
+                    "condition": "count > 3",
+                    "severity": "high",
+                    "notify": ["admin"]
+                }
+            ],
+            created_by=admin_id,
+            created_at=datetime.now(),
+            updated_by=admin_id,
+            updated_at=datetime.now()
+        ),
+        AuditPolicy(
+            id=str(uuid.uuid4()),
+            name="Data Export Tracking",
+            description="Track all data export operations",
+            is_active=True,
+            enabled_events=[AuditEventType.DATA_EXPORTED],
+            event_details_level="full",
+            rules=[
+                {
+                    "event_type": "data_exported",
+                    "require_reason": True,
+                    "require_approval": True,
+                    "action": "log_and_notify"
+                }
+            ],
+            retention_rules={
+                "default": 365,
+                "security_events": 2555,
+                "routine_events": 90
+            },
+            alert_rules=[
+                {
+                    "name": "Data Export Alert",
+                    "condition": "always",
+                    "severity": "medium",
+                    "notify": ["admin", "data_protection_officer"]
+                }
+            ],
+            created_by=admin_id,
+            created_at=datetime.now(),
+            updated_by=admin_id,
+            updated_at=datetime.now()
+        )
+    ]
+    
+    for policy in policies:
+        data_manager.audit_repository.audit_policies[policy.id] = policy
+    
+    # Create some audit alerts
+    if "admin_alice" in users:
+        # Create a security alert
+        from ..models.audit_models import AuditAlert
+        alert = AuditAlert(
+            id=str(uuid.uuid4()),
+            alert_type="security_violation",
+            severity=AuditSeverity.WARNING,
+            title="Multiple Failed Login Attempts",
+            description="5 failed login attempts detected from IP 192.168.1.100",
+            triggered_at=datetime.now() - timedelta(hours=2),
+            trigger_event_ids=[],  # Would be populated with actual event IDs
+            trigger_rule={
+                "event_type": "login_failure",
+                "threshold": 5,
+                "window_minutes": 15,
+                "action": "alert"
+            },
+            assigned_to=users["admin_alice"],
+            status="open",
+            automated_actions=[]
+        )
+        data_manager.audit_repository.create_audit_alert(alert)
+    
+    print(f"Generated {len(data_manager.permission_repository.roles)} roles")
+    print(f"Generated {len(data_manager.permission_repository.role_assignments)} role assignments")
+    print(f"Generated {len(data_manager.permission_repository.permission_grants)} permission grants")
+    print(f"Generated {len(data_manager.audit_repository.audit_entries)} audit entries")
+    print(f"Generated {len(data_manager.audit_repository.audit_sessions)} audit sessions")
+    print(f"Generated {len(data_manager.audit_repository.compliance_requirements)} compliance requirements")
+    print(f"Generated {len(data_manager.audit_repository.audit_policies)} audit policies")
+    print(f"Generated {len(data_manager.audit_repository.audit_alerts)} audit alerts") 

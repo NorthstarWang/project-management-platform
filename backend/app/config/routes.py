@@ -18,6 +18,7 @@ class APIRoutes:
     # User management routes
     USERS_LIST = f"{API_BASE}/users"
     USERS_ME = f"{API_BASE}/users/me"
+    USER_BY_ID = f"{API_BASE}/users/{{user_id}}"
     USERS_ASSIGNED_TASKS = f"{API_BASE}/users/{{user_id}}/assigned_tasks"
     USERS_ASSIGNED_PROJECTS = f"{API_BASE}/users/me/assigned_projects"
     USERS_BOARDS = f"{API_BASE}/users/me/boards"

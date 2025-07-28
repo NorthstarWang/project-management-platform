@@ -31,12 +31,16 @@ import {
 } from 'lucide-react';
 import apiClient from '@/services/apiClient';
 import { toast } from '@/components/ui/CustomToast';
+import { CustomFieldsSection } from '@/components/custom-fields';
+import { TaskTimeTracking } from '@/components/time-tracking';
+import { TaskDependencies } from '@/components/dependencies/TaskDependencies';
 
 interface Task {
   id: string;
   title: string;
   description: string;
   list_id: string;
+  project_id?: string;
   assignee_id?: string;
   assignee_name?: string;
   priority: string;
@@ -1012,6 +1016,17 @@ export default function TaskDetailModal({
             />
           </div>
 
+          {/* Custom Fields */}
+          <div className="col-span-2">
+            <CustomFieldsSection
+              entityType="task"
+              entityId={task.id}
+              canEdit={true}
+              compact={true}
+              className="mt-4"
+            />
+          </div>
+
           {/* List */}
           <div>
             <Label className={`text-sm font-medium mb-2 block ${
@@ -1033,6 +1048,26 @@ export default function TaskDetailModal({
               }))}
             />
           </div>
+        </div>
+
+        {/* Time Tracking Section */}
+        <div className="border-t border-secondary pt-6">
+          <TaskTimeTracking
+            taskId={task.id}
+            taskTitle={task.title}
+            projectId={task.project_id}
+            canEdit={true}
+          />
+        </div>
+
+        {/* Dependencies Section */}
+        <div className="border-t border-secondary pt-6">
+          <TaskDependencies
+            taskId={task.id}
+            projectId={task.project_id || ''}
+            currentTaskStatus={task.status}
+            onDependenciesChange={onTaskUpdated}
+          />
         </div>
 
         {/* Comments Section */}

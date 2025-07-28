@@ -33,6 +33,10 @@ class UserService:
         """Get user by ID"""
         return self.user_repository.find_by_id(user_id)
     
+    def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user by ID (alias for get_user_by_id for compatibility)"""
+        return self.get_user_by_id(user_id)
+    
     def get_all_users(self) -> List[Dict[str, Any]]:
         """Get all users"""
         return self.user_repository.find_all()

@@ -9,13 +9,12 @@ from ..models.custom_field_models import (
     EntityType
 )
 from ..services.custom_field_service import CustomFieldService
-from ..services.user_service import UserService
 from ..logger import logger
 from .dependencies import get_current_user
+from ..data_manager import data_manager
 
 router = APIRouter(prefix="/api/custom-fields", tags=["custom-fields"])
-custom_field_service = CustomFieldService()
-user_service = UserService()
+custom_field_service = data_manager.custom_field_service
 
 # Field Definition Endpoints
 
@@ -81,6 +80,31 @@ async def get_custom_fields(
         )
         
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Debug endpoint to test routing
+@router.get("/test-values")
+async def test_values_endpoint():
+    """Test endpoint to verify routing"""
+    return {"message": "Values endpoint is reachable"}
+
+# Move /values endpoint before /{field_id} to prevent route matching issues
+@router.get("/values", response_model=Dict[str, Any])
+async def get_field_values(
+    entity_type: EntityType = Query(...),
+    entity_id: str = Query(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all custom field values for an entity"""
+    try:
+        values = custom_field_service.get_entity_field_values(entity_type, entity_id)
+        
+        return {
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "values": values
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -205,23 +229,7 @@ async def set_field_values(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/values", response_model=Dict[str, Any])
-async def get_field_values(
-    entity_type: EntityType,
-    entity_id: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """Get all custom field values for an entity"""
-    try:
-        values = custom_field_service.get_entity_field_values(entity_type, entity_id)
-        
-        return {
-            "entity_type": entity_type,
-            "entity_id": entity_id,
-            "values": values
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# This endpoint has been moved before /{field_id} to fix route matching
 
 @router.post("/values/bulk", response_model=Dict[str, Any])
 async def bulk_field_operation(

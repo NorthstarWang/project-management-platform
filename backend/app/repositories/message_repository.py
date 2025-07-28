@@ -60,7 +60,7 @@ class MessageRepository:
         
         # Get all team conversations for user's teams
         from app.data_manager import data_manager
-        user = data_manager.get_user(user_id)
+        user = data_manager.user_service.get_user(user_id)
         if user:
             team_conversations = [
                 c for c in self.conversations 
