@@ -251,17 +251,24 @@ async def get_active_timer(
     return service.get_active_timer(current_user["id"])
 
 
+class StopTimerRequest(BaseModel):
+    """Request model for stopping a timer"""
+    description: Optional[str] = None
+
 @router.post("/timers/{timer_id}/stop", response_model=TimeEntry)
 async def stop_timer(
     timer_id: str = Path(...),
-    description: Optional[str] = Body(None, embed=True),
+    request: StopTimerRequest = Body(...),
     current_user: dict = Depends(get_current_user),
     service: TimeTrackingService = Depends(lambda: get_time_tracking_service()),
     event_tracker=Depends(track_event)
 ):
     """Stop a timer and create time entry"""
     try:
-        entry = service.stop_timer(current_user["id"], timer_id, description)
+        # Log the request for debugging
+        print(f"[DEBUG] Stopping timer {timer_id} for user {current_user['id']} with description: {request.description}")
+        
+        entry = service.stop_timer(current_user["id"], timer_id, request.description)
         
         # Log event
         event_tracker("TIMER_STOP", {
@@ -273,9 +280,14 @@ async def stop_timer(
         
         return entry
     except ValueError as e:
+        print(f"[ERROR] ValueError in stop_timer: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except PermissionError as e:
+        print(f"[ERROR] PermissionError in stop_timer: {str(e)}")
         raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        print(f"[ERROR] Unexpected error in stop_timer: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/timers/{timer_id}/pause", response_model=Timer)

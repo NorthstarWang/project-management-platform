@@ -1277,6 +1277,9 @@ def generate_time_tracking_data(data_manager, user_map, project_map, task_ids):
     
     # Generate dependency data
     generate_dependency_data(data_manager, user_map, board_map, task_map)
+    
+    # Generate permissions and audit data
+    generate_permissions_and_audit_data(data_manager, user_map, data_manager.teams)
 
 
 def generate_dependency_data(data_manager, users, board_map, task_map):
@@ -1415,4 +1418,321 @@ def generate_dependency_data(data_manager, users, board_map, task_map):
     
     print(f"Generated {len(data_manager.dependency_repository.task_dependencies)} task dependencies")
     print(f"Generated {len(data_manager.dependency_repository.workflow_templates)} workflow templates")
-    print(f"Generated {len(data_manager.dependency_repository.workflow_instances)} workflow instances") 
+    print(f"Generated {len(data_manager.dependency_repository.workflow_instances)} workflow instances")
+
+
+def generate_permissions_and_audit_data(data_manager, users, teams):
+    """Generate permissions and audit data"""
+    from ..models.permission_models import RoleCreateRequest, RoleAssignRequest, PermissionGrantRequest, ResourceType, PermissionAction
+    from ..models.audit_models import AuditEventType, AuditSeverity, ComplianceRequirement, AuditPolicy
+    import uuid
+    from datetime import datetime, timedelta
+    
+    print("\nGenerating permissions and audit data...")
+    
+    # Get admin user ID
+    admin_id = users["admin_alice"]
+    
+    # Create custom roles for teams
+    team_roles = []
+    for team in teams[:3]:  # Create roles for first 3 teams
+        # Team-specific developer role
+        dev_role_request = RoleCreateRequest(
+            name=f"{team['name']} Developer",
+            description=f"Developer role for {team['name']} team members",
+            permission_ids=[
+                "task_create", "task_read", "task_update",
+                "project_read", "board_read",
+                "time_track"
+            ],
+            scope_type="team",
+            scope_id=team["id"]
+        )
+        dev_role = data_manager.permission_service.create_role(dev_role_request, admin_id)
+        team_roles.append(dev_role)
+        
+        # Team-specific lead role
+        lead_role_request = RoleCreateRequest(
+            name=f"{team['name']} Lead",
+            description=f"Lead role for {team['name']} team",
+            permission_ids=[
+                "task_create", "task_read", "task_update", "task_delete", "task_assign",
+                "project_read", "project_update", "project_manage_members",
+                "time_track", "time_approve", "time_reports",
+                "board_create", "board_read", "board_update", "board_manage_workflows"
+            ],
+            permission_rule_ids=[],
+            scope_type="team",
+            scope_id=team["id"]
+        )
+        lead_role = data_manager.permission_service.create_role(lead_role_request, admin_id)
+        team_roles.append(lead_role)
+    
+    # Assign team roles to users
+    # Frontend team assignments
+    if "Frontend" in [t["name"] for t in teams]:
+        frontend_team = next(t for t in teams if t["name"] == "Frontend")
+        
+        # Assign team lead role
+        if "david_rodriguez" in users:
+            lead_role = next(r for r in team_roles if r.name == "Frontend Lead")
+            assign_request = RoleAssignRequest(
+                role_id=lead_role.id,
+                user_ids=[users["david_rodriguez"]],
+                scope_type="team",
+                scope_id=frontend_team["id"],
+                notes="Frontend team lead assignment"
+            )
+            data_manager.permission_service.assign_roles(assign_request, admin_id)
+        
+        # Assign developer roles
+        frontend_devs = ["frontend_emma", "frontend_alex", "frontend_maya", "frontend_lucas"]
+        dev_role = next(r for r in team_roles if r.name == "Frontend Developer")
+        dev_ids = [users[u] for u in frontend_devs if u in users]
+        if dev_ids:
+            assign_request = RoleAssignRequest(
+                role_id=dev_role.id,
+                user_ids=dev_ids,
+                scope_type="team",
+                scope_id=frontend_team["id"],
+                notes="Frontend team developer assignments"
+            )
+            data_manager.permission_service.assign_roles(assign_request, admin_id)
+    
+    # Create some direct permission grants
+    if "sarah_johnson" in users:
+        # Grant Sarah special permissions for reporting
+        grant_request = PermissionGrantRequest(
+            user_id=users["sarah_johnson"],
+            permission_id="time_reports",
+            resource_type=ResourceType.SYSTEM,
+            reason="Special access for quarterly reporting",
+            expires_at=datetime.now() + timedelta(days=90)
+        )
+        data_manager.permission_service.grant_permission(grant_request, admin_id)
+    
+    # Initialize audit sessions for active users
+    active_users = ["admin_alice", "david_rodriguez", "sarah_johnson", "frontend_emma", "backend_mike"]
+    for username in active_users:
+        if username in users:
+            session = data_manager.audit_service.start_session(
+                user_id=users[username],
+                ip_address=f"192.168.1.{random.randint(10, 250)}",
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                location={"country": "US", "city": "San Francisco"}
+            )
+    
+    # Log some authentication events
+    for username in ["admin_alice", "backend_mike"]:
+        if username in users:
+            # Successful login
+            data_manager.audit_service.log_authentication(
+                user_id=users[username],
+                success=True,
+                ip_address=f"192.168.1.{random.randint(10, 250)}",
+                user_agent="Mozilla/5.0"
+            )
+            
+            # Failed login attempt (before successful)
+            if random.random() < 0.3:
+                data_manager.audit_service.log_authentication(
+                    user_id=users[username],
+                    success=False,
+                    ip_address=f"192.168.1.{random.randint(10, 250)}",
+                    user_agent="Mozilla/5.0",
+                    error_reason="Invalid password"
+                )
+    
+    # Log some resource access events
+    if data_manager.tasks:
+        sample_tasks = random.sample(data_manager.tasks, min(10, len(data_manager.tasks)))
+        for task in sample_tasks:
+            user_id = random.choice([users[u] for u in active_users if u in users])
+            data_manager.audit_service.log_resource_access(
+                user_id=user_id,
+                resource_type="task",
+                resource_id=task["id"],
+                action="read",
+                granted=True
+            )
+    
+    # Log some data changes
+    if data_manager.projects and "sarah_johnson" in users:
+        project = random.choice(data_manager.projects)
+        data_manager.audit_service.log_data_change(
+            user_id=users["sarah_johnson"],
+            resource_type="project",
+            resource_id=project["id"],
+            resource_name=project["name"],
+            action="update",
+            changes={
+                "description": {"old": "Old description", "new": "Updated project description"},
+                "updated_at": {"old": str(datetime.now() - timedelta(days=1)), "new": str(datetime.now())}
+            }
+        )
+    
+    # Create compliance requirements
+    compliance_standards = [
+        ("SOC2", "SOC 2 Type II Compliance"),
+        ("GDPR", "General Data Protection Regulation"),
+        ("ISO27001", "Information Security Management")
+    ]
+    
+    for standard, desc in compliance_standards:
+        requirements = [
+            ComplianceRequirement(
+                id=str(uuid.uuid4()),
+                requirement_id=f"{standard}-AC-001",
+                standard=standard,
+                name=f"{standard} - Access Control",
+                description=f"Implement proper access controls for {desc}",
+                required_events=[
+                    AuditEventType.LOGIN_SUCCESS,
+                    AuditEventType.LOGIN_FAILURE,
+                    AuditEventType.PERMISSION_GRANTED,
+                    AuditEventType.PERMISSION_REVOKED,
+                    AuditEventType.PERMISSION_CHECK_DENIED
+                ],
+                retention_days=2555,  # 7 years
+                validation_rules=[
+                    {"rule": "multi_factor_auth", "required": True},
+                    {"rule": "password_complexity", "min_length": 12},
+                    {"rule": "session_timeout", "max_minutes": 30}
+                ],
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            ),
+            ComplianceRequirement(
+                id=str(uuid.uuid4()),
+                requirement_id=f"{standard}-AL-001",
+                standard=standard,
+                name=f"{standard} - Audit Logging",
+                description=f"Comprehensive audit logging for {desc}",
+                required_events=[
+                    AuditEventType.DATA_ACCESSED,
+                    AuditEventType.DATA_EXPORTED,
+                    AuditEventType.RESOURCE_CREATED,
+                    AuditEventType.RESOURCE_UPDATED,
+                    AuditEventType.RESOURCE_DELETED,
+                    AuditEventType.SETTINGS_CHANGED
+                ],
+                retention_days=2555,  # 7 years
+                validation_rules=[
+                    {"rule": "log_encryption", "required": True},
+                    {"rule": "log_integrity", "checksum": "sha256"},
+                    {"rule": "log_access_control", "restricted": True}
+                ],
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+        ]
+        
+        for req in requirements:
+            data_manager.audit_repository.create_compliance_requirement(req)
+    
+    # Create audit policies
+    policies = [
+        AuditPolicy(
+            id=str(uuid.uuid4()),
+            name="Failed Login Monitoring",
+            description="Monitor and alert on multiple failed login attempts",
+            is_active=True,
+            enabled_events=[AuditEventType.LOGIN_FAILURE],
+            event_details_level="full",
+            rules=[
+                {
+                    "event_type": "login_failure",
+                    "threshold": 3,
+                    "window_minutes": 5,
+                    "action": "alert",
+                    "severity": "high"
+                }
+            ],
+            retention_rules={
+                "default": 365,
+                "security_events": 2555,
+                "routine_events": 90
+            },
+            alert_rules=[
+                {
+                    "name": "Multiple Failed Logins",
+                    "condition": "count > 3",
+                    "severity": "high",
+                    "notify": ["admin"]
+                }
+            ],
+            created_by=admin_id,
+            created_at=datetime.now(),
+            updated_by=admin_id,
+            updated_at=datetime.now()
+        ),
+        AuditPolicy(
+            id=str(uuid.uuid4()),
+            name="Data Export Tracking",
+            description="Track all data export operations",
+            is_active=True,
+            enabled_events=[AuditEventType.DATA_EXPORTED],
+            event_details_level="full",
+            rules=[
+                {
+                    "event_type": "data_exported",
+                    "require_reason": True,
+                    "require_approval": True,
+                    "action": "log_and_notify"
+                }
+            ],
+            retention_rules={
+                "default": 365,
+                "security_events": 2555,
+                "routine_events": 90
+            },
+            alert_rules=[
+                {
+                    "name": "Data Export Alert",
+                    "condition": "always",
+                    "severity": "medium",
+                    "notify": ["admin", "data_protection_officer"]
+                }
+            ],
+            created_by=admin_id,
+            created_at=datetime.now(),
+            updated_by=admin_id,
+            updated_at=datetime.now()
+        )
+    ]
+    
+    for policy in policies:
+        data_manager.audit_repository.audit_policies[policy.id] = policy
+    
+    # Create some audit alerts
+    if "admin_alice" in users:
+        # Create a security alert
+        from ..models.audit_models import AuditAlert
+        alert = AuditAlert(
+            id=str(uuid.uuid4()),
+            alert_type="security_violation",
+            severity=AuditSeverity.WARNING,
+            title="Multiple Failed Login Attempts",
+            description="5 failed login attempts detected from IP 192.168.1.100",
+            triggered_at=datetime.now() - timedelta(hours=2),
+            trigger_event_ids=[],  # Would be populated with actual event IDs
+            trigger_rule={
+                "event_type": "login_failure",
+                "threshold": 5,
+                "window_minutes": 15,
+                "action": "alert"
+            },
+            assigned_to=users["admin_alice"],
+            status="open",
+            automated_actions=[]
+        )
+        data_manager.audit_repository.create_audit_alert(alert)
+    
+    print(f"Generated {len(data_manager.permission_repository.roles)} roles")
+    print(f"Generated {len(data_manager.permission_repository.role_assignments)} role assignments")
+    print(f"Generated {len(data_manager.permission_repository.permission_grants)} permission grants")
+    print(f"Generated {len(data_manager.audit_repository.audit_entries)} audit entries")
+    print(f"Generated {len(data_manager.audit_repository.audit_sessions)} audit sessions")
+    print(f"Generated {len(data_manager.audit_repository.compliance_requirements)} compliance requirements")
+    print(f"Generated {len(data_manager.audit_repository.audit_policies)} audit policies")
+    print(f"Generated {len(data_manager.audit_repository.audit_alerts)} audit alerts") 

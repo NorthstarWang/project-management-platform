@@ -83,6 +83,12 @@ async def get_custom_fields(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Debug endpoint to test routing
+@router.get("/test-values")
+async def test_values_endpoint():
+    """Test endpoint to verify routing"""
+    return {"message": "Values endpoint is reachable"}
+
 # Move /values endpoint before /{field_id} to prevent route matching issues
 @router.get("/values", response_model=Dict[str, Any])
 async def get_field_values(

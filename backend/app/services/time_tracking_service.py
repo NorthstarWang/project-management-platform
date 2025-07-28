@@ -6,7 +6,7 @@ and analytics in the project management platform.
 """
 
 from typing import Dict, List, Optional, Any
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 import statistics
 from collections import defaultdict
 
@@ -71,7 +71,7 @@ class TimeTrackingService:
                 raise ValueError("Description is required for time entries")
             
             # Check for future entries
-            if not settings.allow_future_entries and request.start_time > datetime.utcnow():
+            if not settings.allow_future_entries and request.start_time > datetime.now(timezone.utc):
                 raise ValueError("Future time entries are not allowed")
             
             # Check for backdated entries
@@ -134,7 +134,7 @@ class TimeTrackingService:
         settings = self._get_applicable_settings("user", entry.user_id)
         if settings:
             if 'start_time' in updates and not settings.allow_future_entries:
-                if updates['start_time'] > datetime.utcnow():
+                if updates['start_time'] > datetime.now(timezone.utc):
                     raise ValueError("Future time entries are not allowed")
         
         # Apply updates
@@ -190,7 +190,7 @@ class TimeTrackingService:
         updates = {
             "status": TimeEntryStatus.APPROVED,
             "approved_by": approver_id,
-            "approved_at": datetime.utcnow()
+            "approved_at": datetime.now(timezone.utc)
         }
         
         return self.repo.update_time_entry(entry_id, updates)
@@ -236,7 +236,7 @@ class TimeTrackingService:
             project_id=request.project_id,
             description=request.description,
             tags=request.tags,
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             state=TimerState.RUNNING
         )
         
@@ -251,11 +251,11 @@ class TimeTrackingService:
         if timer.user_id != user_id:
             raise PermissionError("You can only stop your own timers")
         
-        if timer.state != TimerState.RUNNING:
-            raise ValueError("Timer is not running")
+        if timer.state not in [TimerState.RUNNING, TimerState.PAUSED]:
+            raise ValueError("Timer is not running or paused")
         
         # Stop timer
-        end_time = datetime.utcnow()
+        end_time = datetime.now(timezone.utc)
         self.repo.update_timer(timer_id, {"state": TimerState.STOPPED})
         
         # Create time entry from timer
@@ -289,7 +289,7 @@ class TimeTrackingService:
         
         updates = {
             "state": TimerState.PAUSED,
-            "pause_time": datetime.utcnow()
+            "pause_time": datetime.now(timezone.utc)
         }
         
         return self.repo.update_timer(timer_id, updates)
@@ -308,7 +308,7 @@ class TimeTrackingService:
         
         # Calculate pause duration
         if timer.pause_time:
-            pause_duration = (datetime.utcnow() - timer.pause_time).total_seconds() / 60
+            pause_duration = (datetime.now(timezone.utc) - timer.pause_time).total_seconds() / 60
             total_pause = timer.total_pause_duration + int(pause_duration)
         else:
             total_pause = timer.total_pause_duration
@@ -529,7 +529,7 @@ class TimeTrackingService:
         
         # Add data point
         burndown.add_data_point(date.today(), remaining, completed_points)
-        burndown.updated_at = datetime.utcnow()
+        burndown.updated_at = datetime.now(timezone.utc)
         
         # Check if burndown is off track
         self._check_burndown_alerts(burndown)
@@ -650,7 +650,7 @@ class TimeTrackingService:
         
         updates = {
             "status": TimeEntryStatus.SUBMITTED,
-            "submitted_at": datetime.utcnow()
+            "submitted_at": datetime.now(timezone.utc)
         }
         
         return self.repo.update_timesheet(timesheet_id, updates)
@@ -670,7 +670,7 @@ class TimeTrackingService:
         updates = {
             "status": TimeEntryStatus.APPROVED,
             "approved_by": approver_id,
-            "approved_at": datetime.utcnow()
+            "approved_at": datetime.now(timezone.utc)
         }
         
         # Update timesheet
@@ -703,7 +703,9 @@ class TimeTrackingService:
             }
         
         hours_remaining = budget.total_hours_budget - budget.hours_used
-        cost_remaining = (budget.cost_budget - budget.cost_used) if budget.cost_budget and budget.cost_used is not None else None
+        cost_budget = getattr(budget, 'cost_budget', None)
+        cost_used = getattr(budget, 'cost_used', 0)  # Default to 0 if not set
+        cost_remaining = (cost_budget - cost_used) if cost_budget is not None else None
         usage_percentage = budget.get_budget_usage_percentage()
         
         # Determine alert status
@@ -1184,7 +1186,7 @@ class TimeTrackingService:
         if not self.user_repo:
             return True  # Assume authorized if no user repo
         
-        user = self.user_repo.get_user(user_id)
+        user = self.user_repo.find_by_id(user_id)
         return user and user.get("role") in ["manager", "admin"]
     
     def get_burndown_chart_data(self, project_id: str, sprint_id: Optional[str] = None,

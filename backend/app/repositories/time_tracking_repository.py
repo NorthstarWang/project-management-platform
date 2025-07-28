@@ -5,7 +5,7 @@ This module provides in-memory storage and retrieval for time tracking data.
 """
 
 from typing import Dict, List, Optional, Any
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from collections import defaultdict
 import statistics
 
@@ -83,7 +83,7 @@ class TimeTrackingRepository:
             if hasattr(entry, key):
                 setattr(entry, key, value)
         
-        entry.updated_at = datetime.utcnow()
+        entry.updated_at = datetime.now(timezone.utc)
         
         # Recalculate duration and cost if times changed
         if 'start_time' in updates or 'end_time' in updates:
@@ -304,7 +304,7 @@ class TimeTrackingRepository:
             if hasattr(pattern, key):
                 setattr(pattern, key, value)
         
-        pattern.updated_at = datetime.utcnow()
+        pattern.updated_at = datetime.now(timezone.utc)
         return pattern
     
     # Sprint Burndown Methods
@@ -397,7 +397,7 @@ class TimeTrackingRepository:
         
         alert.acknowledged = True
         alert.acknowledged_by = user_id
-        alert.acknowledged_at = datetime.utcnow()
+        alert.acknowledged_at = datetime.now(timezone.utc)
         return alert
     
     # Timesheet Methods
@@ -531,7 +531,7 @@ class TimeTrackingRepository:
             if hasattr(settings, key):
                 setattr(settings, key, value)
         
-        settings.updated_at = datetime.utcnow()
+        settings.updated_at = datetime.now(timezone.utc)
         return settings
     
     # Integration Methods
