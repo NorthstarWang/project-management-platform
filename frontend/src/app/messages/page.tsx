@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -69,6 +69,12 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     // Load current user
@@ -105,6 +111,8 @@ export default function MessagesPage() {
     try {
       const response = await apiClient.get(`/api/conversations/${conversationId}/messages`);
       setMessages(response.data);
+      // Scroll to bottom after messages load
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error('Failed to load messages:', error);
       toast.error('Failed to load messages');
@@ -189,6 +197,8 @@ export default function MessagesPage() {
       ));
 
       setNewMessage('');
+      // Scroll to bottom after sending message
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error('Failed to send message:', error);
       toast.error('Failed to send message');
@@ -202,13 +212,13 @@ export default function MessagesPage() {
       return {
         name: conversation.other_participant?.full_name || 'Unknown User',
         avatar: conversation.other_participant?.username?.charAt(0).toUpperCase() || '?',
-        icon: <MessageCircle className="h-4 w-4" />
+        icon: <MessageCircle className="h-4 w-4 text-muted" />
       };
     } else {
       return {
         name: conversation.team?.name || conversation.name || 'Team Chat',
         avatar: conversation.team?.name?.charAt(0).toUpperCase() || 'T',
-        icon: <Users className="h-4 w-4" />
+        icon: <Users className="h-4 w-4 text-muted" />
       };
     }
   };
@@ -217,7 +227,7 @@ export default function MessagesPage() {
     <DashboardLayout>
       <div className="flex h-[calc(100vh-8rem)] rounded-2xl overflow-hidden border border-secondary shadow-lg glassmorphism-dashboard">
         {/* Conversations List */}
-        <div className="w-80 border-r border-secondary flex flex-col bg-card">
+        <div className="w-64 min-w-[16rem] max-w-[16rem] border-r border-secondary flex flex-col bg-card overflow-hidden flex-shrink-0">
           {/* Search Header */}
           <div className="p-4 border-b border-secondary">
             <h2 className="text-lg font-semibold text-primary" style={{ marginBottom: '1rem' }}>Messages</h2>
@@ -238,7 +248,7 @@ export default function MessagesPage() {
 
             {/* Search Results */}
             {searchQuery && searchResults.length > 0 && (
-              <div className="absolute z-[80] w-72 mt-2 bg-dropdown/95 backdrop-blur-xl border border-dropdown rounded-xl shadow-dropdown overflow-hidden">
+              <div className="absolute z-[80] w-56 mt-2 bg-dropdown/95 backdrop-blur-xl border border-dropdown rounded-xl shadow-dropdown overflow-hidden">
                 {searchResults.map(user => (
                   <button
                     key={user.id}
@@ -249,7 +259,7 @@ export default function MessagesPage() {
                     <Avatar
                       src={user.avatar}
                       alt={user.full_name}
-                      fallback={user.username.charAt(0).toUpperCase()}
+                      fallback={user.username?.charAt(0).toUpperCase() || '?'}
                       size="sm"
                     />
                     <div className="text-left">
@@ -263,7 +273,7 @@ export default function MessagesPage() {
           </div>
 
           {/* Conversations List */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 w-full overflow-x-hidden">
             {isLoading ? (
               <div className="p-4 text-center text-muted">Loading conversations...</div>
             ) : conversations.length === 0 ? (
@@ -275,7 +285,7 @@ export default function MessagesPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-1 p-2">
+              <div className="px-2 py-2 space-y-1 overflow-hidden">
                 {conversations.map(conversation => {
                   const display = getConversationDisplay(conversation);
                   const isSelected = selectedConversation?.id === conversation.id;
@@ -285,7 +295,7 @@ export default function MessagesPage() {
                       key={conversation.id}
                       onClick={() => setSelectedConversation(conversation)}
                       className={cn(
-                        "w-full p-3 rounded-xl flex items-start space-x-3 transition-all duration-200",
+                        "w-full p-2 rounded-xl flex items-start gap-2 transition-all duration-200 overflow-hidden",
                         isSelected
                           ? "bg-accent-10 border border-accent-30 shadow-sm"
                           : "hover:bg-interactive-secondary-hover hover:shadow-sm"
@@ -297,28 +307,22 @@ export default function MessagesPage() {
                         size="default"
                         className="flex-shrink-0"
                       />
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center space-x-2">
-                            {display.icon}
-                            <span className="font-medium text-sm text-primary truncate">
+                      <div className="flex-1 overflow-hidden">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1 overflow-hidden">
+                            <div className="flex-shrink-0">{display.icon}</div>
+                            <p className="font-medium text-sm text-primary truncate max-w-[8rem]">
                               {display.name}
-                            </span>
+                            </p>
                           </div>
                           {conversation.unread_count > 0 && (
-                            <Badge variant="default" size="sm">
+                            <Badge variant="default" size="sm" className="flex-shrink-0">
                               {conversation.unread_count}
                             </Badge>
                           )}
                         </div>
-                        {conversation.last_message && (
-                          <div className="text-xs text-muted truncate">
-                            <span className="font-medium">{conversation.last_message.sender_name}:</span>{' '}
-                            {conversation.last_message.content}
-                          </div>
-                        )}
                         {conversation.last_message_at && (
-                          <div className="text-xs text-muted mt-1">
+                          <div className="text-xs text-muted mt-1 text-left">
                             {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: true })}
                           </div>
                         )}
@@ -384,7 +388,7 @@ export default function MessagesPage() {
                         )}
                       >
                         <Avatar
-                          fallback={message.sender.username.charAt(0).toUpperCase()}
+                          fallback={message.sender?.username?.charAt(0).toUpperCase() || '?'}
                           size="sm"
                           className="flex-shrink-0"
                         />
@@ -396,12 +400,12 @@ export default function MessagesPage() {
                               : "bg-card border border-secondary"
                           )}
                         >
-                          {!isCurrentUser && (
+                          {!isCurrentUser && message.sender && (
                             <div className="text-xs font-medium mb-1 text-muted">
-                              {message.sender.full_name}
+                              {message.sender.full_name || message.sender.username || 'Unknown'}
                             </div>
                           )}
-                          <div className={cn("text-sm", isCurrentUser && "text-white")}>
+                          <div className={cn("text-sm", isCurrentUser ? "text-white" : "text-primary")}>
                             {message.content}
                           </div>
                           <div className={cn(
@@ -414,18 +418,19 @@ export default function MessagesPage() {
                       </div>
                     );
                   })}
+                  <div ref={messagesEndRef} />
                 </div>
                 )}
               </ScrollArea>
 
               {/* Message Input */}
-              <div className="px-6 py-4 border-t border-secondary bg-card">
+              <div className="p-4 border-t border-secondary bg-card">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     sendMessage();
                   }}
-                  className="flex space-x-2"
+                  className="flex gap-2 w-full"
                 >
                   <Input
                     type="text"

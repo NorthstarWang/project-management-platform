@@ -60,14 +60,15 @@ class MessageRepository:
         
         # Get all team conversations for user's teams
         from app.data_manager import data_manager
-        user = data_manager.user_service.get_user(user_id)
-        if user:
-            team_conversations = [
-                c for c in self.conversations 
-                if c["type"] == ConversationType.TEAM and c["team_id"] in user.get("team_ids", [])
-            ]
-            team_conversation_ids = [c["id"] for c in team_conversations]
-            user_conversation_ids.extend(team_conversation_ids)
+        user_teams = data_manager.team_service.get_user_teams(user_id)
+        team_ids = [team["id"] for team in user_teams]
+        
+        team_conversations = [
+            c for c in self.conversations 
+            if c["type"] == ConversationType.TEAM and c["team_id"] in team_ids
+        ]
+        team_conversation_ids = [c["id"] for c in team_conversations]
+        user_conversation_ids.extend(team_conversation_ids)
         
         # Remove duplicates and get conversations
         user_conversation_ids = list(set(user_conversation_ids))

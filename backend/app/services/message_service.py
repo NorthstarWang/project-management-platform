@@ -171,12 +171,10 @@ class MessageService:
             if other_participant_id:
                 sender = self.user_service.get_user(user_id)
                 self.notification_service.create_notification(
-                    user_id=other_participant_id,
+                    recipient_id=other_participant_id,
                     notification_type=NotificationType.MESSAGE,
                     title="New Message",
-                    message=f"{sender.get('full_name', sender.get('username', 'Someone'))} sent you a message",
-                    related_id=conversation["id"],
-                    related_type="conversation"
+                    message=f"{sender.get('full_name', sender.get('username', 'Someone'))} sent you a message"
                 )
         
         return message

@@ -59,7 +59,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     if (leftIcon || rightIcon) {
       return (
-        <div className="relative">
+        <div className={cn("relative", className)}>
           {leftIcon && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
               {leftIcon}
@@ -71,7 +71,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               inputVariants({ variant, size, state: finalState }),
               leftIcon && 'pl-10',
               rightIcon && 'pr-10',
-              className
+              'w-full'
             )}
             ref={ref}
             {...props}
@@ -94,10 +94,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     }
 
     return (
-      <div>
+      <div className={className}>
         <input
           type={type}
-          className={cn(inputVariants({ variant, size, state: finalState, className }))}
+          className={cn(inputVariants({ variant, size, state: finalState }), 'w-full')}
           ref={ref}
           {...props}
         />

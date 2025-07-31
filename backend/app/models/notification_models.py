@@ -9,6 +9,7 @@ class NotificationType(str, Enum):
     TASK_MOVED = "task_moved"
     BOARD_ENROLLED = "board_enrolled"
     PROJECT_ASSIGNED = "project_assigned"
+    MESSAGE = "message"
 
 class NotificationIn(BaseModel):
     recipient_id: str

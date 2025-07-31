@@ -14,6 +14,18 @@ class TeamService:
         self.user_repository = user_repository
         self.notification_repository = notification_repository
     
+    def get_user_teams(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all teams that a user is a member of"""
+        return self.team_repository.get_user_teams(user_id)
+    
+    def get_team(self, team_id: str) -> Optional[Dict[str, Any]]:
+        """Get a team by ID"""
+        return self.team_repository.find_by_id(team_id)
+    
+    def get_team_members(self, team_id: str) -> List[Dict[str, Any]]:
+        """Get all members of a team"""
+        return self.team_repository.get_team_members(team_id)
+    
     def get_discoverable_teams(self, user_id: str) -> List[Dict[str, Any]]:
         """Get teams that a user can discover"""
         teams = self.team_repository.get_discoverable_teams(user_id)
